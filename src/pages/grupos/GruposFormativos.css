@@ -1,0 +1,473 @@
+/* Variables base extraídas del Figma */
+:root {
+  --sima-green: #3ad30c;
+  --sima-green-hover: #32b80a;
+  --sima-bg-main: #d9dbda;
+  --sima-bg-sidebar: #ffffff;
+  --sima-bg-topbar: #ffffff;
+  --sima-border: #e0e0e0;
+  --sima-text-gray: #777777;
+  --sima-text-dark: #333333;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--sima-bg-main);
+}
+
+.sima-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sima-sidebar {
+  width: 260px;
+  background-color: var(--sima-bg-sidebar);
+  border-right: 1px solid var(--sima-border);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 0;
+  z-index: 10;
+}
+
+.sima-logo-container {
+  padding: 0 40px;
+  margin-bottom: 40px;
+}
+
+.sima-logo {
+  font-size: 54px;
+  font-weight: 800;
+  color: var(--sima-green);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.sima-logo-subtitle {
+  font-size: 11px;
+  color: var(--sima-text-gray);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.sima-nav-group {
+  padding: 0 20px;
+}
+
+.sima-nav-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sima-text-gray);
+  margin-bottom: 12px;
+  padding-left: 20px;
+  letter-spacing: 0.5px;
+}
+
+.sima-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: var(--sima-text-gray);
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.sima-nav-link:hover {
+  background-color: #f5f5f5;
+  color: var(--sima-text-dark);
+}
+
+.sima-nav-link.active {
+  background-color: #dff0d8;
+  color: var(--sima-text-dark);
+  font-weight: 600;
+}
+
+.sima-nav-link svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sima-sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--sima-border);
+  padding: 30px 40px 0 40px;
+}
+
+.sima-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.sima-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e6f2ff;
+  color: #0066ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  border: 1px solid #cce0ff;
+}
+
+.sima-user-info span {
+  display: block;
+}
+
+.sima-user-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--sima-text-dark);
+}
+
+.sima-user-role {
+  font-size: 11px;
+  color: var(--sima-text-gray);
+}
+
+/* Main Content Area */
+.sima-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Topbar */
+.sima-topbar {
+  height: 80px;
+  background-color: var(--sima-bg-topbar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  z-index: 5;
+}
+
+.sima-search-wrapper {
+  position: relative;
+  width: 400px;
+}
+
+.sima-search-wrapper svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+}
+
+.sima-search-input {
+  width: 100%;
+  height: 40px;
+  background-color: #eaeaea;
+  border: none;
+  border-radius: 6px;
+  padding-left: 40px;
+  padding-right: 16px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+}
+
+.sima-search-input::placeholder {
+  color: #888;
+}
+
+.sima-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.sima-btn-bell {
+  background: white;
+  border: 1px solid #ccc;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #444;
+  cursor: pointer;
+  outline: none;
+}
+
+.sima-topbar-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ccc;
+  padding: 6px 16px 6px 6px;
+  border-radius: 30px;
+  cursor: pointer;
+}
+
+.sima-topbar-profile .sima-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.sima-topbar-profile .sima-user-name {
+  font-size: 12px;
+}
+
+/* Page Content */
+.sima-content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px 40px;
+  background-color: var(--sima-bg-main);
+}
+
+.sima-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.sima-page-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--sima-text-dark);
+  margin-bottom: 4px;
+}
+
+.sima-page-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.sima-btn-primary {
+  background-color: var(--sima-green);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.sima-btn-primary:hover {
+  background-color: var(--sima-green-hover);
+}
+
+.sima-btn-outline {
+  background-color: white;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  color: #333;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 24px;
+  transition: all 0.2s;
+}
+
+.sima-btn-outline:hover {
+  background-color: #f5f5f5;
+}
+
+/* Card */
+.sima-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  padding: 30px;
+  margin-bottom: 30px;
+}
+
+.sima-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+/* Custom Form Styles */
+.sima-form-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.sima-form-label span {
+  color: #e53935;
+  margin-left: 3px;
+}
+
+.sima-input {
+  height: 45px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 100%;
+}
+
+.sima-input:focus {
+  border-color: #888;
+  box-shadow: none;
+}
+
+/* Validation Styles */
+.sima-input.is-invalid {
+  border-color: #e53935 !important;
+  background-image: none !important;
+}
+
+.sima-input.is-valid {
+  border-color: var(--sima-green) !important;
+  background-color: #eafbe1 !important;
+  background-image: none !important;
+}
+
+.sima-feedback-error {
+  color: #e53935;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+  text-align: right;
+  display: block;
+}
+
+.sima-feedback-success {
+  color: var(--sima-green);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+  text-align: left;
+  display: block;
+}
+
+.sima-hint {
+  color: #888;
+  font-size: 11px;
+  margin-top: 6px;
+  display: block;
+}
+
+/* Info Box */
+.sima-info-box {
+  background-color: #d4f7cc;
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+  margin: 30px 0;
+}
+
+.sima-info-box p {
+  color: #40752b;
+  margin: 0;
+  font-size: 15px;
+}
+
+.sima-info-box strong {
+  font-weight: 700;
+}
+
+/* Table Card Header */
+.sima-table-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sima-table-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #666;
+  margin: 0;
+}
+
+.sima-table-filters {
+  display: flex;
+  gap: 10px;
+}
+
+.sima-filter-btn {
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #444;
+}
+
+/* Table adjustments */
+.sima-table {
+  width: 100%;
+}
+
+.sima-table thead th {
+  background-color: #ebebeb;
+  color: #555;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  padding: 14px 16px;
+  border-bottom: 2px solid white;
+}
+
+.sima-table tbody td {
+  padding: 16px;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.sima-td-highlight {
+  color: var(--sima-green);
+  font-weight: 700;
+}
+
+/* Table Badges */
+.sima-badge-table {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sima-bg-activa {
+  background-color: #e5f9de;
+  color: #31a409;
+}
+
+.sima-bg-espera {
+  background-color: #fdf2d0;
+  color: #b8860b;
+}
+
+.sima-bg-desactiva {
+  background-color: #fce4e4;
+  color: #d11a2a;
+}
