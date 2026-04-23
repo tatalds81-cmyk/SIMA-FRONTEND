@@ -1,0 +1,81 @@
+.sima-sidebar-main {
+  width: 260px;
+  height: 100vh;
+  background-color: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.03);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+}
+
+/* Estilo del Logo en el Sidebar */
+.sima-sidebar-logo {
+  font-size: 30px;
+  font-weight: bold;
+  color: #39A900; /* Verde principal */
+  text-align: center;
+  padding: 2px 0;
+  margin-bottom: 50px;
+  border-bottom: 3px solid #f0fdf4; /* Línea sutil verde claro */
+  letter-spacing: 2px;
+}
+
+.sima-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Botones de navegación */
+.sima-nav-link {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #4b5563; /* Gris oscuro para texto */
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.sima-nav-link:hover {
+  background-color: #f0fdf4; /* Fondo verde muy claro */
+  color: #39A900;
+  padding-left: 25px; /* Efecto de desplazamiento */
+}
+
+/* Estado activo (Verde y Blanco) */
+.sima-nav-link.active {
+  background-color: #39A900;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(57, 169, 0, 0.25);
+}
+
+/* Ajuste para que el contenido principal no quede debajo del sidebar */
+@media (max-width: 768px) {
+  .sima-sidebar-main {
+    width: 80px;
+  }
+  .sima-sidebar-logo {
+    font-size: 18px;
+  }
+  .sima-nav-link {
+    padding: 10px;
+    justify-content: center;
+    font-size: 10px;
+  }
+}
