@@ -10,6 +10,9 @@ import Login from "./pages/Auth/Login";
 // Importamos Dashboard
 import Dashboard from "./pages/Dashboard";
 
+// Importamos Gestión de Fichas
+import GruposFormativos from "./pages/grupos/GruposFormativos";
+
 function App() {
   // Inicializamos el token buscando en el almacenamiento local.
   // Si no existe (null), el sistema mostrará automáticamente el Login.
@@ -28,7 +31,7 @@ function App() {
             {/* Rutas protegidas: solo accesibles con sesión iniciada */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/usuarios" element={<Dashboard />} />
-            <Route path="/fichas" element={<Dashboard />} />
+            <Route path="/fichas" element={<GruposFormativos />} />
             <Route path="/alertas" element={<Dashboard />} />
             <Route path="/configuracion" element={<Dashboard />} />
             {/* Si el usuario intenta ir a otra ruta, lo mandamos al dashboard */}
