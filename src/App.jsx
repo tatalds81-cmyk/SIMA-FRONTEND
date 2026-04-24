@@ -10,10 +10,11 @@ import Login from "./pages/Auth/Login";
 // Importamos Dashboard (Layout Principal)
 import Dashboard from "./pages/Dashboard";
 
-// Importamos las nuevas vistas integradas
+
 import GruposFormativos from "./pages/grupos/GruposFormativos";
 import CoordinadorDashboard from "./pages/Dashboard/CoordinadorDashboard";
 import GrupoDetalle from "./pages/Dashboard/GrupoDetalle";
+
 
 function App() {
   // Inicializamos el token buscando en el almacenamiento local.
@@ -33,18 +34,20 @@ function App() {
             {/* Rutas protegidas: solo accesibles con sesión iniciada */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/usuarios" element={<Dashboard />} />
-            
+
+
             {/* Gestión de Grupos */}
             <Route path="/fichas" element={<Dashboard><GruposFormativos /></Dashboard>} />
             <Route path="/grupos" element={<Navigate to="/fichas" replace />} />
-            
+
             {/* Detalles de Grupo / Dashboard Coordinador */}
             <Route path="/coordinador" element={<Dashboard><CoordinadorDashboard /></Dashboard>} />
             <Route path="/coordinador/ficha/:codigo" element={<Dashboard><GrupoDetalle /></Dashboard>} />
-            
+
+
             <Route path="/alertas" element={<Dashboard />} />
             <Route path="/configuracion" element={<Dashboard />} />
-            
+
             {/* Si el usuario intenta ir a otra ruta, lo mandamos al dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </>
