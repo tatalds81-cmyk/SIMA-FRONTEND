@@ -1,21 +1,28 @@
-// Importamos useEffect y useState para manejar la sesión
-import { useEffect, useState } from "react";
+// Importamos useState para manejar el estado de la sesión
+import { useState } from "react";
 
-// Importamos BrowserRouter y Routes para las rutas
+// Importamos BrowserRouter, Routes, Route y Navigate para manejar las rutas
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-// Importamos login
+// Importamos la página de Login
 import Login from "./pages/Auth/Login";
 
-// Importamos Dashboard
+// Importamos el Dashboard general del proyecto
+// Este Dashboard contiene el Navbar y Sidebar de la compañera
 import Dashboard from "./pages/Dashboard";
 
+// Importamos el contenido del dashboard del coordinador
+// Esta es la parte desarrollada para el panel principal del coordinador
+import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
+
 function App() {
-  // Inicializamos el token buscando en el almacenamiento local.
-  // Si no existe (null), el sistema mostrará automáticamente el Login.
+  // Inicializamos el token buscando en localStorage.
+  // Si existe token, el usuario puede entrar al dashboard.
+  // Si no existe, el sistema muestra el login.
   const [token, setToken] = useState(localStorage.getItem("access"));
 
-  // Se ejecuta cuando el login es correcto
+  // Esta función se ejecuta cuando el login es correcto.
+  // Actualiza el estado para permitir el acceso al dashboard.
   function manejarLogin() {
     setToken(localStorage.getItem("access"));
   }
@@ -25,12 +32,32 @@ function App() {
       <Routes>
         {token ? (
           <>
-            {/* Rutas protegidas: solo accesibles con sesión iniciada */}
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* 
+              Ruta principal protegida del dashboard.
+              Se mantiene el layout de Dashboard:
+              - Navbar superior
+              - Sidebar lateral
+              Y dentro se carga el PanelCoordinador.
+            */}
+            <Route
+              path="/dashboard"
+              element={
+                <Dashboard>
+                  <PanelCoordinador />
+                </Dashboard>
+              }
+            />
+
+            {/* 
+              Rutas protegidas del sistema.
+              Por ahora conservan el Dashboard base del proyecto
+              para no afectar el trabajo de otros compañeros.
+            */}
             <Route path="/usuarios" element={<Dashboard />} />
             <Route path="/fichas" element={<Dashboard />} />
             <Route path="/alertas" element={<Dashboard />} />
             <Route path="/configuracion" element={<Dashboard />} />
+
             {/* Si el usuario intenta ir a otra ruta, lo mandamos al dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </>
@@ -38,6 +65,8 @@ function App() {
           <>
             {/* Si no hay token, siempre mostramos el Login */}
             <Route path="/" element={<Login onLogin={manejarLogin} />} />
+
+            {/* Cualquier otra ruta sin sesión vuelve al login */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         )}
