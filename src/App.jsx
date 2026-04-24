@@ -15,6 +15,8 @@ import Dashboard from "./pages/Dashboard";
 // Esta es la parte desarrollada para el panel principal del coordinador
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
 
+import RegistroAprendices from "./pages/coordinador/RegistroAprendices";
+
 function App() {
   // Inicializamos el token buscando en localStorage.
   // Si existe token, el usuario puede entrar al dashboard.
@@ -44,6 +46,14 @@ function App() {
               element={
                 <Dashboard>
                   <PanelCoordinador />
+                </Dashboard>
+              }
+            />
+            <Route
+              path="/coordinador/registro-aprendices"
+              element={
+                <Dashboard>
+                  <RegistroAprendices />
                 </Dashboard>
               }
             />

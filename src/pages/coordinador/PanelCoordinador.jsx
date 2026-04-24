@@ -54,10 +54,8 @@ export default function PanelCoordinador() {
     navigate("/fichas");
   }
 
-  function mostrarMensajeAprendiz() {
-    alert(
-      "La funcionalidad de registrar aprendiz será integrada con el módulo correspondiente del sistema."
-    );
+  function irRegistroAprendices() {
+    navigate("/coordinador/registro-aprendices");
   }
 
   const asistenciaSemanal = [
@@ -251,7 +249,7 @@ export default function PanelCoordinador() {
               <span>Crear Grupo</span>
             </button>
 
-            <button className="btn-accion azul" onClick={mostrarMensajeAprendiz}>
+            <button className="btn-accion azul" onClick={irRegistroAprendices}>
               <PlusCircle size={22} strokeWidth={2.5} />
               <span>Registrar Aprendiz</span>
             </button>
