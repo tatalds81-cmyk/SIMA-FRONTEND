@@ -28,6 +28,8 @@ export default function GruposFormativos() {
   const [estadoNumero, setEstadoNumero] = useState(null); // 'disponible', 'ocupado', 'buscando', null
   const API_URL = "http://127.0.0.1:8000/api";
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     cargarGrupos();
     cargarAreas();
@@ -71,11 +73,9 @@ export default function GruposFormativos() {
       const res = await fetch(`${API_URL}/groups`, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
-        // Nuestro backend devuelve la colección dentro de data.data.grupos debido a tu helpers de paginación
         const gruposExtraidos = data?.data?.grupos || data?.data || data?.results || [];
         setGrupos(Array.isArray(gruposExtraidos) ? gruposExtraidos : []);
       } else {
-        // Fallback datos vacíos si no hay api
         setGrupos([]);
       }
     } catch (error) {
@@ -226,296 +226,252 @@ export default function GruposFormativos() {
   };
 
   const mesesEquivalentes = trimestres && !isNaN(trimestres) ? parseInt(trimestres) * 3 : 0;
-  
-  const navigate = useNavigate();
-
-  function cerrarSesion() {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("username");
-    localStorage.removeItem("rol");
-    navigate("/login");
-  }
 
   return (
-    <div className="sima-layout">
-      {/* Barra lateral */}
-      <aside className="sima-sidebar">
-        <div className="sima-logo">SIMA</div>
-
-        <div className="sima-menu">
-          <button>Inicio</button>
-          <button onClick={() => navigate("/dashboard")}>Gestión de usuarios</button>
-          <button className="active">Gestión de fichas</button>
-          <button>Configuración</button>
-        </div>
-      </aside>
-
-      {/* Contenido principal */}
-      <main className="sima-main">
-        {/* Barra superior */}
-        <div className="sima-topbar">
-          <div className="sima-search-box">
-            <input
-              type="text"
-              className="sima-search"
-              placeholder="Buscar grupo o programa..."
-            />
+    <>
+      <div className="sima-content-wrapper">
+        <div className="sima-page-header">
+          <div>
+            <h1 className="sima-page-title">Mis grupos</h1>
+            <p className="sima-page-subtitle">Registro y consulta de grupos de formación</p>
           </div>
-
-          <div className="sima-userbox">
-            <button className="sima-btn-danger" onClick={cerrarSesion}>
-              Cerrar sesión
+          {!mostrarFormulario && (
+            <button
+              className="sima-btn-primary"
+              onClick={() => setMostrarFormulario(true)}
+            >
+              + NUEVO GRUPO
             </button>
-            <div className="sima-user-icon">U</div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="sima-content-wrapper">
-          <div className="sima-page-header">
-            <div>
-              <h1 className="sima-page-title">Mis grupos</h1>
-              <p className="sima-page-subtitle">Registro y consulta de grupos de formación</p>
-            </div>
-            {!mostrarFormulario && (
-              <button
-                className="sima-btn-primary"
-                onClick={() => setMostrarFormulario(true)}
-              >
-                + NUEVO GRUPO
-              </button>
-            )}
-          </div>
-
-          {mostrarFormulario ? (
-            <div className="sima-card" style={{ padding: "40px" }}>
-              <div className="sima-card-title">CREAR NUEVO GRUPO FORMATIVO
-              </div>
-
-              <Form onSubmit={guardarGrupo}>
-                <Row className="mb-4">
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label className="sima-form-label">Número de grupo<span>*</span></Form.Label>
-                      <Form.Control
-                        type="text"
-                        className={`sima-input ${errores.numeroGrupo ? "is-invalid" : ""} ${estadoNumero === "disponible" ? "is-valid" : ""}`}
-                        value={numeroGrupo}
-                        onChange={(e) => setNumeroGrupo(e.target.value)}
-                      />
-                      {estadoNumero === "disponible" && !errores.numeroGrupo && (
-                        <span className="sima-feedback-success">✓ Numero disponible</span>
-                      )}
-                      {errores.numeroGrupo && (
-                        <span className="sima-feedback-error">✕ {errores.numeroGrupo}</span>
-                      )}
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label className="sima-form-label">Area de formacion <span>*</span></Form.Label>
-                      <Form.Select
-                        className={`sima-input ${errores.areaFormacion ? "is-invalid" : ""}`}
-                        value={areaFormacion}
-                        onChange={(e) => setAreaFormacion(e.target.value)}
-                      >
-                        <option value="">Seleccione...</option>
-                        {areas.map(a => (
-                          <option key={a.id_area} value={a.id_area}>
-                            {a.nombre_area || a.nombre}
-                          </option>
-                        ))}
-                      </Form.Select>
-                      {errores.areaFormacion && <span className="sima-feedback-error">✕ {errores.areaFormacion}</span>}
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label className="sima-form-label">Jornada academica <span>*</span></Form.Label>
-                      <Form.Select
-                        className={`sima-input ${errores.jornada ? "is-invalid" : ""}`}
-                        value={jornada}
-                        onChange={(e) => setJornada(e.target.value)}
-                      >
-                        <option value="">Seleccione...</option>
-                        <option value="Mañana">Mañana - 6:00 am a 12:00 m</option>
-                        <option value="Tarde">Tarde - 12:00 m a 6:00 pm</option>
-                        <option value="Noche">Noche - 6:00 pm a 10:00 pm</option>
-                      </Form.Select>
-                      {errores.jornada && <span className="sima-feedback-error">✕ {errores.jornada}</span>}
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row className="mb-4">
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label className="sima-form-label">Programa de formacion <span>*</span></Form.Label>
-                      <Form.Select
-                        className={`sima-input ${errores.programaFormacion ? "is-invalid" : ""}`}
-                        value={programaFormacion}
-                        onChange={(e) => setProgramaFormacion(e.target.value)}
-                        disabled={!areaFormacion}
-                      >
-                        <option value="">Selecciona un programa</option>
-                        {programas.map((prog, idx) => (
-                          <option key={idx} value={prog.id_programa}>
-                            {prog.nombre_programa}
-                          </option>
-                        ))}
-                      </Form.Select>
-                      {errores.programaFormacion && <span className="sima-feedback-error">✕ {errores.programaFormacion}</span>}
-                      {!areaFormacion && <span className="sima-hint">Selecciona un área primero</span>}
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label className="sima-form-label">Instructor Lider</Form.Label>
-                      <Form.Select
-                        className="sima-input"
-                        value={instructorLider}
-                        onChange={(e) => setInstructorLider(e.target.value)}
-                      >
-                        <option value="">Seleccionar Usuario</option>
-                        {instructores.map(i => (
-                          <option key={i.id_usuario || i.id} value={i.id_usuario || i.id}>
-                            {i.nombre_completo || i.nombre || "Instructor"}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label className="sima-form-label">Duracion de trimestre <span>*</span></Form.Label>
-                      <Form.Control
-                        type="number"
-                        className={`sima-input ${errores.trimestres ? "is-invalid" : ""}`}
-                        value={trimestres}
-                        onChange={(e) => setTrimestres(e.target.value)}
-                        min="1"
-                      />
-                      {!errores.trimestres && trimestres && (
-                        <span className="sima-hint">Equivale a {mesesEquivalentes} meses de formación</span>
-                      )}
-                      {errores.trimestres && <span className="sima-feedback-error">✕ {errores.trimestres}</span>}
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <div className="sima-info-box">
-                  <p>
-                    El estado inicial de la ficha será <strong>Activo</strong> y estará disponible inmediatamente para vincular aprendices.
-                  </p>
-                </div>
-
-                <div className="d-flex justify-content-end gap-3 mt-4">
-                  <button
-                    type="button"
-                    className="sima-btn-outline"
-                    onClick={() => {
-                      setMostrarFormulario(false);
-                      limpiarFormulario();
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="sima-btn-primary">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    CREAR GRUPO
-                  </button>
-                </div>
-              </Form>
-            </div>
-          ) : (
-            <div className="sima-card">
-              <div className="sima-table-header-flex">
-                <h3 className="sima-table-header-title">GRUPOS REGISTRADOS</h3>
-                <div className="sima-table-filters">
-                  <button className="sima-filter-btn">
-                    Jornada
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                  </button>
-                  <button className="sima-filter-btn">
-                    Todos
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                  </button>
-                </div>
-              </div>
-
-              <Table className="sima-table" responsive>
-                <thead>
-                  <tr>
-                    <th>Código</th>
-                    <th>Programa</th>
-                    <th>Jornada</th>
-                    <th className="text-center">Aprendices</th>
-                    <th className="text-center">Trimestres</th>
-                    <th className="text-center">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {grupos.length > 0 ? (
-                    grupos.map((g, idx) => (
-                      <tr key={idx}>
-                        <td className="sima-td-highlight">{g.numero_ficha || g.numero_grupo || g.codigo || "2847621"}</td>
-                        <td 
-                          className="sima-td-highlight" 
-                          style={{ cursor: "pointer" }}
-                          onClick={() => navigate("/coordinador")}
-                        >
-                          {g.programa_formacion?.nombre_programa || g.programa || "Análisis y Desarrollo de Software"}
-                        </td>
-                        <td>{g.jornada || "Mañana"}</td>
-                        <td className="text-center">{g.aprendices !== undefined ? g.aprendices : 24}</td>
-                        <td className="text-center">{g.trimestres || 6}</td>
-                        <td className="text-center">
-                          <span className={`sima-badge-table ${
-                            g.estado === 'CERRADO' ? 'sima-bg-desactiva'
-                            : g.estado === 'SUSPENDIDO' ? 'sima-bg-espera'
-                            : 'sima-bg-activa'
-                          }`}>
-                            {g.estado || 'ACTIVO'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    // Mock data explícito por si el usuario no tiene la BD arriba y quiere ver el disenho idéntico
-                    <>
-                      <tr>
-                        <td className="sima-td-highlight">2847621</td>
-                        <td className="sima-td-highlight" style={{ cursor: "pointer" }} onClick={() => navigate("/coordinador")}>Análisis y Desarrollo</td>
-                        <td>Mañana</td>
-                        <td className="text-center">24</td>
-                        <td className="text-center">6</td>
-                        <td className="text-center"><span className="sima-badge-table sima-bg-activa">ACTIVO</span></td>
-                      </tr>
-                      <tr>
-                        <td className="sima-td-highlight">2068574</td>
-                        <td className="sima-td-highlight" style={{ cursor: "pointer" }} onClick={() => navigate("/coordinador")}>Redes y Datos</td>
-                        <td>Tarde</td>
-                        <td className="text-center">30</td>
-                        <td className="text-center">4</td>
-                        <td className="text-center"><span className="sima-badge-table sima-bg-espera">SUSPENDIDO</span></td>
-                      </tr>
-                      <tr>
-                        <td className="sima-td-highlight">3064975</td>
-                        <td className="sima-td-highlight" style={{ cursor: "pointer" }} onClick={() => navigate("/coordinador")}>Contabilidad</td>
-                        <td>Mañana</td>
-                        <td className="text-center">19</td>
-                        <td className="text-center">3</td>
-                        <td className="text-center"><span className="sima-badge-table sima-bg-desactiva">CERRADO</span></td>
-                      </tr>
-                    </>
-                  )}
-                </tbody>
-              </Table>
-            </div>
           )}
         </div>
-      </main>
+
+        {mostrarFormulario ? (
+          <div className="sima-card" style={{ padding: "40px" }}>
+            <div className="sima-card-title">CREAR NUEVO GRUPO FORMATIVO
+            </div>
+
+            <Form onSubmit={guardarGrupo}>
+              <Row className="mb-4">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="sima-form-label">Número de grupo<span>*</span></Form.Label>
+                    <Form.Control
+                      type="text"
+                      className={`sima-input ${errores.numeroGrupo ? "is-invalid" : ""} ${estadoNumero === "disponible" ? "is-valid" : ""}`}
+                      value={numeroGrupo}
+                      onChange={(e) => setNumeroGrupo(e.target.value)}
+                    />
+                    {estadoNumero === "disponible" && !errores.numeroGrupo && (
+                      <span className="sima-feedback-success">✓ Numero disponible</span>
+                    )}
+                    {errores.numeroGrupo && (
+                      <span className="sima-feedback-error">✕ {errores.numeroGrupo}</span>
+                    )}
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="sima-form-label">Area de formacion <span>*</span></Form.Label>
+                    <Form.Select
+                      className={`sima-input ${errores.areaFormacion ? "is-invalid" : ""}`}
+                      value={areaFormacion}
+                      onChange={(e) => setAreaFormacion(e.target.value)}
+                    >
+                      <option value="">Seleccione...</option>
+                      {areas.map(a => (
+                        <option key={a.id_area} value={a.id_area}>
+                          {a.nombre_area || a.nombre}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    {errores.areaFormacion && <span className="sima-feedback-error">✕ {errores.areaFormacion}</span>}
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="sima-form-label">Jornada academica <span>*</span></Form.Label>
+                    <Form.Select
+                      className={`sima-input ${errores.jornada ? "is-invalid" : ""}`}
+                      value={jornada}
+                      onChange={(e) => setJornada(e.target.value)}
+                    >
+                      <option value="">Seleccione...</option>
+                      <option value="Mañana">Mañana - 6:00 am a 12:00 m</option>
+                      <option value="Tarde">Tarde - 12:00 m a 6:00 pm</option>
+                      <option value="Noche">Noche - 6:00 pm a 10:00 pm</option>
+                    </Form.Select>
+                    {errores.jornada && <span className="sima-feedback-error">✕ {errores.jornada}</span>}
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-4">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="sima-form-label">Programa de formacion <span>*</span></Form.Label>
+                    <Form.Select
+                      className={`sima-input ${errores.programaFormacion ? "is-invalid" : ""}`}
+                      value={programaFormacion}
+                      onChange={(e) => setProgramaFormacion(e.target.value)}
+                      disabled={!areaFormacion}
+                    >
+                      <option value="">Selecciona un programa</option>
+                      {programas.map((prog, idx) => (
+                        <option key={idx} value={prog.id_programa}>
+                          {prog.nombre_programa}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    {errores.programaFormacion && <span className="sima-feedback-error">✕ {errores.programaFormacion}</span>}
+                    {!areaFormacion && <span className="sima-hint">Selecciona un área primero</span>}
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="sima-form-label">Instructor Lider</Form.Label>
+                    <Form.Select
+                      className="sima-input"
+                      value={instructorLider}
+                      onChange={(e) => setInstructorLider(e.target.value)}
+                    >
+                      <option value="">Seleccionar Usuario</option>
+                      {instructores.map(i => (
+                        <option key={i.id_usuario || i.id} value={i.id_usuario || i.id}>
+                          {i.nombre_completo || i.nombre || "Instructor"}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="sima-form-label">Duracion de trimestre <span>*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      className={`sima-input ${errores.trimestres ? "is-invalid" : ""}`}
+                      value={trimestres}
+                      onChange={(e) => setTrimestres(e.target.value)}
+                      min="1"
+                    />
+                    {!errores.trimestres && trimestres && (
+                      <span className="sima-hint">Equivale a {mesesEquivalentes} meses de formación</span>
+                    )}
+                    {errores.trimestres && <span className="sima-feedback-error">✕ {errores.trimestres}</span>}
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <div className="sima-info-box">
+                <p>
+                  El estado inicial de la ficha será <strong>Activo</strong> y estará disponible inmediatamente para vincular aprendices.
+                </p>
+              </div>
+
+              <div className="d-flex justify-content-end gap-3 mt-4">
+                <button
+                  type="button"
+                  className="sima-btn-outline"
+                  onClick={() => {
+                    setMostrarFormulario(false);
+                    limpiarFormulario();
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="sima-btn-primary">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  CREAR GRUPO
+                </button>
+              </div>
+            </Form>
+          </div>
+        ) : (
+          <div className="sima-card">
+            <div className="sima-table-header-flex">
+              <h3 className="sima-table-header-title">GRUPOS REGISTRADOS</h3>
+              <div className="sima-table-filters">
+                <button className="sima-filter-btn">
+                  Jornada
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <button className="sima-filter-btn">
+                  Todos
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <Table className="sima-table" responsive>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Programa</th>
+                  <th>Jornada</th>
+                  <th className="text-center">Aprendices</th>
+                  <th className="text-center">Trimestres</th>
+                  <th className="text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grupos.length > 0 ? (
+                  grupos.map((g, idx) => (
+                    <tr key={idx}>
+                      <td className="sima-td-highlight">{g.numero_ficha || g.numero_grupo || g.codigo || "2847621"}</td>
+                      <td 
+                        className="sima-td-highlight" 
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigate("/coordinador")}
+                      >
+                        {g.programa_formacion?.nombre_programa || g.programa || "Análisis y Desarrollo de Software"}
+                      </td>
+                      <td>{g.jornada || "Mañana"}</td>
+                      <td className="text-center">{g.aprendices !== undefined ? g.aprendices : 24}</td>
+                      <td className="text-center">{g.trimestres || 6}</td>
+                      <td className="text-center">
+                        <span className={`sima-badge-table ${
+                          g.estado === 'CERRADO' ? 'sima-bg-desactiva'
+                          : g.estado === 'SUSPENDIDO' ? 'sima-bg-espera'
+                          : 'sima-bg-activa'
+                        }`}>
+                          {g.estado || 'ACTIVO'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  // Mock data explícito por si el usuario no tiene la BD arriba y quiere ver el disenho idéntico
+                  <>
+                    <tr>
+                      <td className="sima-td-highlight">2847621</td>
+                      <td className="sima-td-highlight" style={{ cursor: "pointer" }} onClick={() => navigate("/coordinador")}>Análisis y Desarrollo</td>
+                      <td>Mañana</td>
+                      <td className="text-center">24</td>
+                      <td className="text-center">6</td>
+                      <td className="text-center"><span className="sima-badge-table sima-bg-activa">ACTIVO</span></td>
+                    </tr>
+                    <tr>
+                      <td className="sima-td-highlight">2068574</td>
+                      <td className="sima-td-highlight" style={{ cursor: "pointer" }} onClick={() => navigate("/coordinador")}>Redes y Datos</td>
+                      <td>Tarde</td>
+                      <td className="text-center">30</td>
+                      <td className="text-center">4</td>
+                      <td className="text-center"><span className="sima-badge-table sima-bg-espera">SUSPENDIDO</span></td>
+                    </tr>
+                    <tr>
+                      <td className="sima-td-highlight">3064975</td>
+                      <td className="sima-td-highlight" style={{ cursor: "pointer" }} onClick={() => navigate("/coordinador")}>Contabilidad</td>
+                      <td>Mañana</td>
+                      <td className="text-center">19</td>
+                      <td className="text-center">3</td>
+                      <td className="text-center"><span className="sima-badge-table sima-bg-desactiva">CERRADO</span></td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </Table>
+          </div>
+        )}
+      </div>
       {/* Toast Animado */}
       {mostrarToast && (
         <div style={{
@@ -525,6 +481,6 @@ export default function GruposFormativos() {
           {mensajeToast || (toastError ? "No fue posible crear el grupo." : "Grupo creado correctamente. Redirigiendo al listado...")}
         </div>
       )}
-    </div>
+    </>
   );
 }
