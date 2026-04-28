@@ -41,16 +41,31 @@ export default function Login({ onLogin }) {
         return res.json();
       })
       .then((data) => {
-        // Guardamos token
-        localStorage.setItem("access", data.data.access);
+        console.log("Respuesta completa del servidor:", data);
+
+        // Buscamos el token en varias posibles ubicaciones (resiliencia)
+        const token = 
+          data?.data?.access || 
+          data?.data?.token || 
+          data?.access || 
+          data?.token;
+
+        if (!token) {
+          throw new Error("El servidor no envió un token de acceso válido. Revisa los logs.");
+        }
+
+        // Guardamos en ambas llaves para compatibilidad total
+        localStorage.setItem("access", token);
+        localStorage.setItem("token", token);
 
         // Guardamos información del usuario
-        const nombreUsuario = data.data.user?.nombre || username.trim();
+        const nombreUsuario = data?.data?.user?.nombre || data?.user?.nombre || username.trim();
         localStorage.setItem("username", nombreUsuario);
         localStorage.setItem("usuario", nombreUsuario);
 
-        if (data.data.user?.rol) {
-          localStorage.setItem("rol", data.data.user.rol);
+        const rol = data?.data?.user?.rol || data?.user?.rol || data?.rol;
+        if (rol) {
+          localStorage.setItem("rol", rol);
         }
 
         setMensaje("Inicio de sesión correcto");
