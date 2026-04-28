@@ -13,6 +13,9 @@ import Dashboard from "./pages/Dashboard";
 
 
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
+import GruposFormativos from "./pages/coordinador/GruposFormativos";
+import CoordinadorDashboard from "./pages/coordinador/CoordinadorDashboard";
+import DetalleGrupo from "./pages/coordinador/DetalleGrupo";
 
 function App() {
   // Inicializamos el token buscando en localStorage.
@@ -50,6 +53,15 @@ function App() {
             />
 
             <Route 
+              path="/fichas" 
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <GruposFormativos />
+                </Dashboard>
+              } 
+            />
+
+            <Route 
               path="/alertas" 
               element={
                 <Dashboard onLogout={manejarLogout}>
@@ -62,6 +74,24 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <div>Contenido de Configuración</div>
+                </Dashboard>
+              } 
+            />
+
+            <Route 
+              path="/coordinador/ficha/:codigo" 
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <CoordinadorDashboard />
+                </Dashboard>
+              } 
+            />
+
+            <Route 
+              path="/coordinador/ficha/:codigo/detalle" 
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <DetalleGrupo />
                 </Dashboard>
               } 
             />

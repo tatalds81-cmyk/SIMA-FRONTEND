@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import Navbar from "../components/Navbar/Navbar";
 import Sidebar from "../components/Sidebar/Sidebar";
 import "./Dashboard.css";
@@ -11,30 +11,19 @@ export default function Dashboard({ children }) {
     setSearchValue(value);
   };
 
-  const handleSearchSubmit = () => {
-    console.log("Búsqueda:", searchValue);
-  };
-
   return (
-    <div className="dashboard-container">
-      <Navbar 
-        searchValue={searchValue}
-        onSearchChange={handleSearch}
-        onSearchSubmit={handleSearchSubmit}
-        placeholder="Buscar usuarios, grupos..."
-      />
-      
-      <div className="dashboard-body">
-        <Sidebar activeItem={activeItem} />
+    <div className="sima-dashboard-layout">
+      {/* Sidebar Fijo a la Izquierda */}
+      <Sidebar activeItem={activeItem} />
+
+      {/* Contenedor Derecho (Navbar + Contenido Variable) */}
+      <div className="sima-main-container">
+        <Navbar onSearch={handleSearch} />
         
-        <main className="dashboard-content">
-          {children || (
-            <div className="dashboard-welcome">
-              <h1>Bienvenido a SIMA</h1>
-              <p>Sistema de Monitoreo y Administración</p>
-            </div>
-          )}
-        </main>
+        {/* Aquí se renderiza el componente que venga por children */}
+        <div className="sima-page-content">
+          {children}
+        </div>
       </div>
     </div>
   );
