@@ -32,8 +32,8 @@ export default function Usuario() {
     estado: "ACTIVO",
   });
 
-  const URL_USUARIOS = "http://localhost:3000/api/users";
-  const URL_ROLES = "http://localhost:3000/api/roles";
+  const URL_USUARIOS = "/api/users";
+  const URL_ROLES = "/api/roles";
 
   useEffect(() => {
     cargarUsuarios();

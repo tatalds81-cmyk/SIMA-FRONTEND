@@ -165,6 +165,5 @@ export default function Login({ onLogin }) {
 
       <div className="login-sima-wave"></div>
     </div>
-    
   );
 }
