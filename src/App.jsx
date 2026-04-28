@@ -14,6 +14,8 @@ import Dashboard from "./pages/Dashboard";
 
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
 
+import RegistroAprendices from "./pages/coordinador/RegistroAprendices";
+
 function App() {
   // Inicializamos el token buscando en localStorage.
   // Si existe token, el usuario puede entrar al dashboard.
@@ -47,6 +49,14 @@ function App() {
                   <PanelCoordinador />
                 </Dashboard>
               }
+            />
+            <Route 
+              path="/aprendices" 
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <RegistroAprendices />
+                </Dashboard>
+              } 
             />
 
             <Route 
