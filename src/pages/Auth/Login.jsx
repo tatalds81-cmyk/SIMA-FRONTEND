@@ -5,85 +5,105 @@ import OlvidePassword from "./OlvidePassword";
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+
+  // Aquí guardamos lo que el usuario escribe:
+  // puede ser correo, usuario o número de documento.
+  const [usuarioLogin, setUsuarioLogin] = useState("");
   const [password, setPassword] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [mostrarOlvide, setMostrarOlvide] = useState(false);
 
-  // Usamos ruta relativa gracias al proxy de Vite
-  const URL_LOGIN = "/api/auth/login";
+  // Backend Express
+  const URL_LOGIN = "http://localhost:3000/api/auth/login";
 
-  function iniciarSesion(e) {
-    if (e) e.preventDefault();
+  async function iniciarSesion(e) {
+    e.preventDefault();
     setMensaje("");
 
-    // El backend espera 'numero_documento' según el mensaje de error 400
+    // Validamos campos vacíos
+    if (!usuarioLogin.trim() || !password.trim()) {
+      setMensaje("Usuario/correo y contraseña son obligatorios");
+      return;
+    }
+
+    // Enviamos varios nombres de campo para adaptarnos al backend
     const data = {
-      numero_documento: username.trim(),
+      email: usuarioLogin.trim(),
+      correo: usuarioLogin.trim(),
+      username: usuarioLogin.trim(),
+      numero_documento: usuarioLogin.trim(),
       password: password
     };
 
-    fetch(URL_LOGIN, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    })
-      .then((res) => {
-        if (!res.ok) {
-          // Si la respuesta no es exitosa, intentamos leer el JSON de error, 
-          // si falla el parseo (como el 404), lanzamos un error genérico.
-          return res.json()
-            .catch(() => { throw new Error(`Error ${res.status}: No se pudo conectar con el servidor de autenticación.`); })
-            .then((errData) => { throw errData; });
-        }
-        return res.json();
-      })
-      .then((data) => {
-        // Guardamos token
-        localStorage.setItem("access", data.data.access);
-
-        // Guardamos información del usuario
-        const nombreUsuario = data.data.user?.nombre || username.trim();
-        localStorage.setItem("username", nombreUsuario);
-        localStorage.setItem("usuario", nombreUsuario);
-
-        if (data.data.user?.rol) {
-          localStorage.setItem("rol", data.data.user.rol);
-        }
-
-        setMensaje("Inicio de sesión correcto");
-
-        // Actualizamos estado global y redirigimos
-        if (onLogin) {
-          onLogin();
-          navigate("/dashboard");
-        }
-      })
-      .catch((error) => {
-        console.log("Error login:", error);
-
-        if (error instanceof TypeError && error.message === "Failed to fetch") {
-          setMensaje("No se pudo conectar con el servidor. Verifica que el backend esté corriendo y los permisos CORS.");
-        } else if (error.message) {
-          setMensaje(error.message);
-        } else if (error.error) {
-          setMensaje(error.error);
-        } else {
-          setMensaje("Error al iniciar sesión");
-        }
+    try {
+      const res = await fetch(URL_LOGIN, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
       });
-  }
 
-  function manejarCambioUsername(e) {
-    setUsername(e.target.value);
-    if (mensaje) setMensaje("");
-  }
+      const respuesta = await res.json().catch(() => ({}));
 
-  function manejarCambioPassword(e) {
-    setPassword(e.target.value);
-    if (mensaje) setMensaje("");
+      if (!res.ok) {
+        throw respuesta || { message: "Error al iniciar sesión" };
+      }
+
+      // Buscamos el token en varias posibles estructuras del backend
+      const token =
+        respuesta?.data?.access ||
+        respuesta?.data?.token ||
+        respuesta?.access ||
+        respuesta?.token;
+
+      if (!token) {
+        console.log("Respuesta del login:", respuesta);
+        setMensaje(
+          respuesta?.message ||
+            respuesta?.detail ||
+            "El backend respondió, pero no envió token de acceso"
+        );
+        return;
+      }
+
+      // Guardamos datos para mantener la sesión
+      localStorage.setItem("access", token);
+      localStorage.setItem("token", token);
+      localStorage.setItem("username", usuarioLogin.trim());
+      localStorage.setItem("usuario", usuarioLogin.trim());
+
+      // Guardamos rol si el backend lo envía
+      const rol =
+        respuesta?.data?.user?.rol ||
+        respuesta?.data?.usuario?.rol ||
+        respuesta?.user?.rol ||
+        respuesta?.usuario?.rol;
+
+      if (rol) {
+        localStorage.setItem("rol", rol);
+      }
+
+      // Avisamos al componente principal que el login fue exitoso
+      if (onLogin) {
+        onLogin();
+      }
+
+      // Redirigimos al dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      console.log("Error login:", error);
+
+      if (error?.message) {
+        setMensaje(error.message);
+      } else if (error?.error) {
+        setMensaje(error.error);
+      } else if (error?.errors) {
+        setMensaje("Datos de inicio de sesión incorrectos");
+      } else {
+        setMensaje("Error al iniciar sesión");
+      }
+    }
   }
 
   if (mostrarOlvide) {
@@ -97,21 +117,20 @@ export default function Login({ onLogin }) {
       <div className="login-sima-card">
         <h2 className="login-sima-title">INICIAR SESIÓN</h2>
 
-        {mensaje && (
-          <div className="alert alert-info mt-3">
-            {mensaje}
-          </div>
-        )}
+        {mensaje && <div className="alert alert-info mt-3">{mensaje}</div>}
 
         <form onSubmit={iniciarSesion}>
           <div className="mb-3">
-            <label className="login-sima-label">NÚMERO DE DOCUMENTO</label>
+            <label className="login-sima-label">USUARIO O CORREO</label>
             <input
               type="text"
               className="form-control login-sima-input"
-              placeholder="Ingrese su número de documento"
-              value={username}
-              onChange={manejarCambioUsername}
+              placeholder="Ingrese su usuario o correo"
+              value={usuarioLogin}
+              onChange={(e) => {
+                setUsuarioLogin(e.target.value);
+                if (mensaje) setMensaje("");
+              }}
               required
             />
           </div>
@@ -123,7 +142,10 @@ export default function Login({ onLogin }) {
               className="form-control login-sima-input"
               placeholder="Ingrese su contraseña"
               value={password}
-              onChange={manejarCambioPassword}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (mensaje) setMensaje("");
+              }}
               required
             />
           </div>
