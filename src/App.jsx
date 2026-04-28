@@ -1,38 +1,17 @@
-// Importamos useState para manejar el estado de la sesión
 import { useState } from "react";
-
-// Importamos BrowserRouter, Routes, Route y Navigate para manejar las rutas
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-// Importamos la página de Login
+// Vistas
 import Login from "./pages/Auth/Login";
-
-// Importamos el Dashboard general del proyecto
-// Este Dashboard contiene el Navbar y Sidebar principal
 import Dashboard from "./pages/Dashboard";
-
-
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
+import Usuario from "./pages/usuarios/Usuario";
 
 function App() {
-  // Inicializamos el token buscando en localStorage.
-  // Si existe token, el usuario puede entrar al dashboard.
-  // Si no existe, el sistema muestra el login.
   const [token, setToken] = useState(localStorage.getItem("access"));
 
-  // Esta función se ejecuta cuando el login es correcto.
-  // Actualiza el estado para permitir el acceso al dashboard.
   function manejarLogin() {
     setToken(localStorage.getItem("access"));
-  }
-
-  // Función para cerrar sesión
-  function manejarLogout() {
-    localStorage.removeItem("access");
-    localStorage.removeItem("username");
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("rol");
-    setToken(null);
   }
 
   return (
@@ -40,41 +19,59 @@ function App() {
       <Routes>
         {token ? (
           <>
+            {/* Dashboard principal */}
             <Route
               path="/dashboard"
               element={
-                <Dashboard onLogout={manejarLogout}>
+                <Dashboard>
                   <PanelCoordinador />
                 </Dashboard>
               }
             />
 
-            <Route 
-              path="/alertas" 
+            {/* Gestión de usuarios */}
+            <Route
+              path="/usuarios"
               element={
-                <Dashboard onLogout={manejarLogout}>
-                  <div>Contenido de Alertas</div>
+                <Dashboard>
+                  <Usuario />
                 </Dashboard>
-              } 
-            />
-            <Route 
-              path="/configuracion" 
-              element={
-                <Dashboard onLogout={manejarLogout}>
-                  <div>Contenido de Configuración</div>
-                </Dashboard>
-              } 
+              }
             />
 
-            {/* Si el usuario intenta ir a otra ruta, lo mandamos al dashboard */}
+            {/* Otras rutas */}
+            <Route
+              path="/fichas"
+              element={
+                <Dashboard>
+                  <div>Gestión de fichas</div>
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/alertas"
+              element={
+                <Dashboard>
+                  <div>Alertas</div>
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/configuracion"
+              element={
+                <Dashboard>
+                  <div>Configuración</div>
+                </Dashboard>
+              }
+            />
+
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </>
         ) : (
           <>
-            {/* Si no hay token, siempre mostramos el Login */}
             <Route path="/" element={<Login onLogin={manejarLogin} />} />
-
-            {/* Cualquier otra ruta sin sesión vuelve al login */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         )}

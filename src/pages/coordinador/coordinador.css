@@ -1,0 +1,251 @@
+.coordinador-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  padding: 0;
+  border: none;
+}
+
+.coordinador-seccion-titulo {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 14px 0;
+  color: #222;
+}
+
+/* TARJETAS */
+.coordinador-grid-resumen {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.card-resumen {
+  min-height: 115px;
+  padding: 14px;
+  border-radius: 14px;
+  color: white;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.card-resumen-verde {
+  background: linear-gradient(135deg, #157347, #1fa85b);
+}
+
+.card-resumen-azul {
+  background: linear-gradient(135deg, #1f4f85, #2f6fb3);
+}
+
+.card-resumen-superior {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-resumen-icono {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.card-resumen-icono svg {
+  width: 24px;
+  height: 24px;
+}
+
+.card-resumen-valor {
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 1;
+  margin: 0;
+}
+
+.card-resumen-titulo {
+  font-size: 13px;
+  margin: 0;
+  color: white;
+  font-weight: 700;
+}
+
+.card-resumen-descripcion {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-top: 9px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* GRÁFICOS */
+.coordinador-panel-graficas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.coordinador-card-grande {
+  background-color: white;
+  border: 1px solid #e7e7e7;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+.coordinador-card-grande h2 {
+  font-size: 16px;
+  margin: 0 0 8px 0;
+  color: #222;
+}
+
+.coordinador-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contenedor-grafico-chart {
+  position: relative;
+  width: 100%;
+  height: 210px;
+  margin-top: 4px;
+}
+
+.coordinador-card-grafico-riesgo {
+  margin-bottom: 18px;
+}
+
+/* TABLA */
+.coordinador-riesgo-wrapper {
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.coordinador-card-riesgo {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.coordinador-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.coordinador-tabla th,
+.coordinador-tabla td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  font-size: 13px;
+}
+
+.coordinador-tabla th {
+  background-color: #f7f7f7;
+  color: #222;
+  font-weight: bold;
+}
+
+.estado {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.estado.pendiente {
+  background: #f3c96a;
+  color: #7a5311;
+}
+
+.estado.denegado {
+  background: #f6d7d7;
+  color: #9f1d1d;
+}
+
+/* BOTONES */
+.coordinador-acciones-rapidas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.btn-accion {
+  border: none;
+  border-radius: 14px;
+  padding: 13px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-accion.verde {
+  background: linear-gradient(135deg, #157347, #1fa85b);
+}
+
+.btn-accion.azul {
+  background: linear-gradient(135deg, #1f4f85, #2f6fb3);
+}
+
+.btn-accion svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ALERTAS */
+.coordinador-alerta-info,
+.coordinador-alerta-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.coordinador-alerta-info {
+  background-color: #e7f3ff;
+  color: #0c5460;
+}
+
+.coordinador-alerta-error {
+  background-color: #fde8e8;
+  color: #842029;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .coordinador-grid-resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coordinador-panel-graficas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .coordinador-grid-resumen,
+  .coordinador-acciones-rapidas {
+    grid-template-columns: 1fr;
+  }
+
+  .contenedor-grafico-chart {
+    height: 200px;
+  }
+}
