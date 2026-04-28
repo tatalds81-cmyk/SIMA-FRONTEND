@@ -1,0 +1,58 @@
+/* Dashboard Container */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: #f5f5f5;
+  overflow: hidden;
+}
+
+/* Dashboard Body - Sidebar + Content */
+.dashboard-body {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Dashboard Content Area */
+.dashboard-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  background-color: #f5f5f5;
+  margin-left: 260px; /* Fix: Evitar que se sobreponga el sidebar fijo */
+  box-sizing: border-box;
+}
+
+/* Welcome Message */
+.dashboard-welcome {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  padding: 20px;
+}
+
+.dashboard-welcome h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.dashboard-welcome p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-content {
+    margin-left: 80px; /* Ajuste para el sidebar encogido en mobile */
+  }
+}
