@@ -6,6 +6,8 @@ import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
 import Usuario from "./pages/usuarios/Usuario";
+import Fichas from "./pages/fichas/Fichas";
+import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
@@ -44,7 +46,16 @@ function App() {
               path="/fichas"
               element={
                 <Dashboard>
-                  <div>Gestión de fichas</div>
+                  <Fichas />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/fichas/:id"
+              element={
+                <Dashboard>
+                  <GrupoDetalle />
                 </Dashboard>
               }
             />
