@@ -39,37 +39,43 @@ export default function Login({ onLogin }) {
             .then((errData) => { throw errData; });
         }
         return res.json();
-      })  
-
+      })
       .then((data) => {
-        console.log("RESPUESTA BACKEND:", data);
+        console.log("Respuesta completa del servidor:", data);
 
-        const token = data?.data?.token;
+        // Buscamos el token en varias posibles ubicaciones (resiliencia)
+        const token = 
+          data?.data?.access || 
+          data?.data?.token || 
+          data?.access || 
+          data?.token;
 
         if (!token) {
-          console.error("Token inválido recibido del backend", data);
-          return;
+          throw new Error("El servidor no envió un token de acceso válido. Revisa los logs.");
         }
 
-       localStorage.setItem("access", token);
+        // Guardamos en ambas llaves para compatibilidad total
+        localStorage.setItem("access", token);
+        localStorage.setItem("token", token);
 
-       const nombreUsuario = data.data.user?.nombre || username.trim();
-       localStorage.setItem("username", nombreUsuario);
-       localStorage.setItem("usuario", nombreUsuario);
+        // Guardamos información del usuario
+        const nombreUsuario = data?.data?.user?.nombre || data?.user?.nombre || username.trim();
+        localStorage.setItem("username", nombreUsuario);
+        localStorage.setItem("usuario", nombreUsuario);
 
-       if (data.data.user?.rol) {
-         localStorage.setItem("rol", data.data.user.rol);
-       }
+        const rol = data?.data?.user?.rol || data?.user?.rol || data?.rol;
+        if (rol) {
+          localStorage.setItem("rol", rol);
+        }
 
-       setMensaje("Inicio de sesión correcto");
+        setMensaje("Inicio de sesión correcto");
 
-       if (onLogin) {
+        // Actualizamos estado global y redirigimos
+        if (onLogin) {
           onLogin();
           navigate("/dashboard");
         }
       })
-
-       
       .catch((error) => {
         console.log("Error login:", error);
 
