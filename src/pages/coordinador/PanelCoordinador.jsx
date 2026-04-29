@@ -16,35 +16,146 @@ import GraficoBarrasApiladas from "./GraficoBarrasApiladas";
 import GraficoFichasRiesgo from "./GraficoFichasRiesgo";
 import "./coordinador.css";
 
+const URL_RESUMEN_COORDINADOR = "http://localhost:3000/api/dashboard/coordinador/resumen";
+const URL_USUARIOS = "/api/users";
+
+function obtenerHeadersDashboard() {
+  const token = localStorage.getItem("access") || localStorage.getItem("token");
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function obtenerTokenDashboard() {
+  return localStorage.getItem("access") || localStorage.getItem("token");
+}
+
+function obtenerNumero(...valores) {
+  const valor = valores.find((item) => item !== undefined && item !== null);
+  const numero = Number(valor);
+
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function obtenerValorKpi(kpis, campos, palabrasClave = []) {
+  const valorDirecto = campos
+    .map((campo) => kpis?.[campo])
+    .find((valor) => valor !== undefined && valor !== null);
+
+  if (valorDirecto !== undefined && valorDirecto !== null) {
+    return obtenerNumero(valorDirecto);
+  }
+
+  const entradaRelacionada = Object.entries(kpis || {}).find(([campo]) => {
+    const campoNormalizado = campo.toLowerCase();
+
+    return palabrasClave.every((palabra) =>
+      campoNormalizado.includes(palabra)
+    );
+  });
+
+  return obtenerNumero(entradaRelacionada?.[1]);
+}
+
+function obtenerLista(respuesta) {
+  if (Array.isArray(respuesta)) return respuesta;
+  if (Array.isArray(respuesta?.data)) return respuesta.data;
+  if (Array.isArray(respuesta?.results)) return respuesta.results;
+  return [];
+}
+
+function normalizarTexto(valor) {
+  return String(valor || "").trim().toLowerCase();
+}
+
+function contarUsuariosActivosPorRol(usuarios, rolBuscado) {
+  return usuarios.filter((usuario) => {
+    const estado = normalizarTexto(usuario.estado);
+    const rol = normalizarTexto(usuario.rol?.nombre || usuario.rol);
+
+    return estado === "activo" && rol === rolBuscado;
+  }).length;
+}
+
 export default function PanelCoordinador() {
   const navigate = useNavigate();
 
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
-  const [terminoBusqueda, setTerminoBusqueda] = useState("");
 
   useEffect(() => {
+    async function cargarDashboard() {
+      try {
+        setCargando(true);
+        setError("");
+
+        if (!obtenerTokenDashboard()) {
+          throw new Error("Debes iniciar sesión para cargar el dashboard.");
+        }
+
+        const [resResumen, resUsuarios] = await Promise.all([
+          fetch(URL_RESUMEN_COORDINADOR, {
+            method: "GET",
+            headers: obtenerHeadersDashboard(),
+          }),
+          fetch(URL_USUARIOS, {
+            method: "GET",
+            headers: obtenerHeadersDashboard(),
+          }),
+        ]);
+
+        const respuestaResumen = await resResumen.json();
+        const respuestaUsuarios = await resUsuarios.json();
+
+        if (!resResumen.ok) {
+          throw respuestaResumen;
+        }
+
+        if (!resUsuarios.ok) {
+          throw respuestaUsuarios;
+        }
+
+        const kpis = respuestaResumen?.data?.kpis || respuestaResumen?.data || {};
+        const usuarios = obtenerLista(respuestaUsuarios);
+
+        setResumen({
+          aprendices_activos: contarUsuariosActivosPorRol(usuarios, "aprendiz"),
+          instructores_activos: contarUsuariosActivosPorRol(usuarios, "instructor"),
+          total_fichas: obtenerValorKpi(
+            kpis,
+            [
+              "total_grupos_activos",
+              "grupos_activos",
+              "total_fichas",
+              "fichas_activas",
+              "fichas",
+            ],
+            ["grupo"]
+          ),
+          alertas_activas: obtenerValorKpi(
+            kpis,
+            [
+              "total_alertas_activas",
+              "alertas_activas",
+              "total_alertas",
+              "alertas",
+            ],
+            ["alerta"]
+          ),
+        });
+      } catch (err) {
+        console.log("Error dashboard:", err);
+        setError(err?.message || err?.error || "Error al cargar el dashboard");
+      } finally {
+        setCargando(false);
+      }
+    }
+
     cargarDashboard();
   }, []);
-
-  function cargarDashboard() {
-    try {
-      setCargando(true);
-      setError("");
-
-      setResumen({
-        aprendices_activos: 1,
-        total_fichas: 0,
-        alertas_activas: 1
-      });
-    } catch (err) {
-      console.log("Error dashboard:", err);
-      setError("Error al cargar el dashboard del coordinador");
-    } finally {
-      setCargando(false);
-    }
-  }
 
   function irCrearUsuario() {
     navigate("/usuarios");
@@ -102,14 +213,14 @@ export default function PanelCoordinador() {
   const tarjetasResumen = [
     {
       titulo: "Aprendices activos",
-      valor: resumen?.aprendices_activos ?? 1,
+      valor: resumen?.aprendices_activos ?? 0,
       descripcion: "Aprendices con estado activo en formación",
       icono: <GraduationCap size={34} strokeWidth={2.5} />,
       color: "verde"
     },
     {
       titulo: "Instructores activos",
-      valor: 0,
+      valor: resumen?.instructores_activos ?? 0,
       descripcion: "Instructores activos registrados en el sistema",
       icono: <UserCheck size={34} strokeWidth={2.5} />,
       color: "verde"
@@ -123,16 +234,12 @@ export default function PanelCoordinador() {
     },
     {
       titulo: "Alertas activas",
-      valor: resumen?.alertas_activas ?? 1,
+      valor: resumen?.alertas_activas ?? 0,
       descripcion: "Alertas académicas o de seguimiento activas",
       icono: <BellRing size={34} strokeWidth={2.5} />,
       color: "verde"
     }
   ];
-
-  const tarjetasFiltradas = tarjetasResumen.filter((tarjeta) =>
-    tarjeta.titulo.toLowerCase().includes(terminoBusqueda.toLowerCase())
-  );
 
   return (
     <div className="coordinador-panel">
@@ -148,26 +255,17 @@ export default function PanelCoordinador() {
 
       {(resumen || error) && !cargando && (
         <>
-          {terminoBusqueda !== "" && tarjetasFiltradas.length === 0 && (
-            <div className="coordinador-alerta-info">
-              No se encontraron resultados para:{" "}
-              <strong>{terminoBusqueda}</strong>
-            </div>
-          )}
-
           <div className="coordinador-grid-resumen">
-            {(terminoBusqueda === "" ? tarjetasResumen : tarjetasFiltradas).map(
-              (tarjeta, index) => (
-                <CardResumen
-                  key={index}
-                  titulo={tarjeta.titulo}
-                  valor={tarjeta.valor}
-                  descripcion={tarjeta.descripcion}
-                  icono={tarjeta.icono}
-                  color={tarjeta.color}
-                />
-              )
-            )}
+            {tarjetasResumen.map((tarjeta) => (
+              <CardResumen
+                key={tarjeta.titulo}
+                titulo={tarjeta.titulo}
+                valor={tarjeta.valor}
+                descripcion={tarjeta.descripcion}
+                icono={tarjeta.icono}
+                color={tarjeta.color}
+              />
+            ))}
           </div>
 
           <div className="coordinador-panel-graficas">

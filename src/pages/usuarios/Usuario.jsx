@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import "./usuario.css";
 
+const LIMITE_USUARIOS_VISIBLES = 5;
+
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
+  const [mostrarTodosUsuarios, setMostrarTodosUsuarios] = useState(false);
+  const [usuarioDetalle, setUsuarioDetalle] = useState(null);
 
   const [busquedaDocumento, setBusquedaDocumento] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -75,6 +79,7 @@ export default function Usuario() {
 
       setUsuarios(lista);
       setUsuariosFiltrados(lista);
+      setMostrarTodosUsuarios(false);
     } catch (err) {
       console.log("Error usuarios:", err);
       setError(err?.message || err?.error || "Error al cargar usuarios");
@@ -159,6 +164,7 @@ export default function Usuario() {
 
   function iniciarEdicion(usuario) {
     setEditandoId(usuario.id_usuario);
+    setUsuarioDetalle(null);
 
     setFilaEditando({
       email: usuario.email || "",
@@ -259,6 +265,7 @@ export default function Usuario() {
 
     if (texto === "") {
       setUsuariosFiltrados(usuarios);
+      setMostrarTodosUsuarios(false);
       return;
     }
 
@@ -277,12 +284,28 @@ export default function Usuario() {
     });
 
     setUsuariosFiltrados(resultado);
+    setMostrarTodosUsuarios(false);
   }
 
   function limpiarBusqueda() {
     setBusquedaDocumento("");
     setUsuariosFiltrados(usuarios);
+    setMostrarTodosUsuarios(false);
   }
+
+  function abrirDetalleUsuario(usuario) {
+    setUsuarioDetalle(usuario);
+  }
+
+  function cerrarDetalleUsuario() {
+    setUsuarioDetalle(null);
+  }
+
+  const usuariosVisibles = mostrarTodosUsuarios
+    ? usuariosFiltrados
+    : usuariosFiltrados.slice(0, LIMITE_USUARIOS_VISIBLES);
+
+  const hayMasUsuarios = usuariosFiltrados.length > LIMITE_USUARIOS_VISIBLES;
 
   return (
     <div className="usuarios-modulo">
@@ -402,25 +425,17 @@ export default function Usuario() {
           <table className="usuarios-tabla">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Nombres</th>
-                <th>Apellidos</th>
-                <th>Tipo Doc.</th>
+                <th>Nombre</th>
                 <th>Documento</th>
-                <th>Correo</th>
-                <th>Teléfono</th>
                 <th>Rol</th>
-                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
 
             <tbody>
-              {usuariosFiltrados.length > 0 ? (
-                usuariosFiltrados.map((item) => (
+              {usuariosVisibles.length > 0 ? (
+                usuariosVisibles.map((item) => (
                   <tr key={item.id_usuario}>
-                    <td>{item.id_usuario}</td>
-
                     {editandoId === item.id_usuario ? (
                       <>
                         <td>
@@ -435,49 +450,8 @@ export default function Usuario() {
                         <td>
                           <input
                             type="text"
-                            name="apellidos"
-                            value={filaEditando.apellidos}
-                            onChange={cambiarFilaEditando}
-                          />
-                        </td>
-
-                        <td>
-                          <select
-                            name="tipo_documento"
-                            value={filaEditando.tipo_documento}
-                            onChange={cambiarFilaEditando}
-                          >
-                            <option value="CC">CC</option>
-                            <option value="TI">TI</option>
-                            <option value="CE">CE</option>
-                            <option value="PPT">PPT</option>
-                            <option value="PAS">PAS</option>
-                          </select>
-                        </td>
-
-                        <td>
-                          <input
-                            type="text"
                             name="numero_documento"
                             value={filaEditando.numero_documento}
-                            onChange={cambiarFilaEditando}
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="email"
-                            name="email"
-                            value={filaEditando.email}
-                            onChange={cambiarFilaEditando}
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="text"
-                            name="telefono"
-                            value={filaEditando.telefono}
                             onChange={cambiarFilaEditando}
                           />
                         </td>
@@ -496,8 +470,6 @@ export default function Usuario() {
                             ))}
                           </select>
                         </td>
-
-                        <td>{filaEditando.estado}</td>
 
                         <td>
                           <div className="usuarios-acciones">
@@ -521,17 +493,21 @@ export default function Usuario() {
                       </>
                     ) : (
                       <>
-                        <td>{item.persona?.nombres}</td>
-                        <td>{item.persona?.apellidos}</td>
-                        <td>{item.persona?.tipo_documento}</td>
+                        <td>
+                          {item.persona?.nombres} {item.persona?.apellidos}
+                        </td>
                         <td>{item.persona?.numero_documento}</td>
-                        <td>{item.email}</td>
-                        <td>{item.persona?.telefono || "Sin teléfono"}</td>
                         <td>{item.rol?.nombre}</td>
-                        <td>{item.estado}</td>
-
                         <td>
                           <div className="usuarios-acciones">
+                            <button
+                              type="button"
+                              className="usuarios-btn pequeno verde"
+                              onClick={() => abrirDetalleUsuario(item)}
+                            >
+                              Ver
+                            </button>
+
                             <button
                               type="button"
                               className="usuarios-btn pequeno amarillo"
@@ -555,7 +531,7 @@ export default function Usuario() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10" className="usuarios-text-center">
+                  <td colSpan="4" className="usuarios-text-center">
                     No hay usuarios para mostrar
                   </td>
                 </tr>
@@ -563,7 +539,95 @@ export default function Usuario() {
             </tbody>
           </table>
         </div>
+
+        {hayMasUsuarios && (
+          <div className="usuarios-tabla-footer">
+            <button
+              type="button"
+              className="usuarios-btn verde"
+              onClick={() => setMostrarTodosUsuarios(!mostrarTodosUsuarios)}
+            >
+              {mostrarTodosUsuarios ? "Ver menos" : "Ver todos"}
+            </button>
+          </div>
+        )}
       </div>
+
+      {usuarioDetalle && (
+        <div className="usuarios-modal-backdrop" onClick={cerrarDetalleUsuario}>
+          <div className="usuarios-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="usuarios-modal-header">
+              <h3>Informacion del usuario</h3>
+
+              <button
+                type="button"
+                className="usuarios-modal-cerrar"
+                onClick={cerrarDetalleUsuario}
+                aria-label="Cerrar detalle"
+              >
+                x
+              </button>
+            </div>
+
+            <div className="usuarios-detalle-grid">
+              <div>
+                <span>ID</span>
+                <strong>{usuarioDetalle.id_usuario}</strong>
+              </div>
+
+              <div>
+                <span>Nombres</span>
+                <strong>{usuarioDetalle.persona?.nombres || "Sin dato"}</strong>
+              </div>
+
+              <div>
+                <span>Apellidos</span>
+                <strong>{usuarioDetalle.persona?.apellidos || "Sin dato"}</strong>
+              </div>
+
+              <div>
+                <span>Tipo documento</span>
+                <strong>{usuarioDetalle.persona?.tipo_documento || "Sin dato"}</strong>
+              </div>
+
+              <div>
+                <span>Documento</span>
+                <strong>{usuarioDetalle.persona?.numero_documento || "Sin dato"}</strong>
+              </div>
+
+              <div>
+                <span>Correo</span>
+                <strong>{usuarioDetalle.email || "Sin dato"}</strong>
+              </div>
+
+              <div>
+                <span>Telefono</span>
+                <strong>{usuarioDetalle.persona?.telefono || "Sin telefono"}</strong>
+              </div>
+
+              <div>
+                <span>Rol</span>
+                <strong>{usuarioDetalle.rol?.nombre || "Sin dato"}</strong>
+              </div>
+
+              <div>
+                <span>Estado</span>
+                <strong>{usuarioDetalle.estado || "Sin dato"}</strong>
+              </div>
+            </div>
+
+            <div className="usuarios-modal-footer">
+              <button
+                type="button"
+                className="usuarios-btn gris"
+                onClick={cerrarDetalleUsuario}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
