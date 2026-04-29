@@ -41,31 +41,16 @@ export default function Login({ onLogin }) {
         return res.json();
       })
       .then((data) => {
-        console.log("Respuesta completa del servidor:", data);
-
-        // Buscamos el token en varias posibles ubicaciones (resiliencia)
-        const token = 
-          data?.data?.access || 
-          data?.data?.token || 
-          data?.access || 
-          data?.token;
-
-        if (!token) {
-          throw new Error("El servidor no envió un token de acceso válido. Revisa los logs.");
-        }
-
-        // Guardamos en ambas llaves para compatibilidad total
-        localStorage.setItem("access", token);
-        localStorage.setItem("token", token);
+        // Guardamos token
+        localStorage.setItem("access", data.data.access);
 
         // Guardamos información del usuario
-        const nombreUsuario = data?.data?.user?.nombre || data?.user?.nombre || username.trim();
+        const nombreUsuario = data.data.user?.nombre || username.trim();
         localStorage.setItem("username", nombreUsuario);
         localStorage.setItem("usuario", nombreUsuario);
 
-        const rol = data?.data?.user?.rol || data?.user?.rol || data?.rol;
-        if (rol) {
-          localStorage.setItem("rol", rol);
+        if (data.data.user?.rol) {
+          localStorage.setItem("rol", data.data.user.rol);
         }
 
         setMensaje("Inicio de sesión correcto");
@@ -107,63 +92,63 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login-sima-container">
-      {/* LADO IZQUIERDO: Branding y Mensaje de Bienvenida */}
-      <div className="login-sima-left">
-        <h1>SIMA</h1>
-        <p>Sistema Integrado de Monitoreo y Aprendizaje. Gestiona tu información de forma eficiente, segura y centralizada.</p>
-        <div className="login-sima-green-shape"></div>
-      </div>
+      <div className="login-sima-logo">SIMA</div>
 
-      {/* LADO DERECHO: Formulario de Acceso */}
-      <div className="login-sima-right">
-        <div className="login-sima-card">
-          <h2 className="login-sima-title">INICIAR SESIÓN</h2>
-          <p className="login-sima-subtitle">Bienvenido de nuevo, por favor ingresa tus datos para continuar.</p>
+      <div className="login-sima-card">
+        <h2 className="login-sima-title">INICIAR SESIÓN</h2>
 
-          {mensaje && (
-            <div className="alert alert-info mt-3">
-              {mensaje}
-            </div>
-          )}
+        {mensaje && (
+          <div className="alert alert-info mt-3">
+            {mensaje}
+          </div>
+        )}
 
-          <form onSubmit={iniciarSesion}>
-            <div className="mb-3">
-              <label className="login-sima-label">NÚMERO DE DOCUMENTO</label>
-              <input
-                type="text"
-                className="login-sima-input"
-                placeholder="Ingrese su documento"
-                value={username}
-                onChange={manejarCambioUsername}
-                required
-              />
-            </div>
+        <form onSubmit={iniciarSesion}>
+          <div className="mb-3">
+            <label className="login-sima-label">NÚMERO DE DOCUMENTO</label>
+            <input
+              type="text"
+              className="form-control login-sima-input"
+              placeholder="Ingrese su número de documento"
+              value={username}
+              onChange={manejarCambioUsername}
+              required
+            />
+          </div>
 
-            <div className="mb-3">
-              <label className="login-sima-label">CONTRASEÑA</label>
-              <input
-                type="password"
-                className="login-sima-input"
-                placeholder="Ingrese su contraseña"
-                value={password}
-                onChange={manejarCambioPassword}
-                required
-              />
-            </div>
+          <div className="mb-3">
+            <label className="login-sima-label">CONTRASEÑA</label>
+            <input
+              type="password"
+              className="form-control login-sima-input"
+              placeholder="Ingrese su contraseña"
+              value={password}
+              onChange={manejarCambioPassword}
+              required
+            />
+          </div>
 
-            <span 
-              className="login-sima-link" 
+          <div className="login-sima-extra">
+            <label className="login-sima-check">
+              <input type="checkbox" /> Recuérdame
+            </label>
+
+            <button
+              type="button"
+              className="login-sima-link-btn"
               onClick={() => setMostrarOlvide(true)}
             >
               ¿Olvidaste tu contraseña?
-            </span>
-
-            <button type="submit" className="login-sima-btn">
-              Entrar al sistema
             </button>
-          </form>
-        </div>
+          </div>
+
+          <button type="submit" className="login-sima-btn">
+            Iniciar
+          </button>
+        </form>
       </div>
+
+      <div className="login-sima-wave"></div>
     </div>
   );
 }
