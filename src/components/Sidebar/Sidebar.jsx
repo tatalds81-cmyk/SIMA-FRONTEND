@@ -36,7 +36,7 @@ function Sidebar({ activeItem = "inicio" }) {
           className={`sima-nav-link ${activeItem === "fichas" ? "active" : ""}`}
           onClick={() => handleNavigation("/fichas")}
         >
-          Mis grupos
+          Gestión de Grupos
         </button>
         <button 
           className={`sima-nav-link ${activeItem === "alertas" ? "active" : ""}`}
