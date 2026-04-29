@@ -1,144 +1,169 @@
-.login-sima-container {
-  min-height: 100vh;
-  background: #f8f9fa;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-family: Arial, sans-serif;
-}
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Login.css";
+import OlvidePassword from "./OlvidePassword";
 
-.login-sima-logo {
-  font-size: 56px;
-  font-weight: bold;
-  color: #1fa85b;
-  margin-bottom: 20px;
-  z-index: 2;
-}
+export default function Login({ onLogin }) {
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [mostrarOlvide, setMostrarOlvide] = useState(false);
 
-.login-sima-card {
-  width: 420px;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 40px 35px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  z-index: 2;
-  text-align: center;
-}
+  // Usamos ruta relativa gracias al proxy de Vite
+  const URL_LOGIN = "/api/auth/login";
 
-.login-sima-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 30px;
-  color: #222;
-}
+  function iniciarSesion(e) {
+    if (e) e.preventDefault();
+    setMensaje("");
 
-.login-sima-label {
-  display: block;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 700;
-  color: #444;
-  margin-bottom: 6px;
-}
+    // El backend espera 'numero_documento' según el mensaje de error 400
+    const data = {
+      numero_documento: username.trim(),
+      password: password
+    };
 
-.login-sima-input {
-  height: 42px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  font-size: 14px;
-}
+    fetch(URL_LOGIN, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    })
+      .then((res) => {
+        if (!res.ok) {
+          // Si la respuesta no es exitosa, intentamos leer el JSON de error, 
+          // si falla el parseo (como el 404), lanzamos un error genérico.
+          return res.json()
+            .catch(() => { throw new Error(`Error ${res.status}: No se pudo conectar con el servidor de autenticación.`); })
+            .then((errData) => { throw errData; });
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log("Respuesta completa del servidor:", data);
 
-.login-sima-input:focus {
-  border-color: #1fa85b;
-  box-shadow: 0 0 0 0.2rem rgba(57, 209, 10, 0.15);
-}
+        // Buscamos el token en varias posibles ubicaciones (resiliencia)
+        const token = 
+          data?.data?.access || 
+          data?.data?.token || 
+          data?.access || 
+          data?.token;
 
-.login-sima-extra {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 22px;
-  font-size: 12px;
-  color: #666;
-}
+        if (!token) {
+          throw new Error("El servidor no envió un token de acceso válido. Revisa los logs.");
+        }
 
-.login-sima-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+        // Guardamos en ambas llaves para compatibilidad total
+        localStorage.setItem("access", token);
+        localStorage.setItem("token", token);
 
-.login-sima-btn {
-  width: 160px;
-  height: 42px;
-  background: #1fa85b;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 15px;
-}
+        // Guardamos información del usuario
+        const nombreUsuario = data?.data?.user?.nombre || data?.user?.nombre || username.trim();
+        localStorage.setItem("username", nombreUsuario);
+        localStorage.setItem("usuario", nombreUsuario);
 
-.login-sima-btn:hover {
-  background: #39A900;
-}
+        const rol = data?.data?.user?.rol || data?.user?.rol || data?.rol;
+        if (rol) {
+          localStorage.setItem("rol", rol);
+        }
 
-.login-sima-wave {
-  position: absolute;
-  bottom: -120px;
-  width: 140%;
-  height: 260px;
-  background: #1fa85b;
-  border-radius: 50% 50% 0 0;
-  z-index: 1;
-}
+        setMensaje("Inicio de sesión correcto");
 
-.login-sima-link-btn {
-  background: none;
-  border: none;
-  color: #39A900;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 0;
-}
+        // Actualizamos estado global y redirigimos
+        if (onLogin) {
+          onLogin();
+          navigate("/dashboard");
+        }
+      })
+      .catch((error) => {
+        console.log("Error login:", error);
 
-.login-sima-link-btn:hover {
-  text-decoration: underline;
-}
-
-.login-sima-link-btn:focus {
-  outline: none;
-}
-
-@media (max-width: 576px) {
-  .login-sima-card {
-    width: 90%;
-    padding: 30px 20px;
+        if (error instanceof TypeError && error.message === "Failed to fetch") {
+          setMensaje("No se pudo conectar con el servidor. Verifica que el backend esté corriendo y los permisos CORS.");
+        } else if (error.message) {
+          setMensaje(error.message);
+        } else if (error.error) {
+          setMensaje(error.error);
+        } else {
+          setMensaje("Error al iniciar sesión");
+        }
+      });
   }
 
-  .login-sima-logo {
-    font-size: 42px;
+  function manejarCambioUsername(e) {
+    setUsername(e.target.value);
+    if (mensaje) setMensaje("");
   }
 
-  .login-sima-extra {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
+  function manejarCambioPassword(e) {
+    setPassword(e.target.value);
+    if (mensaje) setMensaje("");
   }
-}
 
-.login-sima-btn {
-  width: 160px;
-  height: 42px;
-  background: #1fa85b;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  transition: background 0.3s ease;
+  if (mostrarOlvide) {
+    return <OlvidePassword onVolver={() => setMostrarOlvide(false)} />;
+  }
+
+  return (
+    <div className="login-sima-container">
+      <div className="login-sima-logo">SIMA</div>
+
+      <div className="login-sima-card">
+        <h2 className="login-sima-title">INICIAR SESIÓN</h2>
+
+        {mensaje && (
+          <div className="alert alert-info mt-3">
+            {mensaje}
+          </div>
+        )}
+
+        <form onSubmit={iniciarSesion}>
+          <div className="mb-3">
+            <label className="login-sima-label">NÚMERO DE DOCUMENTO</label>
+            <input
+              type="text"
+              className="form-control login-sima-input"
+              placeholder="Ingrese su número de documento"
+              value={username}
+              onChange={manejarCambioUsername}
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="login-sima-label">CONTRASEÑA</label>
+            <input
+              type="password"
+              className="form-control login-sima-input"
+              placeholder="Ingrese su contraseña"
+              value={password}
+              onChange={manejarCambioPassword}
+              required
+            />
+          </div>
+
+          <div className="login-sima-extra">
+            <label className="login-sima-check">
+              <input type="checkbox" /> Recuérdame
+            </label>
+
+            <button
+              type="button"
+              className="login-sima-link-btn"
+              onClick={() => setMostrarOlvide(true)}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
+          <button type="submit" className="login-sima-btn">
+            Iniciar
+          </button>
+        </form>
+      </div>
+
+      <div className="login-sima-wave"></div>
+    </div>
+  );
 }
