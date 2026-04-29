@@ -55,9 +55,7 @@ export default function PanelCoordinador() {
   }
 
   function mostrarMensajeAprendiz() {
-    alert(
-      "La funcionalidad de registrar aprendiz será integrada con el módulo correspondiente del sistema."
-    );
+    navigate("/aprendices");
   }
 
   const asistenciaSemanal = [
