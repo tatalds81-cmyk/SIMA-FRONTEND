@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Navbar.css"; // Importamos los estilos del Navbar
+import Profile from "../../pages/Profile";//add perfil
 
 /**
  * Componente Navbar unificado (Diseño Horizontal y Colorido).
@@ -8,6 +9,7 @@ import "./Navbar.css"; // Importamos los estilos del Navbar
 function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Buscar..." }) {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showProfileCard, setShowProfileCard] = useState(false);//relacionado a perfil de usuario
 
   // Fecha actual formateada para la zona superior
   const fechaActual = new Date().toLocaleDateString("es-CO", {
@@ -33,6 +35,16 @@ function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Bu
   const toggleProfileMenu = () => {
     setIsProfileOpen(!isProfileOpen);
   };
+
+  // relacionado a perfil de usuario
+
+  const abrirPerfil = () => {
+  console.log("CLICK PERFIL"); //  prueba
+  setShowProfileCard(true);
+  setIsProfileOpen(false);
+};
+
+
 
   // Cerrar menú cuando se hace click fuera
   const handleClickOutside = (e) => {
@@ -98,7 +110,7 @@ function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Bu
                 </div>
               </div>
               <div className="sima-profile-menu-divider"></div>
-              <button className="sima-profile-menu-item" onClick={() => navigate("/perfil")}>
+              <button className="sima-profile-menu-item" onClick={abrirPerfil}>
                 <span className="sima-menu-icon"></span>
                 Mi Perfil
               </button>
@@ -115,6 +127,10 @@ function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Bu
           )}
         </div>
       </div>
+
+      {showProfileCard && (
+        <Profile onClose={() => setShowProfileCard(false)} />
+      )}
 
     </header>
   );

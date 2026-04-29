@@ -13,6 +13,8 @@ import Dashboard from "./pages/Dashboard";
 
 
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
+// add vista perfil de usuario lo conecto
+import Profile from "./pages/Profile";
 
 function App() {
   // Inicializamos el token buscando en localStorage.
@@ -76,6 +78,8 @@ function App() {
 
             {/* Cualquier otra ruta sin sesión vuelve al login */}
             <Route path="*" element={<Navigate to="/" replace />} />
+
+            <Route path="/profile" element={<Profile />} />
           </>
         )}
       </Routes>

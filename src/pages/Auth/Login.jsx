@@ -39,28 +39,37 @@ export default function Login({ onLogin }) {
             .then((errData) => { throw errData; });
         }
         return res.json();
-      })
+      })  
+
       .then((data) => {
-        // Guardamos token
-        localStorage.setItem("access", data.data.access);
+        console.log("RESPUESTA BACKEND:", data);
 
-        // Guardamos información del usuario
-        const nombreUsuario = data.data.user?.nombre || username.trim();
-        localStorage.setItem("username", nombreUsuario);
-        localStorage.setItem("usuario", nombreUsuario);
+        const token = data?.data?.token;
 
-        if (data.data.user?.rol) {
-          localStorage.setItem("rol", data.data.user.rol);
+        if (!token) {
+          console.error("Token inválido recibido del backend", data);
+          return;
         }
 
-        setMensaje("Inicio de sesión correcto");
+       localStorage.setItem("access", token);
 
-        // Actualizamos estado global y redirigimos
-        if (onLogin) {
+       const nombreUsuario = data.data.user?.nombre || username.trim();
+       localStorage.setItem("username", nombreUsuario);
+       localStorage.setItem("usuario", nombreUsuario);
+
+       if (data.data.user?.rol) {
+         localStorage.setItem("rol", data.data.user.rol);
+       }
+
+       setMensaje("Inicio de sesión correcto");
+
+       if (onLogin) {
           onLogin();
           navigate("/dashboard");
         }
       })
+
+       
       .catch((error) => {
         console.log("Error login:", error);
 
