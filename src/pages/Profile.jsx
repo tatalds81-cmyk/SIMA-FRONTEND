@@ -4,12 +4,16 @@ function Profile({ onClose }) {
   const [user, setUser] = useState(null);
   const ref = useRef();
 
+  // ESTO ES LO NUEVO: ESTADOS PARA EDITAR PERFIL
+  const [editMode, setEditMode] = useState(false);
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
+
   useEffect(() => {
     const token =
       localStorage.getItem("token") ||
       localStorage.getItem("access");
 
-    //  CAMBIO 1: evitar request si no hay token
     if (!token) return;
 
     fetch("http://localhost:3000/api/profile/overview", {
@@ -18,7 +22,13 @@ function Profile({ onClose }) {
       },
     })
       .then((res) => res.json())
-      .then((data) => setUser(data.data))
+      .then((data) => {
+        setUser(data.data);
+
+        // ESTO ES LO NUEVO (BIEN UBICADO)
+        setEmail(data.data.email || "");
+        setTelefono(data.data.persona?.telefono || "");
+      })
       .catch((err) => console.error(err));
   }, []);
 
@@ -35,16 +45,51 @@ function Profile({ onClose }) {
       document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  //  CAMBIO 2: estado de carga más seguro
   if (!user) {
     return <p style={styles.container}>Cargando...</p>;
+  }
+
+  // ESTO ES LO NUEVO: ACTUALIZAR PERFIL
+  function actualizarPerfil() {
+    const token =
+      localStorage.getItem("access") || localStorage.getItem("token");
+
+    fetch("http://localhost:3000/api/profile/overview", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        email,
+        telefono,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Perfil actualizado:", data);
+        alert("Perfil actualizado correctamente");
+
+        // actualizar UI sin recargar
+        setUser((prev) => ({
+          ...prev,
+          email,
+          persona: {
+            ...prev.persona,
+            telefono,
+          },
+        }));
+
+        setEditMode(false);
+      })
+      .catch((err) => console.error(err));
   }
 
   return (
     <div style={styles.container}>
       <div ref={ref} style={styles.card}>
         <img
-          src="https://i.pravatar.cc/100"
+          src="https://tse1.mm.bing.net/th/id/OIP.SrNVtChSzi8meulfz6_K4QHaET?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
           alt="avatar"
           style={styles.avatar}
         />
@@ -73,8 +118,38 @@ function Profile({ onClose }) {
 
         <div style={styles.buttons}>
           <button onClick={onClose}>Cerrar</button>
-          <button style={styles.edit}>Editar</button>
+
+          <button
+            style={styles.edit}
+            onClick={() => setEditMode(true)}
+          >
+            Editar
+          </button>
         </div>
+
+        {/* ESTO ES LO NUEVO: FORMULARIO DE EDICIÓN */}
+        {editMode && (
+          <div style={{ marginTop: "10px" }}>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Correo"
+            />
+
+            <input
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              placeholder="Teléfono"
+            />
+
+            <div style={{ marginTop: "10px" }}>
+              <button onClick={actualizarPerfil}>Guardar</button>
+              <button onClick={() => setEditMode(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
