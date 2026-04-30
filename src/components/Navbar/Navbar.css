@@ -67,14 +67,14 @@
 }
 
 /* ===== BUSCADOR ===== */
-.sima-navbar-search {
+/*.sima-navbar-search {
   display: flex;
   background: #e8e8e8;
   border-radius: 25px;
   padding: 8px 20px;
   width: 45%;
   align-items: center;
-}
+}*/
 
 .sima-navbar-search input {
   border: none;
