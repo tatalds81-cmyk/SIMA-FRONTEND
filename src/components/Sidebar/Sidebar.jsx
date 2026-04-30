@@ -42,6 +42,12 @@ function Sidebar({ activeItem = "inicio" }) {
           className={`sima-nav-link ${activeItem === "alertas" ? "active" : ""}`}
           onClick={() => handleNavigation("/alertas")}
         >
+          Aprendices
+        </button>
+        <button 
+          className={`sima-nav-link ${activeItem === "alertas" ? "active" : ""}`}
+          onClick={() => handleNavigation("/aprendices")}
+        >
           Alertas
         </button>
         <button 

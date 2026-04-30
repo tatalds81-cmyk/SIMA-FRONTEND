@@ -67,11 +67,7 @@ function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Bu
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={alPresionarTecla}
           />
-          {onSearchSubmit && (
-            <button className="sima-navbar-search-btn" onClick={onSearchSubmit}>
-              Buscar
-            </button>
-          )}
+
         </div>
 
         <div className="sima-navbar-user-section">
