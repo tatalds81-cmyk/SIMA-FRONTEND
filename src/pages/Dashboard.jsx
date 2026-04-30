@@ -17,10 +17,10 @@ export default function Dashboard({ children }) {
   };
 
   function obtenerItemActivo() {
-    if (location.pathname === "/usuarios") return "usuarios";
-    if (location.pathname === "/fichas") return "fichas";
-    if (location.pathname === "/alertas") return "alertas";
-    if (location.pathname === "/configuracion") return "configuracion";
+    if (location.pathname.startsWith("/usuarios")) return "usuarios";
+    if (location.pathname.startsWith("/fichas")) return "fichas";
+    if (location.pathname.startsWith("/alertas")) return "alertas";
+    if (location.pathname.startsWith("/configuracion")) return "configuracion";
     return "inicio";
   }
 
