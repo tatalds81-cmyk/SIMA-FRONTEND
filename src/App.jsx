@@ -6,6 +6,7 @@ import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
 import Usuario from "./pages/usuarios/Usuario";
+import RegistroAprendices from "./pages/coordinador/RegistroAprendices";
 import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 
@@ -29,6 +30,14 @@ function App() {
                   <PanelCoordinador />
                 </Dashboard>
               }
+            />
+            <Route 
+              path="/aprendices" 
+              element={
+                <Dashboard>
+                  <RegistroAprendices />
+                </Dashboard>
+              } 
             />
 
             {/* Gestión de usuarios */}
