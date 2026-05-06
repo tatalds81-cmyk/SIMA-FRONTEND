@@ -1,31 +1,37 @@
-/* Contenedor general */
+/* Dashboard Container */
 .dashboard-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  width: 100%;
-  background-color: #f5f5f5;
+  width: 100vw;
+  margin-left: calc((100% - 100vw) / 2);
+  background-color: #f7f9fb;
+  overflow: hidden;
 }
 
-/* Contenedor body */
+/* Dashboard Body - Sidebar + Content */
 .dashboard-body {
   display: flex;
   flex: 1;
   width: 100%;
+  min-height: calc(100vh - 76px);
+  margin-top: 76px;
+  overflow: visible;
 }
 
-/* Área de contenido */
+/* Dashboard Content Area */
 .dashboard-content {
   flex: 1;
-  margin-left: 260px; /* 🔥 CORRECCIÓN CLAVE */
-  padding: 32px;
-  overflow-x: hidden;
+  min-width: 0;
   overflow-y: auto;
-  background: #f5f6f8;
+  overflow-x: hidden;
+  padding: 16px 34px 26px;
+  background-color: #f7f9fb;
+  margin-left: 128px;
   box-sizing: border-box;
 }
 
-/* Mensaje inicial */
+/* Welcome Message */
 .dashboard-welcome {
   display: flex;
   flex-direction: column;
@@ -33,6 +39,7 @@
   align-items: center;
   height: 100%;
   text-align: center;
+  padding: 20px;
 }
 
 .dashboard-welcome h1 {
@@ -48,11 +55,8 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .dashboard-body {
-    flex-direction: column;
-  }
-
   .dashboard-content {
-    padding: 15px;
+    margin-left: 96px;
+    padding: 14px 18px 28px;
   }
 }

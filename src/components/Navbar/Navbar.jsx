@@ -1,27 +1,19 @@
-import React, { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Navbar.css"; // Importamos los estilos del Navbar
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  UserRound
+} from "lucide-react";
+import "./Navbar.css";
 
-/**
- * Componente Navbar unificado (Diseño Horizontal y Colorido).
- */
-function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Buscar..." }) {
+function Navbar() {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Fecha actual formateada para la zona superior
-  const fechaActual = new Date().toLocaleDateString("es-CO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-  const fechaFormateada = fechaActual.charAt(0).toUpperCase() + fechaActual.slice(1);
-
-  // Obtenemos info del usuario desde localStorage
-  const nombreUsuario = localStorage.getItem("username") || "Usuario";
-  const rolUsuario = localStorage.getItem("rol") || "Usuario";
-  const inicialUsuario = nombreUsuario.charAt(0).toUpperCase();
+  const nombreUsuario = localStorage.getItem("username") || localStorage.getItem("usuario") || "Carlos Loda";
+  const rolUsuario = localStorage.getItem("rol") || "Administrador";
 
   const manejarCerrarSesion = () => {
     localStorage.clear();
@@ -30,92 +22,67 @@ function Navbar({ searchValue, onSearchChange, onSearchSubmit, placeholder = "Bu
     window.location.reload();
   };
 
-  const toggleProfileMenu = () => {
-    setIsProfileOpen(!isProfileOpen);
+  const toggleProfileMenu = (e) => {
+    e.stopPropagation();
+    setIsProfileOpen((prev) => !prev);
   };
 
-  // Cerrar menú cuando se hace click fuera
-  const handleClickOutside = (e) => {
-    if (!e.target.closest('.sima-navbar-profile-menu') && !e.target.closest('.sima-navbar-avatar')) {
-      setIsProfileOpen(false);
-    }
-  };
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        !e.target.closest(".profile-menu") &&
+        !e.target.closest(".profile-section")
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
 
-  // Agregar event listener para cerrar menú
-  React.useEffect(() => {
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const alPresionarTecla = (e) => {
-    if (e.key === "Enter" && onSearchSubmit) {
-      onSearchSubmit(e);
-    }
-  };
+  const initials = nombreUsuario
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header className="sima-navbar-main">
-      {/* Franja Superior: Logo, Buscador y Perfil */}
-      <div className="sima-navbar-top">
- 
-        
-        <div className="sima-navbar-search">
-          <input
-            type="text"
-            placeholder={placeholder}
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={alPresionarTecla}
-          />
-          {onSearchSubmit && (
-            <button className="sima-navbar-search-btn" onClick={onSearchSubmit}>
-              Buscar
+      <div className="sima-navbar-right">
+        <button className="sima-navbar-icon" type="button" title="Notificaciones">
+          <Bell size={23} />
+          <span className="sima-navbar-badge">1</span>
+        </button>
+
+        <button className="profile-section" type="button" onClick={toggleProfileMenu}>
+          <span className="profile-avatar-circle">{initials || "CL"}</span>
+          <span className="profile-info">
+            <span className="profile-name">{nombreUsuario}</span>
+            <span className="profile-role">
+              {rolUsuario ? rolUsuario.charAt(0).toUpperCase() + rolUsuario.slice(1) : "Administrador"}
+            </span>
+          </span>
+          <ChevronDown size={18} className="profile-arrow" />
+        </button>
+
+        {isProfileOpen && (
+          <div className="profile-menu">
+            <button type="button" onClick={() => navigate("/perfil")}>
+              <UserRound size={17} />
+              <span>Mi perfil</span>
             </button>
-          )}
-        </div>
-
-        <div className="sima-navbar-user-section">
-          <div className="sima-navbar-info">
-            <span className="sima-navbar-date">{fechaFormateada}</span>
-            <span className="sima-navbar-username">{nombreUsuario}</span>
+            <hr />
+            <button type="button" className="logout-btn" onClick={manejarCerrarSesion}>
+              <LogOut size={17} />
+              <span>Cerrar sesion</span>
+            </button>
           </div>
-          <div className="sima-navbar-bell" title="Notificaciones">
-            🔔
-            <span className="sima-navbar-badge">1</span>
-          </div>
-          <div className="sima-navbar-avatar" onClick={toggleProfileMenu}>
-            {inicialUsuario}
-          </div>
-          
-          {/* Menú desplegable del perfil donde solo funciona el de cerrar sesión */}
-          {isProfileOpen && (
-            <div className="sima-navbar-profile-menu">
-              <div className="sima-profile-header">
-                <div className="sima-profile-avatar">{inicialUsuario}</div>
-                <div className="sima-profile-info">
-                  <div className="sima-profile-name">{nombreUsuario}</div>
-                  <div className="sima-profile-role">{rolUsuario}</div>
-                </div>
-              </div>
-              <div className="sima-profile-menu-divider"></div>
-              <button className="sima-profile-menu-item" onClick={() => navigate("/perfil")}>
-                <span className="sima-menu-icon"></span>
-                Mi Perfil
-              </button>
-              <button className="sima-profile-menu-item" onClick={() => navigate("/configuracion")}>
-                <span className="sima-menu-icon"></span>
-                Configuración
-              </button>
-              <div className="sima-profile-menu-divider"></div>
-              <button className="sima-profile-menu-item sima-logout-btn" onClick={manejarCerrarSesion}>
-                <span className="sima-menu-icon"></span>
-                Cerrar Sesión
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </div>
-
     </header>
   );
 }

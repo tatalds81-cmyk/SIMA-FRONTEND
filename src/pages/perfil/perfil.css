@@ -1,0 +1,239 @@
+﻿.perfil-page {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #0b2442;
+}
+
+.perfil-hero {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  border: 1px solid #e1e8f0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #072f52, #0d426d 58%, #39a900 150%);
+  color: #ffffff;
+}
+
+.perfil-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.22);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.perfil-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #b9f18d;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.perfil-hero-copy h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.perfil-hero-copy p {
+  margin: 6px 0 0;
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.perfil-hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.perfil-primary-btn,
+.perfil-secondary-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 0;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.perfil-primary-btn {
+  background: #39a900;
+  color: #ffffff;
+}
+
+.perfil-secondary-btn {
+  background: #ffffff;
+  color: #0b2442;
+  border: 1px solid #d7e0ea;
+}
+
+.perfil-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 16px;
+}
+
+.perfil-card {
+  padding: 18px;
+  border: 1px solid #e1e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
+}
+
+.perfil-card-main {
+  grid-row: span 2;
+}
+
+.perfil-card h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.perfil-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.perfil-field {
+  padding: 14px;
+  border: 1px solid #e1e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perfil-field-full {
+  grid-column: 1 / -1;
+}
+
+.perfil-field span {
+  color: #627284;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.perfil-field strong {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.perfil-field input {
+  min-height: 38px;
+  border: 1px solid #d7e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b2442;
+}
+
+.perfil-security-row,
+.perfil-role-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.perfil-security-row:last-child,
+.perfil-role-item:last-child {
+  border-bottom: 0;
+}
+
+.perfil-security-row strong,
+.perfil-role-item strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.perfil-security-row span,
+.perfil-role-item span {
+  color: #667789;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.perfil-security-form {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.perfil-security-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perfil-security-form label span {
+  font-size: 12px;
+  font-weight: 900;
+  color: #627284;
+  text-transform: uppercase;
+}
+
+.perfil-security-form input {
+  min-height: 38px;
+  border: 1px solid #d7e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b2442;
+}
+
+@media (max-width: 960px) {
+  .perfil-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .perfil-hero-actions {
+    justify-content: center;
+  }
+
+  .perfil-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .perfil-card-main {
+    grid-row: auto;
+  }
+
+  .perfil-fields {
+    grid-template-columns: 1fr;
+  }
+}
