@@ -1,43 +1,42 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { Edit3, Eye, Mail, Phone, Plus, Save, Search, Trash2, Upload } from "lucide-react";
 import "./usuario.css";
 
-const LIMITE_USUARIOS_VISIBLES = 5;
+const detalleVacio = {
+  id_usuario: "",
+  email: "",
+  nombres: "",
+  apellidos: "",
+  tipo_documento: "",
+  numero_documento: "",
+  id_rol: "",
+  estado: "ACTIVO",
+  telefono: ""
+};
 
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
-  const [mostrarTodosUsuarios, setMostrarTodosUsuarios] = useState(false);
-  const [usuarioDetalle, setUsuarioDetalle] = useState(null);
-
   const [busquedaDocumento, setBusquedaDocumento] = useState("");
+  const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [usuarioDetalle, setUsuarioDetalle] = useState(null);
+  const [detalleModoEdicion, setDetalleModoEdicion] = useState(false);
+  const [detalleForm, setDetalleForm] = useState(detalleVacio);
+  const [nombres, setNombres] = useState("");
+  const [apellidos, setApellidos] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState("");
+  const [numeroDocumento, setNumeroDocumento] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [rol, setRol] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [error, setError] = useState("");
-
-  const [form, setForm] = useState({
-    email: "",
-    id_rol: "",
-    tipo_documento: "",
-    numero_documento: "",
-    nombres: "",
-    apellidos: "",
-    telefono: "",
-  });
-
-  const [editandoId, setEditandoId] = useState(null);
-  const [filaEditando, setFilaEditando] = useState({
-    email: "",
-    id_rol: "",
-    tipo_documento: "",
-    numero_documento: "",
-    nombres: "",
-    apellidos: "",
-    telefono: "",
-    estado: "ACTIVO",
-  });
+  const [errorUsuarios, setErrorUsuarios] = useState("");
+  const [errorRoles, setErrorRoles] = useState("");
 
   const URL_USUARIOS = "/api/users";
   const URL_ROLES = "/api/roles";
+  const USUARIOS_POR_PAGINA = 10;
 
   useEffect(() => {
     cargarUsuarios();
@@ -45,589 +44,662 @@ export default function Usuario() {
   }, []);
 
   function obtenerHeaders() {
-    const token = localStorage.getItem("access");
+    const token = localStorage.getItem("access") || localStorage.getItem("token");
+    const headers = { "Content-Type": "application/json" };
 
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
+    if (token && token.trim() !== "") {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
   }
 
-  function obtenerData(respuesta) {
-    if (Array.isArray(respuesta)) return respuesta;
-    if (Array.isArray(respuesta?.data)) return respuesta.data;
-    if (Array.isArray(respuesta?.results)) return respuesta.results;
-    return [];
+  function transformarUsuario(user) {
+    return {
+      id: user.id_usuario,
+      id_usuario: user.id_usuario,
+      email: user.email,
+      estado: user.estado,
+      nombres: user.persona?.nombres || user.nombres || "",
+      apellidos: user.persona?.apellidos || user.apellidos || "",
+      tipo_documento: user.persona?.tipo_documento || user.tipo_documento || "",
+      numero_documento: user.persona?.numero_documento || user.numero_documento || "",
+      telefono: user.persona?.telefono || user.telefono || "No registrado",
+      id_rol: user.rol?.id_rol || user.id_rol || "",
+      rol: user.rol,
+      created_at: user.created_at
+    };
   }
 
   async function cargarUsuarios() {
     try {
-      setError("");
+      setErrorUsuarios("");
+
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      if (!token || token === "undefined") {
+        setErrorUsuarios("Debe iniciar sesion para cargar los usuarios.");
+        return;
+      }
 
       const res = await fetch(URL_USUARIOS, {
         method: "GET",
-        headers: obtenerHeaders(),
+        headers: obtenerHeaders()
       });
 
-      const respuesta = await res.json();
+      const responseData = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw respuesta;
+        throw responseData || { message: "No se pudieron cargar los usuarios" };
       }
 
-      const lista = obtenerData(respuesta);
+      const datos =
+        responseData?.data?.usuarios ||
+        responseData?.data?.users ||
+        responseData?.data ||
+        responseData?.results ||
+        (Array.isArray(responseData) ? responseData : []);
 
-      setUsuarios(lista);
-      setUsuariosFiltrados(lista);
-      setMostrarTodosUsuarios(false);
-    } catch (err) {
-      console.log("Error usuarios:", err);
-      setError(err?.message || err?.error || "Error al cargar usuarios");
+      const usuariosTransformados = datos.map(transformarUsuario);
+      setUsuarios(usuariosTransformados);
+      setUsuariosFiltrados(usuariosTransformados);
+      setPaginaActual(1);
+    } catch (error) {
+      console.error(error);
+      setErrorUsuarios(error?.message || "Error al cargar los usuarios");
     }
   }
 
   async function cargarRoles() {
     try {
-      const res = await fetch(URL_ROLES, {
-        method: "GET",
-        headers: obtenerHeaders(),
-      });
-
-      const respuesta = await res.json();
-
-      if (!res.ok) {
-        throw respuesta;
+      setErrorRoles("");
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      if (!token) {
+        setErrorRoles("Debe iniciar sesion para cargar los roles.");
+        return;
       }
 
-      setRoles(obtenerData(respuesta));
-    } catch (err) {
-      console.log("Error roles:", err);
-      setError(err?.message || err?.error || "Error al cargar roles");
+      const res = await fetch(URL_ROLES, {
+        method: "GET",
+        headers: obtenerHeaders()
+      });
+
+      const responseData = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw responseData || { message: "No se pudieron cargar los roles" };
+      }
+
+      const datos =
+        responseData?.data?.roles ||
+        responseData?.data ||
+        responseData?.results ||
+        (Array.isArray(responseData) ? responseData : []);
+
+      setRoles(datos);
+    } catch (error) {
+      console.error(error);
+      setErrorRoles(error?.message || "Error al cargar los roles");
     }
   }
 
-  function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
+  function buscarUsuarioPorDocumento() {
+    const textoBusqueda = busquedaDocumento.trim().toLowerCase();
+    if (textoBusqueda === "") {
+      setUsuariosFiltrados(usuarios);
+      setPaginaActual(1);
+      setMensaje("Mostrando todos los usuarios");
+      return;
+    }
+
+    const resultado = usuarios.filter((item) => {
+      const documento = item.numero_documento?.toString().toLowerCase() || "";
+      const nombres = item.nombres?.toLowerCase() || "";
+      const apellidos = item.apellidos?.toLowerCase() || "";
+      const nombreCompleto = `${nombres} ${apellidos}`.trim();
+
+      return (
+        documento.includes(textoBusqueda) ||
+        nombres.includes(textoBusqueda) ||
+        apellidos.includes(textoBusqueda) ||
+        nombreCompleto.includes(textoBusqueda)
+      );
     });
+
+    setUsuariosFiltrados(resultado);
+    setPaginaActual(1);
+    setMensaje(
+      resultado.length > 0
+        ? "Busqueda realizada correctamente"
+        : "No se encontraron usuarios con ese nombre o documento"
+    );
   }
 
-  function limpiarFormulario() {
-    setForm({
-      email: "",
-      id_rol: "",
-      tipo_documento: "",
-      numero_documento: "",
-      nombres: "",
-      apellidos: "",
-      telefono: "",
-    });
+  function limpiarBusqueda() {
+    setBusquedaDocumento("");
+    setUsuariosFiltrados(usuarios);
+    setPaginaActual(1);
+    setMensaje("Busqueda limpiada");
   }
 
   async function guardarUsuario(e) {
     e.preventDefault();
     setMensaje("");
-    setError("");
+
+    const token = localStorage.getItem("access") || localStorage.getItem("token");
+    if (!token) {
+      setMensaje("Debe iniciar sesion para crear usuarios.");
+      return;
+    }
 
     const data = {
-      email: form.email.trim(),
-      id_rol: Number(form.id_rol),
-      tipo_documento: form.tipo_documento,
-      numero_documento: form.numero_documento.trim(),
-      nombres: form.nombres.trim(),
-      apellidos: form.apellidos.trim(),
-      telefono: form.telefono.trim(),
+      email: correo.trim(),
+      id_rol: parseInt(rol, 10),
+      tipo_documento: tipoDocumento,
+      numero_documento: numeroDocumento.trim(),
+      nombres: nombres.trim(),
+      apellidos: apellidos.trim(),
+      telefono: ""
     };
 
     try {
       const res = await fetch(URL_USUARIOS, {
         method: "POST",
         headers: obtenerHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
 
-      const respuesta = await res.json();
+      const respuesta = await res.json().catch(() => null);
+      if (!res.ok) throw respuesta || { message: "No se pudo crear el usuario" };
 
-      if (!res.ok) {
-        throw respuesta;
-      }
-
-      setMensaje(respuesta?.message || "Usuario creado correctamente");
+      setMensaje("Usuario creado correctamente");
       limpiarFormulario();
+      setModalCrearAbierto(false);
       cargarUsuarios();
-    } catch (err) {
-      console.log("Error crear:", err);
-      setError(err?.message || err?.error || "Error al crear usuario");
-    }
-  }
-
-  function iniciarEdicion(usuario) {
-    setEditandoId(usuario.id_usuario);
-    setUsuarioDetalle(null);
-
-    setFilaEditando({
-      email: usuario.email || "",
-      id_rol: usuario.rol?.id_rol || "",
-      tipo_documento: usuario.persona?.tipo_documento || "",
-      numero_documento: usuario.persona?.numero_documento || "",
-      nombres: usuario.persona?.nombres || "",
-      apellidos: usuario.persona?.apellidos || "",
-      telefono: usuario.persona?.telefono || "",
-      estado: usuario.estado || "ACTIVO",
-    });
-  }
-
-  function cancelarEdicion() {
-    setEditandoId(null);
-    setFilaEditando({
-      email: "",
-      id_rol: "",
-      tipo_documento: "",
-      numero_documento: "",
-      nombres: "",
-      apellidos: "",
-      telefono: "",
-      estado: "ACTIVO",
-    });
-  }
-
-  function cambiarFilaEditando(e) {
-    setFilaEditando({
-      ...filaEditando,
-      [e.target.name]: e.target.value,
-    });
-  }
-
-  async function guardarEdicion(id) {
-    setMensaje("");
-    setError("");
-
-    const data = {
-      email: filaEditando.email.trim(),
-      id_rol: Number(filaEditando.id_rol),
-      tipo_documento: filaEditando.tipo_documento,
-      numero_documento: filaEditando.numero_documento.trim(),
-      nombres: filaEditando.nombres.trim(),
-      apellidos: filaEditando.apellidos.trim(),
-      telefono: filaEditando.telefono.trim(),
-      estado: filaEditando.estado,
-    };
-
-    try {
-      const res = await fetch(`${URL_USUARIOS}/${id}`, {
-        method: "PUT",
-        headers: obtenerHeaders(),
-        body: JSON.stringify(data),
-      });
-
-      const respuesta = await res.json();
-
-      if (!res.ok) {
-        throw respuesta;
-      }
-
-      setMensaje(respuesta?.message || "Usuario actualizado correctamente");
-      cancelarEdicion();
-      cargarUsuarios();
-    } catch (err) {
-      console.log("Error actualizar:", err);
-      setError(err?.message || err?.error || "Error al actualizar usuario");
+    } catch (error) {
+      mostrarError(error);
     }
   }
 
   async function eliminarUsuario(id) {
-    const confirmar = window.confirm("¿Desea deshabilitar este usuario?");
+    const confirmar = window.confirm("Esta seguro de eliminar este usuario?");
     if (!confirmar) return;
 
     try {
       const res = await fetch(`${URL_USUARIOS}/${id}`, {
         method: "DELETE",
-        headers: obtenerHeaders(),
+        headers: obtenerHeaders()
       });
 
-      const respuesta = await res.json();
-
       if (!res.ok) {
-        throw respuesta;
+        const data = await res.json().catch(() => null);
+        throw data || { message: "No se pudo eliminar el usuario" };
       }
 
-      setMensaje(respuesta?.message || "Usuario deshabilitado correctamente");
+      setMensaje("Usuario eliminado correctamente");
+      if (usuarioDetalle?.id === id) cerrarDetalle();
       cargarUsuarios();
-    } catch (err) {
-      console.log("Error eliminar:", err);
-      setError(err?.message || err?.error || "Error al eliminar usuario");
+    } catch (error) {
+      console.error(error);
+      setMensaje("Error al eliminar el usuario");
     }
   }
 
-  function buscarUsuarioPorDocumento() {
-    const texto = busquedaDocumento.trim().toLowerCase();
-
-    if (texto === "") {
-      setUsuariosFiltrados(usuarios);
-      setMostrarTodosUsuarios(false);
-      return;
-    }
-
-    const resultado = usuarios.filter((u) => {
-      const documento = String(u.persona?.numero_documento || "").toLowerCase();
-      const nombres = String(u.persona?.nombres || "").toLowerCase();
-      const apellidos = String(u.persona?.apellidos || "").toLowerCase();
-      const correo = String(u.email || "").toLowerCase();
-
-      return (
-        documento.includes(texto) ||
-        nombres.includes(texto) ||
-        apellidos.includes(texto) ||
-        correo.includes(texto)
-      );
-    });
-
-    setUsuariosFiltrados(resultado);
-    setMostrarTodosUsuarios(false);
-  }
-
-  function limpiarBusqueda() {
-    setBusquedaDocumento("");
-    setUsuariosFiltrados(usuarios);
-    setMostrarTodosUsuarios(false);
-  }
-
-  function abrirDetalleUsuario(usuario) {
+  function abrirDetalle(usuario) {
     setUsuarioDetalle(usuario);
+    setDetalleForm({
+      id_usuario: usuario.id_usuario,
+      email: usuario.email,
+      nombres: usuario.nombres,
+      apellidos: usuario.apellidos,
+      tipo_documento: usuario.tipo_documento,
+      numero_documento: usuario.numero_documento,
+      id_rol: usuario.id_rol?.toString() || "",
+      estado: usuario.estado || "ACTIVO",
+      telefono: usuario.telefono || ""
+    });
+    setDetalleModoEdicion(false);
   }
 
-  function cerrarDetalleUsuario() {
+  function cerrarDetalle() {
     setUsuarioDetalle(null);
+    setDetalleModoEdicion(false);
+    setDetalleForm(detalleVacio);
   }
 
-  const usuariosVisibles = mostrarTodosUsuarios
-    ? usuariosFiltrados
-    : usuariosFiltrados.slice(0, LIMITE_USUARIOS_VISIBLES);
+  function iniciarEdicionDetalle() {
+    if (!usuarioDetalle) return;
+    setDetalleForm({
+      id_usuario: usuarioDetalle.id_usuario,
+      email: usuarioDetalle.email,
+      nombres: usuarioDetalle.nombres,
+      apellidos: usuarioDetalle.apellidos,
+      tipo_documento: usuarioDetalle.tipo_documento,
+      numero_documento: usuarioDetalle.numero_documento,
+      id_rol: usuarioDetalle.id_rol?.toString() || "",
+      estado: usuarioDetalle.estado || "ACTIVO",
+      telefono: usuarioDetalle.telefono || ""
+    });
+    setDetalleModoEdicion(true);
+  }
 
-  const hayMasUsuarios = usuariosFiltrados.length > LIMITE_USUARIOS_VISIBLES;
+  function cancelarEdicionDetalle() {
+    setDetalleModoEdicion(false);
+    if (usuarioDetalle) {
+      setDetalleForm({
+        id_usuario: usuarioDetalle.id_usuario,
+        email: usuarioDetalle.email,
+        nombres: usuarioDetalle.nombres,
+        apellidos: usuarioDetalle.apellidos,
+        tipo_documento: usuarioDetalle.tipo_documento,
+        numero_documento: usuarioDetalle.numero_documento,
+        id_rol: usuarioDetalle.id_rol?.toString() || "",
+        estado: usuarioDetalle.estado || "ACTIVO",
+        telefono: usuarioDetalle.telefono || ""
+      });
+    }
+  }
+
+  function cambiarDetalleForm(e) {
+    const { name, value } = e.target;
+    setDetalleForm((actual) => ({ ...actual, [name]: value }));
+  }
+
+  async function guardarEdicionDetalle() {
+    if (!usuarioDetalle) return;
+
+    const data = {
+      email: detalleForm.email.trim(),
+      id_rol: parseInt(detalleForm.id_rol, 10),
+      tipo_documento: detalleForm.tipo_documento,
+      numero_documento: detalleForm.numero_documento.trim(),
+      nombres: detalleForm.nombres.trim(),
+      apellidos: detalleForm.apellidos.trim()
+    };
+
+    try {
+      const res = await fetch(`${URL_USUARIOS}/${usuarioDetalle.id}`, {
+        method: "PUT",
+        headers: obtenerHeaders(),
+        body: JSON.stringify(data)
+      });
+
+      const respuesta = await res.json().catch(() => null);
+      if (!res.ok) throw respuesta || { message: "No se pudo actualizar el usuario" };
+
+      const actualizado = {
+        ...usuarioDetalle,
+        email: data.email,
+        nombres: data.nombres,
+        apellidos: data.apellidos,
+        tipo_documento: data.tipo_documento,
+        numero_documento: data.numero_documento,
+        id_rol: data.id_rol
+      };
+
+      setUsuarioDetalle(actualizado);
+      setDetalleModoEdicion(false);
+      setMensaje("Usuario actualizado correctamente");
+      cargarUsuarios();
+    } catch (error) {
+      mostrarError(error);
+    }
+  }
+
+  function mostrarError(error) {
+    console.error(error);
+    if (error?.message) setMensaje(error.message);
+    else if (error?.detail) setMensaje(error.detail);
+    else setMensaje("Error al guardar el usuario");
+  }
+
+  function limpiarFormulario() {
+    setNombres("");
+    setApellidos("");
+    setTipoDocumento("");
+    setNumeroDocumento("");
+    setCorreo("");
+    setRol("");
+  }
+
+  function obtenerNombreRol(item) {
+    const rolId = item.id_rol;
+    const rolEncontrado = roles.find((r) => Number(r.id_rol) === Number(rolId));
+    return rolEncontrado ? rolEncontrado.nombre : item.rol?.nombre || "-";
+  }
+
+  const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / USUARIOS_POR_PAGINA));
+  const inicioPagina = (paginaActual - 1) * USUARIOS_POR_PAGINA;
+  const usuariosPagina = usuariosFiltrados.slice(inicioPagina, inicioPagina + USUARIOS_POR_PAGINA);
+  const desde = usuariosFiltrados.length === 0 ? 0 : inicioPagina + 1;
+  const hasta = Math.min(inicioPagina + USUARIOS_POR_PAGINA, usuariosFiltrados.length);
+
+  const detalleUsuario = useMemo(() => {
+    if (!usuarioDetalle) return null;
+    const fuente = detalleModoEdicion ? { ...usuarioDetalle, ...detalleForm, id_rol: detalleForm.id_rol || usuarioDetalle.id_rol } : usuarioDetalle;
+    return {
+      ...fuente,
+      nombreCompleto: `${fuente.nombres || ""} ${fuente.apellidos || ""}`.trim() || "Usuario sin nombre",
+      nombreRol: obtenerNombreRol(fuente),
+      estadoTexto: `${fuente.estado || "ACTIVO"}`.toUpperCase(),
+      iniciales: `${fuente.nombres?.charAt(0) || "U"}${fuente.apellidos?.charAt(0) || "S"}`
+    };
+  }, [usuarioDetalle, detalleForm, detalleModoEdicion, roles]);
+
+  function cambiarPagina(nuevaPagina) {
+    const paginaSegura = Math.min(Math.max(nuevaPagina, 1), totalPaginas);
+    setPaginaActual(paginaSegura);
+  }
 
   return (
-    <div className="usuarios-modulo">
-      <div className="usuarios-titulo">Gestión de usuarios</div>
+    <div className="usuarios-page">
+      <header className="usuarios-header">
+        <div>
+          <span className="usuarios-eyebrow">Administracion institucional</span>
+          <h1>Gestion de usuarios</h1>
+          <p>Consulta, registra y administra los usuarios que acceden a SIMA.</p>
+        </div>
 
-      {mensaje && <div className="usuarios-alerta info">{mensaje}</div>}
-      {error && <div className="usuarios-alerta error">{error}</div>}
-
-      <div className="usuarios-card">
-        <div className="usuarios-section-title">Buscar usuario</div>
-
-        <div className="usuarios-busqueda">
-          <input
-            type="text"
-            placeholder="Buscar por documento, nombre o correo"
-            value={busquedaDocumento}
-            onChange={(e) => setBusquedaDocumento(e.target.value)}
-          />
-
-          <button type="button" className="usuarios-btn verde" onClick={buscarUsuarioPorDocumento}>
-            Buscar
+        <div className="usuarios-header-actions">
+          <button
+            type="button"
+            className="usuarios-secondary-btn"
+            onClick={() => setMensaje("La carga masiva de usuarios quedara lista cuando conectes el endpoint.")}
+          >
+            <Upload size={18} />
+            Carga masiva
           </button>
-
-          <button type="button" className="usuarios-btn gris" onClick={limpiarBusqueda}>
-            Limpiar
+          <button type="button" className="usuarios-primary-btn" onClick={() => setModalCrearAbierto(true)}>
+            <Plus size={19} />
+            Crear usuario
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="usuarios-card">
-        <div className="usuarios-section-title">Crear usuario</div>
+      {mensaje && <div className="usuarios-alert info">{mensaje}</div>}
+      {errorUsuarios && <div className="usuarios-alert danger">{errorUsuarios}</div>}
+      {errorRoles && <div className="usuarios-alert warning">{errorRoles}</div>}
 
-        <form onSubmit={guardarUsuario}>
-          <div className="usuarios-form-grid">
-            <input
-              type="text"
-              name="nombres"
-              placeholder="Nombres"
-              value={form.nombres}
-              onChange={handleChange}
-              required
-            />
+      <section className="usuarios-toolbar">
+        <div className="usuarios-search">
+          <Search size={19} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o documento"
+            value={busquedaDocumento}
+            onChange={(e) => setBusquedaDocumento(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") buscarUsuarioPorDocumento();
+            }}
+          />
+        </div>
+        <button type="button" className="ghost" onClick={limpiarBusqueda}>Limpiar</button>
+      </section>
 
-            <input
-              type="text"
-              name="apellidos"
-              placeholder="Apellidos"
-              value={form.apellidos}
-              onChange={handleChange}
-              required
-            />
+      <section className="usuarios-card">
+        <div className="usuarios-card-header">
+          <div>
+            <h2>Usuarios registrados</h2>
+            <p>Mostrando {desde}-{hasta} de {usuariosFiltrados.length} usuarios</p>
           </div>
+        </div>
 
-          <div className="usuarios-form-grid">
-            <select
-              name="tipo_documento"
-              value={form.tipo_documento}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Seleccione tipo de documento</option>
-              <option value="CC">Cédula de ciudadanía</option>
-              <option value="TI">Tarjeta de identidad</option>
-              <option value="CE">Cédula de extranjería</option>
-              <option value="PPT">Permiso por Protección Temporal</option>
-              <option value="PAS">Pasaporte</option>
-            </select>
-
-            <input
-              type="text"
-              name="numero_documento"
-              placeholder="Número de documento"
-              value={form.numero_documento}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="usuarios-form-grid tres">
-            <input
-              type="email"
-              name="email"
-              placeholder="Correo"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-
-            <input
-              type="text"
-              name="telefono"
-              placeholder="Teléfono"
-              value={form.telefono}
-              onChange={handleChange}
-            />
-
-            <select name="id_rol" value={form.id_rol} onChange={handleChange} required>
-              <option value="">Seleccione un rol</option>
-              {roles.map((rol) => (
-                <option key={rol.id_rol} value={rol.id_rol}>
-                  {rol.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button type="submit" className="usuarios-btn verde ancho">
-            Guardar usuario
-          </button>
-        </form>
-      </div>
-
-      <div className="usuarios-card">
-        <div className="usuarios-section-title">Usuarios registrados</div>
-
-        <div className="usuarios-tabla-contenedor">
-          <table className="usuarios-tabla">
+        <div className="usuarios-table-wrap">
+          <table className="usuarios-table">
             <thead>
               <tr>
-                <th>Nombre</th>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Nombres</th>
+                <th>Apellidos</th>
+                <th>Tipo Doc.</th>
                 <th>Documento</th>
                 <th>Rol</th>
+                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
-
             <tbody>
-              {usuariosVisibles.length > 0 ? (
-                usuariosVisibles.map((item) => (
-                  <tr key={item.id_usuario}>
-                    {editandoId === item.id_usuario ? (
-                      <>
-                        <td>
-                          <input
-                            type="text"
-                            name="nombres"
-                            value={filaEditando.nombres}
-                            onChange={cambiarFilaEditando}
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="text"
-                            name="numero_documento"
-                            value={filaEditando.numero_documento}
-                            onChange={cambiarFilaEditando}
-                          />
-                        </td>
-
-                        <td>
-                          <select
-                            name="id_rol"
-                            value={filaEditando.id_rol}
-                            onChange={cambiarFilaEditando}
-                          >
-                            <option value="">Seleccione</option>
-                            {roles.map((rol) => (
-                              <option key={rol.id_rol} value={rol.id_rol}>
-                                {rol.nombre}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-
-                        <td>
-                          <div className="usuarios-acciones">
-                            <button
-                              type="button"
-                              className="usuarios-btn pequeno verde"
-                              onClick={() => guardarEdicion(item.id_usuario)}
-                            >
-                              Guardar
-                            </button>
-
-                            <button
-                              type="button"
-                              className="usuarios-btn pequeno gris"
-                              onClick={cancelarEdicion}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td>
-                          {item.persona?.nombres} {item.persona?.apellidos}
-                        </td>
-                        <td>{item.persona?.numero_documento}</td>
-                        <td>{item.rol?.nombre}</td>
-                        <td>
-                          <div className="usuarios-acciones">
-                            <button
-                              type="button"
-                              className="usuarios-btn pequeno verde"
-                              onClick={() => abrirDetalleUsuario(item)}
-                            >
-                              Ver
-                            </button>
-
-                            <button
-                              type="button"
-                              className="usuarios-btn pequeno amarillo"
-                              onClick={() => iniciarEdicion(item)}
-                            >
-                              Editar
-                            </button>
-
-                            <button
-                              type="button"
-                              className="usuarios-btn pequeno rojo"
-                              onClick={() => eliminarUsuario(item.id_usuario)}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    )}
+              {usuariosPagina.length > 0 ? (
+                usuariosPagina.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.id}</td>
+                    <td>{item.email}</td>
+                    <td>{item.nombres}</td>
+                    <td>{item.apellidos}</td>
+                    <td>{item.tipo_documento}</td>
+                    <td>{item.numero_documento}</td>
+                    <td>{obtenerNombreRol(item)}</td>
+                    <td>
+                      <span className="usuarios-status">{item.estado || "ACTIVO"}</span>
+                    </td>
+                    <td>
+                      <div className="usuarios-actions">
+                        <button type="button" className="usuarios-icon-btn" onClick={() => abrirDetalle(item)} title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        <button type="button" className="usuarios-icon-btn danger" onClick={() => eliminarUsuario(item.id)} title="Eliminar">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="usuarios-text-center">
-                    No hay usuarios para mostrar
-                  </td>
+                  <td colSpan="9" className="usuarios-empty">No hay usuarios para mostrar</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {hayMasUsuarios && (
-          <div className="usuarios-tabla-footer">
-            <button
-              type="button"
-              className="usuarios-btn verde"
-              onClick={() => setMostrarTodosUsuarios(!mostrarTodosUsuarios)}
-            >
-              {mostrarTodosUsuarios ? "Ver menos" : "Ver todos"}
-            </button>
+        {usuariosFiltrados.length > USUARIOS_POR_PAGINA && (
+          <div className="usuarios-pagination">
+            <span>Pagina {paginaActual} de {totalPaginas}</span>
+            <div>
+              <button type="button" onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
+              {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
+                <button key={pagina} type="button" className={pagina === paginaActual ? "active" : ""} onClick={() => cambiarPagina(pagina)}>
+                  {pagina}
+                </button>
+              ))}
+              <button type="button" onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas}>Siguiente</button>
+            </div>
           </div>
         )}
-      </div>
+      </section>
 
-      {usuarioDetalle && (
-        <div className="usuarios-modal-backdrop" onClick={cerrarDetalleUsuario}>
-          <div className="usuarios-modal" onClick={(e) => e.stopPropagation()}>
+      {detalleUsuario && (
+        <div className="usuarios-modal-backdrop" role="presentation">
+          <section className="usuarios-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detalle-usuario-title">
+            <div className="usuarios-detail-topbar">
+              <div>
+                <span className="usuarios-eyebrow">Detalle del usuario</span>
+                <h2 id="detalle-usuario-title">{detalleUsuario.nombreCompleto}</h2>
+                <p>{detalleUsuario.nombreRol}</p>
+              </div>
+            </div>
+
+            <div className="usuarios-detail-layout">
+              <aside className="usuarios-detail-profile-card">
+                <div className="usuarios-detail-avatar">{detalleUsuario.iniciales}</div>
+                <span className="usuarios-detail-status-pill">{detalleUsuario.estadoTexto}</span>
+                <strong>{detalleUsuario.nombreCompleto}</strong>
+                <p>{detalleUsuario.email}</p>
+              </aside>
+
+              <div className="usuarios-detail-main">
+                <div className="usuarios-detail-grid">
+                  <div className="usuarios-detail-field">
+                    <span>ID</span>
+                    <strong>{detalleUsuario.id}</strong>
+                  </div>
+                  <div className="usuarios-detail-field">
+                    <span>Estado</span>
+                    <strong>{detalleUsuario.estadoTexto}</strong>
+                  </div>
+                  <div className="usuarios-detail-field">
+                    <span>Documento</span>
+                    {detalleModoEdicion ? (
+                      <input name="numero_documento" value={detalleForm.numero_documento} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <strong>{detalleUsuario.numero_documento || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="usuarios-detail-field">
+                    <span>Tipo</span>
+                    {detalleModoEdicion ? (
+                      <select name="tipo_documento" value={detalleForm.tipo_documento} onChange={cambiarDetalleForm}>
+                        <option value="CC">Cedula de ciudadania</option>
+                        <option value="TI">Tarjeta de identidad</option>
+                        <option value="CE">Cedula de extranjeria</option>
+                        <option value="PPT">Permiso por Proteccion Temporal</option>
+                        <option value="PAS">Pasaporte</option>
+                      </select>
+                    ) : (
+                      <strong>{detalleUsuario.tipo_documento || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="usuarios-detail-field">
+                    <span>Nombres</span>
+                    {detalleModoEdicion ? (
+                      <input name="nombres" value={detalleForm.nombres} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <strong>{detalleUsuario.nombres || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="usuarios-detail-field">
+                    <span>Apellidos</span>
+                    {detalleModoEdicion ? (
+                      <input name="apellidos" value={detalleForm.apellidos} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <strong>{detalleUsuario.apellidos || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="usuarios-detail-field usuarios-detail-field-full">
+                    <span>Rol</span>
+                    {detalleModoEdicion ? (
+                      <select name="id_rol" value={detalleForm.id_rol} onChange={cambiarDetalleForm}>
+                        <option value="">Seleccione</option>
+                        {roles.map((item) => (
+                          <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <strong>{detalleUsuario.nombreRol}</strong>
+                    )}
+                  </div>
+                </div>
+
+                <div className="usuarios-detail-contact-list">
+                  <div className="usuarios-detail-contact-item">
+                    <Mail size={18} />
+                    {detalleModoEdicion ? (
+                      <input name="email" type="email" value={detalleForm.email} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <span>{detalleUsuario.email || "No registrado"}</span>
+                    )}
+                  </div>
+                  <div className="usuarios-detail-contact-item">
+                    <Phone size={18} />
+                    <span>{detalleUsuario.telefono || "No registrado"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="usuarios-detail-footer">
+              {detalleModoEdicion ? (
+                <>
+                  <button type="button" className="usuarios-secondary-btn" onClick={cancelarEdicionDetalle}>Cancelar</button>
+                  <button type="button" className="usuarios-primary-btn" onClick={guardarEdicionDetalle}>
+                    <Save size={16} />
+                    Guardar cambios
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="usuarios-secondary-btn" onClick={iniciarEdicionDetalle}>
+                    <Edit3 size={16} />
+                    Editar
+                  </button>
+                  <button type="button" className="usuarios-primary-btn" onClick={cerrarDetalle}>Cerrar</button>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {modalCrearAbierto && (
+        <div className="usuarios-modal-backdrop" role="presentation">
+          <section className="usuarios-modal" role="dialog" aria-modal="true" aria-labelledby="crear-usuario-title">
             <div className="usuarios-modal-header">
-              <h3>Informacion del usuario</h3>
-
-              <button
-                type="button"
-                className="usuarios-modal-cerrar"
-                onClick={cerrarDetalleUsuario}
-                aria-label="Cerrar detalle"
-              >
-                x
-              </button>
-            </div>
-
-            <div className="usuarios-detalle-grid">
               <div>
-                <span>ID</span>
-                <strong>{usuarioDetalle.id_usuario}</strong>
-              </div>
-
-              <div>
-                <span>Nombres</span>
-                <strong>{usuarioDetalle.persona?.nombres || "Sin dato"}</strong>
-              </div>
-
-              <div>
-                <span>Apellidos</span>
-                <strong>{usuarioDetalle.persona?.apellidos || "Sin dato"}</strong>
-              </div>
-
-              <div>
-                <span>Tipo documento</span>
-                <strong>{usuarioDetalle.persona?.tipo_documento || "Sin dato"}</strong>
-              </div>
-
-              <div>
-                <span>Documento</span>
-                <strong>{usuarioDetalle.persona?.numero_documento || "Sin dato"}</strong>
-              </div>
-
-              <div>
-                <span>Correo</span>
-                <strong>{usuarioDetalle.email || "Sin dato"}</strong>
-              </div>
-
-              <div>
-                <span>Telefono</span>
-                <strong>{usuarioDetalle.persona?.telefono || "Sin telefono"}</strong>
-              </div>
-
-              <div>
-                <span>Rol</span>
-                <strong>{usuarioDetalle.rol?.nombre || "Sin dato"}</strong>
-              </div>
-
-              <div>
-                <span>Estado</span>
-                <strong>{usuarioDetalle.estado || "Sin dato"}</strong>
+                <span className="usuarios-eyebrow">Nuevo registro</span>
+                <h2 id="crear-usuario-title">Crear usuario</h2>
+                <p>La contrasena inicial sera el numero de documento.</p>
               </div>
             </div>
 
-            <div className="usuarios-modal-footer">
-              <button
-                type="button"
-                className="usuarios-btn gris"
-                onClick={cerrarDetalleUsuario}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
+            <form onSubmit={guardarUsuario} className="usuarios-form">
+              <div className="usuarios-form-grid">
+                <label>
+                  <span>Nombres</span>
+                  <input type="text" placeholder="Ej. Maria" value={nombres} onChange={(e) => setNombres(e.target.value)} required />
+                </label>
+                <label>
+                  <span>Apellidos</span>
+                  <input type="text" placeholder="Ej. Torres" value={apellidos} onChange={(e) => setApellidos(e.target.value)} required />
+                </label>
+              </div>
+
+              <div className="usuarios-form-grid">
+                <label>
+                  <span>Tipo de documento</span>
+                  <select value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value)} required>
+                    <option value="">Seleccione</option>
+                    <option value="CC">Cedula de ciudadania</option>
+                    <option value="TI">Tarjeta de identidad</option>
+                    <option value="CE">Cedula de extranjeria</option>
+                    <option value="PPT">Permiso por Proteccion Temporal</option>
+                    <option value="PAS">Pasaporte</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Numero de documento</span>
+                  <input type="text" placeholder="Documento" value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} required />
+                </label>
+              </div>
+
+              <div className="usuarios-form-grid">
+                <label>
+                  <span>Correo institucional</span>
+                  <input type="email" placeholder="usuario@misena.edu.co" value={correo} onChange={(e) => setCorreo(e.target.value)} required />
+                </label>
+                <label>
+                  <span>Rol</span>
+                  <select value={rol} onChange={(e) => setRol(e.target.value)} required>
+                    <option value="">Seleccione un rol</option>
+                    {roles.map((item) => (
+                      <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="usuarios-modal-actions">
+                <button type="button" className="usuarios-secondary-btn" onClick={() => { limpiarFormulario(); setModalCrearAbierto(false); }}>Cancelar</button>
+                <button type="submit" className="usuarios-primary-btn">Guardar usuario</button>
+              </div>
+            </form>
+          </section>
         </div>
       )}
     </div>
   );
 }
+
+
+
+
+

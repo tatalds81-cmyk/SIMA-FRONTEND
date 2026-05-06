@@ -1,510 +1,751 @@
-import { useState, useEffect } from 'react';
-import "./registroAprendices.css"
+﻿import { useEffect, useMemo, useState } from "react";
+import { Edit3, Eye, FileSpreadsheet, Mail, Phone, Plus, Save, Search, Trash2, Upload } from "lucide-react";
+import "./registroAprendices.css";
 
-// URL base de nuestro backend que provee la API de aprendices
-const API_URL = '/api/apprentices';
-
-function RegistroAprendices() {
-  // === ESTADOS GENERALES DE DATOS ===
-  // Listado de fichas de formación extraídas de la base de datos
-  const [fichas, setFichas] = useState([]);
-  // Listado completo de aprendices registrados en el sistema
-  const [aprendices, setAprendices] = useState([]);
-  
-  // === NAVEGACIÓN ===
-  // Controla qué pestaña (tab) se está mostrando actualmente. 
-  // Puede ser: 'individual', 'masiva', o 'registrados'.
-  const [activeTab, setActiveTab] = useState('individual'); 
-
-  // === ESTADO DEL FORMULARIO INDIVIDUAL ===
-  // Almacena los datos introducidos en el formulario de registro manual
-  const [formData, setFormData] = useState({
-    tipo_documento: 'CC', // Por defecto 'Cédula de Ciudadanía' para agilizar el registro
-    numero_documento: '',
-    nombres: '',
-    apellidos: '',
-    email: '',
-    telefono: '',
-    numero_ficha: '' // Relación con el programa de formación al que será asignado
-  });
-  
-  // === ESTADOS DE INTERFAZ DE USUARIO (UI) ===
-  // Indica si hay un proceso de petición en curso (para deshabilitar botones, mostrar spinners, etc.)
-  const [loading, setLoading] = useState(false);
-  // Almacena y muestra mensajes de éxito o error tras enviar el formulario individual
-  const [mensaje, setMensaje] = useState(null);
-  
-  // === ESTADO DEL FORMULARIO DE CARGA MASIVA ===
-  // Archivo Excel (.xlsx) subido por el usuario
-  const [file, setFile] = useState(null);
-  // Indicador de carga específico para procesos masivos (que suelen tardar más)
-  const [masiveLoading, setMasiveLoading] = useState(false);
-  // Almacena el resultado del procesamiento del backend (éxitos, fallos, detalles por fila)
-  const [masiveResult, setMasiveResult] = useState(null);
-
-  // Inicializar datos (se explicará en el useEffect)
-  // === CARGA INICIAL DE DATOS ===
-  // hook de React que se ejecuta al montar el componente (crearse por primera vez)
-  useEffect(() => {
-    fetchFichas();     // Trae las fichas disponibles
-    fetchAprendices(); // Trae los aprendices ya guardados
-  }, []); // El arreglo vacío [] indica que se ejecuta solo una vez.
-
-  // Función asíncrona para obtener las fichas activas disponibles para inscribirse
-  const fetchFichas = async () => {
-  try {
-    const token = localStorage.getItem("access");
-    const resp = await fetch(`${API_URL}/grupos-activos`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await resp.json();
-    if (data.ok) setFichas(data.data);
-   }catch (error) {
-    console.error('Error cargando fichas:', error);
-   }
- };
-  // Función asíncrona para descargar a todos los aprendices y llenar la tabla de "Registrados"
- const fetchAprendices = async () => {
-  try {
-    const token = localStorage.getItem("access");
-    console.log("Token:", token); // ¿Hay token?
-    
-    const resp = await fetch(`${API_URL}/listado`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    console.log("Status:", resp.status); // ¿Qué responde el servidor?
-    const data = await resp.json();
-    console.log("Data:", data); // ¿Qué trae el JSON?
-    
-    if (data.ok) {
-  const lista = Array.isArray(data.data) 
-    ? data.data 
-    : Array.isArray(data.data?.aprendices)  // ¿viene en data.data.aprendices?
-    ? data.data.aprendices 
-    : Object.values(data.data);             // último recurso: convierte objeto a array
-  setAprendices(lista);
-}
-  } catch (error) {
-    console.error('Error cargando aprendices:', error);
-  }
+const detalleVacio = {
+  id_aprendiz: "",
+  id_usuario: "",
+  nombres: "",
+  apellidos: "",
+  tipo_documento: "",
+  numero_documento: "",
+  email: "",
+  telefono: "",
+  numero_ficha: "",
+  estado: "ACTIVO"
 };
 
-  // === MANEJADORES DE EVENTOS ===
+export default function Aprendices() {
+  const [aprendices, setAprendices] = useState([]);
+  const [grupos, setGrupos] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [modalIndividual, setModalIndividual] = useState(false);
+  const [modalMasivo, setModalMasivo] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+  const [mensajeError, setMensajeError] = useState(false);
+  const [aprendizDetalle, setAprendizDetalle] = useState(null);
+  const [detalleModoEdicion, setDetalleModoEdicion] = useState(false);
+  const [detalleForm, setDetalleForm] = useState(detalleVacio);
 
-  // Actualiza genéricamente cualquier campo del formulario individual
-  // Escucha el evento change de los inputs, e inyecta el `value` en el estado usando la llave `name` del input
-  const handleInputChange = (e) => {
+  const [form, setForm] = useState({
+    nombres: "",
+    apellidos: "",
+    tipo_documento: "",
+    numero_documento: "",
+    email: "",
+    telefono: "",
+    numero_ficha: ""
+  });
+
+  const [archivo, setArchivo] = useState(null);
+  const [errores, setErrores] = useState({});
+
+  const API_URL = "/api";
+  const URL_USERS = `${API_URL}/users`;
+  const URL_APRENDICES_REGISTRO = `${API_URL}/apprentices/registro`;
+  const URL_APRENDICES_MASIVO = `${API_URL}/apprentices/registro-masivo`;
+  const URL_GRUPOS_ACTIVOS = `${API_URL}/apprentices/grupos-activos`;
+  const APRENDICES_POR_PAGINA = 10;
+
+  function getHeaders(json = true) {
+    const token = localStorage.getItem("access") || localStorage.getItem("token");
+    const headers = {};
+    if (json) headers["Content-Type"] = "application/json";
+    if (token && token !== "undefined") headers.Authorization = `Bearer ${token}`;
+    return headers;
+  }
+
+  function normalizarAprendiz(item) {
+    const usuario = item.usuario || {};
+    const persona = usuario.persona || item.persona || {};
+    const grupoActivo =
+      item.aprendiz_grupos?.find((aprendizGrupo) => aprendizGrupo.estado === "ACTIVO")?.grupo ||
+      item.grupo ||
+      {};
+    const numeroFicha = grupoActivo.numero_ficha || grupoActivo.numero_grupo || item.numero_ficha || item.grupo || "-";
+
+    return {
+      id: item.id_aprendiz || item.id_usuario || item.id,
+      id_aprendiz: item.id_aprendiz || item.id || "",
+      id_usuario: usuario.id_usuario || item.id_usuario || "",
+      nombres: persona.nombres || item.nombres || "",
+      apellidos: persona.apellidos || item.apellidos || "",
+      tipo_documento: persona.tipo_documento || item.tipo_documento || "",
+      numero_documento: persona.numero_documento || item.numero_documento || "",
+      email: usuario.email || item.email || item.correo || "",
+      telefono: persona.telefono || item.telefono || "",
+      grupo: numeroFicha,
+      numero_ficha: numeroFicha,
+      estado: usuario.estado || item.estado || "ACTIVO"
+    };
+  }
+
+  async function cargarGrupos() {
+    try {
+      const res = await fetch(URL_GRUPOS_ACTIVOS, { headers: getHeaders() });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || data?.error || "No fue posible cargar los grupos activos");
+      }
+
+      const data = await res.json().catch(() => null);
+      const lista = data?.data || data?.results || (Array.isArray(data) ? data : []);
+      const gruposActivos = Array.isArray(lista) ? lista : [];
+      setGrupos(gruposActivos);
+      return gruposActivos;
+    } catch (error) {
+      setGrupos([]);
+      setMensajeError(true);
+      setMensaje(error.message || "No fue posible cargar los grupos activos.");
+      return [];
+    }
+  }
+
+  async function cargarAprendicesDesdeGrupos(gruposActivos) {
+    const headers = getHeaders();
+    const respuestas = await Promise.all(
+      gruposActivos.map(async (grupo) => {
+        const idGrupo = grupo.id_grupo || grupo.id;
+        if (!idGrupo) return [];
+
+        try {
+          const res = await fetch(`${API_URL}/apprentices/grupo/${idGrupo}`, { headers });
+          if (!res.ok) return [];
+          const data = await res.json().catch(() => null);
+          const lista = data?.data?.aprendices || data?.data || [];
+          return Array.isArray(lista) ? lista : [];
+        } catch {
+          return [];
+        }
+      })
+    );
+
+    const mapa = new Map();
+    respuestas.flat().forEach((item) => {
+      const aprendiz = normalizarAprendiz(item);
+      const key = aprendiz.numero_documento || aprendiz.id;
+      if (!mapa.has(key)) {
+        mapa.set(key, aprendiz);
+      }
+    });
+
+    return Array.from(mapa.values());
+  }
+
+  async function cargarAprendices(gruposActivos) {
+    const fallback = await cargarAprendicesDesdeGrupos(gruposActivos);
+    setAprendices(fallback);
+    setPaginaActual(1);
+    setMensajeError(false);
+    setMensaje(
+      fallback.length > 0
+        ? "Se muestran aprendices reconstruidos desde los grupos activos."
+        : "No hay aprendices disponibles para mostrar."
+    );
+  }
+
+  useEffect(() => {
+    async function cargarTodo() {
+      const gruposActivos = await cargarGrupos();
+      await cargarAprendices(gruposActivos);
+    }
+
+    cargarTodo();
+  }, []);
+
+  const aprendicesFiltrados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+    if (!texto) return aprendices;
+
+    return aprendices.filter((item) =>
+      `${item.nombres} ${item.apellidos} ${item.numero_documento} ${item.email} ${item.grupo}`
+        .toLowerCase()
+        .includes(texto)
+    );
+  }, [aprendices, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(aprendicesFiltrados.length / APRENDICES_POR_PAGINA));
+  const inicioPagina = (paginaActual - 1) * APRENDICES_POR_PAGINA;
+  const aprendicesPagina = aprendicesFiltrados.slice(inicioPagina, inicioPagina + APRENDICES_POR_PAGINA);
+  const desde = aprendicesFiltrados.length === 0 ? 0 : inicioPagina + 1;
+  const hasta = Math.min(inicioPagina + APRENDICES_POR_PAGINA, aprendicesFiltrados.length);
+
+  function cambiarPagina(nuevaPagina) {
+    setPaginaActual(Math.min(Math.max(nuevaPagina, 1), totalPaginas));
+  }
+
+  function cambiarCampo(e) {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+    setForm((actual) => ({ ...actual, [name]: value }));
+    setErrores((actual) => ({ ...actual, [name]: "" }));
+  }
 
-  // Procesa y envía la información del formulario manual de inscripción individual al servidor
-  const handleIndividualSubmit = async (e) => {
-    e.preventDefault(); // Evita que la página se resfresque al mandar el formulario
-    setLoading(true);   // Bloquea el botón de envío
-    setMensaje(null);   // Reinicia mensajes previos
-    
-    try {
-      // Petición POST con el contenido en formato JSON
-      const token = localStorage.getItem("access");
-      const resp = await fetch(`${API_URL}/registro`, {
-        method: 'POST',
-        headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(formData)
+  function limpiarFormulario() {
+    setForm({
+      nombres: "",
+      apellidos: "",
+      tipo_documento: "",
+      numero_documento: "",
+      email: "",
+      telefono: "",
+      numero_ficha: ""
     });
-      const data = await resp.json();
-      
-      if (resp.ok) {
-        // En caso de éxito, notifica y limpia el formulario
-        setMensaje({ type: 'success', text: 'Aprendiz registrado exitosamente' });
-        setFormData({
-          tipo_documento: 'CC', numero_documento: '', nombres: '', 
-          apellidos: '', email: '', telefono: '', numero_ficha: ''
-        });
-        fetchAprendices(); // Refresca automáticamente la tabla con el nuevo usuario
-      } else {
-        // En caso de respuesta negativa (pero resuelta del api), muestra el mensaje
-        setMensaje({ type: 'error', text: data.error || 'Error al registrar' });
-      }
-    } catch (error) {
-      // Ocurre si el servidor cae o hay un problema de red HTTP
-      setMensaje({ type: 'error', text: 'Error de conexión con el servidor' });
-    } finally {
-      setLoading(false); // Libera el botón al terminar en cualquier escenario
-    }
-  };
+    setErrores({});
+  }
 
-  // Permite al usuario adjuntar y prepar en el estado el archivo Excel que seleccione
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
+  function abrirDetalle(aprendiz) {
+    setAprendizDetalle(aprendiz);
+    setDetalleForm({
+      id_aprendiz: aprendiz.id_aprendiz,
+      id_usuario: aprendiz.id_usuario,
+      nombres: aprendiz.nombres,
+      apellidos: aprendiz.apellidos,
+      tipo_documento: aprendiz.tipo_documento,
+      numero_documento: aprendiz.numero_documento,
+      email: aprendiz.email,
+      telefono: aprendiz.telefono || "",
+      numero_ficha: aprendiz.numero_ficha,
+      estado: aprendiz.estado || "ACTIVO"
+    });
+    setDetalleModoEdicion(false);
+  }
 
-  // Se encarga de empaquetar y enviar el archivo Excel masivo al Backend para procesarlo
-  const handleMasiveSubmit = async (e) => {
+  function cerrarDetalle() {
+    setAprendizDetalle(null);
+    setDetalleModoEdicion(false);
+    setDetalleForm(detalleVacio);
+  }
+
+  function iniciarEdicionDetalle() {
+    if (!aprendizDetalle) return;
+    abrirDetalle(aprendizDetalle);
+    setDetalleModoEdicion(true);
+  }
+
+  function cancelarEdicionDetalle() {
+    setDetalleModoEdicion(false);
+    if (aprendizDetalle) abrirDetalle(aprendizDetalle);
+  }
+
+  function cambiarDetalleForm(e) {
+    const { name, value } = e.target;
+    setDetalleForm((actual) => ({ ...actual, [name]: value }));
+  }
+
+  function validarIndividual() {
+    const nuevosErrores = {};
+    if (!form.nombres.trim()) nuevosErrores.nombres = "Campo obligatorio";
+    if (!form.apellidos.trim()) nuevosErrores.apellidos = "Campo obligatorio";
+    if (!form.tipo_documento) nuevosErrores.tipo_documento = "Campo obligatorio";
+    if (!form.numero_documento.trim()) nuevosErrores.numero_documento = "Campo obligatorio";
+    if (!form.email.trim()) nuevosErrores.email = "Campo obligatorio";
+    if (!form.numero_ficha) nuevosErrores.numero_ficha = "Seleccione un grupo activo";
+
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  }
+
+  async function guardarAprendiz(e) {
     e.preventDefault();
-    if (!file) return; // Validación rapida: si no sube nada no ejecuta nada.
-    
-    setMasiveLoading(true);
-    setMasiveResult(null);
-    
-    // Al ser un archivo no sirve JSON. Necesitamos estrucutrarlo en FormData nativo
-    const fd = new FormData();
-    fd.append('archivo', file);
-    
+    if (!validarIndividual()) return;
+
     try {
-    const token = localStorage.getItem("access");
-    const resp = await fetch(`${API_URL}/registro-masivo`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: fd
-    });
-      const data = await resp.json();
-      setMasiveResult(data.data); // El backend deberíai devolver desglosado lo qué se añadio y qué falló
-      
-     // Si insertamos o sea más de 0 éxitos, actualizamos el componente visual de la tabla
-    if (data.data.exitosos > 0) {
-    fetchAprendices();
-      }
-    } catch (error) {
-      setMasiveResult({ 
-        ok: false, 
-        error: 'Error de conexión con el servidor. ¿Está ejecutándose en el puerto 3000?' 
+      const payload = {
+        nombres: form.nombres.trim(),
+        apellidos: form.apellidos.trim(),
+        tipo_documento: form.tipo_documento,
+        numero_documento: form.numero_documento.trim(),
+        email: form.email.trim(),
+        telefono: form.telefono.trim(),
+        numero_ficha: form.numero_ficha
+      };
+
+      const res = await fetch(URL_APRENDICES_REGISTRO, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
       });
-    } finally {
-      setMasiveLoading(false);
-      setFile(null); // Borra el archivo de nuestro estado interno en JS
-      // Resetea el elemento de entrada archivo en el DOM visual del HTML
-      const fileInput = document.getElementById('excel-upload');
-      if (fileInput) fileInput.value = '';
+
+      const data = await res.json().catch(() => null);
+
+      if (res.status === 409) {
+        setErrores({ numero_documento: data?.message || "Ya existe un aprendiz con este documento" });
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.message || data?.error || "No fue posible registrar el aprendiz");
+      }
+
+      setMensajeError(false);
+      setMensaje("Aprendiz registrado correctamente.");
+      setModalIndividual(false);
+      limpiarFormulario();
+      const gruposActivos = grupos.length > 0 ? grupos : await cargarGrupos();
+      await cargarAprendices(gruposActivos);
+    } catch (error) {
+      setMensajeError(true);
+      setMensaje(error.message || "Error al registrar el aprendiz");
     }
-  };
+  }
+
+  async function guardarEdicionDetalle() {
+    if (!detalleForm.id_usuario) {
+      setMensajeError(true);
+      setMensaje("No se encontro el usuario asociado al aprendiz.");
+      return;
+    }
+
+    try {
+      const payload = {
+        email: detalleForm.email.trim(),
+        tipo_documento: detalleForm.tipo_documento,
+        numero_documento: detalleForm.numero_documento.trim(),
+        nombres: detalleForm.nombres.trim(),
+        apellidos: detalleForm.apellidos.trim(),
+        telefono: detalleForm.telefono.trim()
+      };
+
+      const res = await fetch(`${URL_USERS}/${detalleForm.id_usuario}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible actualizar el aprendiz");
+
+      const aprendizActualizado = {
+        ...aprendizDetalle,
+        ...payload,
+        grupo: detalleForm.numero_ficha,
+        numero_ficha: detalleForm.numero_ficha
+      };
+
+      setAprendices((actuales) =>
+        actuales.map((item) =>
+          item.id_usuario === detalleForm.id_usuario ? { ...item, ...aprendizActualizado } : item
+        )
+      );
+      setAprendizDetalle(aprendizActualizado);
+      setDetalleModoEdicion(false);
+      setMensajeError(false);
+      setMensaje("Aprendiz actualizado correctamente.");
+    } catch (error) {
+      setMensajeError(true);
+      setMensaje(error.message || "No fue posible actualizar el aprendiz.");
+    }
+  }
+
+  async function eliminarAprendiz(aprendiz) {
+    if (!aprendiz.id_usuario) {
+      setMensajeError(true);
+      setMensaje("No se encontro el usuario asociado al aprendiz.");
+      return;
+    }
+
+    const confirmar = window.confirm("Esta seguro de eliminar este aprendiz? Se marcara como inactivo.");
+    if (!confirmar) return;
+
+    try {
+      const res = await fetch(`${URL_USERS}/${aprendiz.id_usuario}`, {
+        method: "DELETE",
+        headers: getHeaders()
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible eliminar el aprendiz");
+
+      setAprendices((actuales) => actuales.filter((item) => item.id_usuario !== aprendiz.id_usuario));
+      if (aprendizDetalle?.id_usuario === aprendiz.id_usuario) cerrarDetalle();
+      setMensajeError(false);
+      setMensaje("Aprendiz eliminado correctamente.");
+    } catch (error) {
+      setMensajeError(true);
+      setMensaje(error.message || "No fue posible eliminar el aprendiz.");
+    }
+  }
+
+  async function cargarArchivoMasivo(e) {
+    e.preventDefault();
+    if (!archivo) {
+      setMensajeError(true);
+      setMensaje("Seleccione un archivo Excel para cargar aprendices.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("archivo", archivo);
+
+      const res = await fetch(URL_APRENDICES_MASIVO, {
+        method: "POST",
+        headers: getHeaders(false),
+        body: formData
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible cargar el archivo");
+
+      setMensajeError(false);
+      setMensaje(data?.message || "Carga masiva procesada correctamente.");
+      setModalMasivo(false);
+      setArchivo(null);
+      const gruposActivos = grupos.length > 0 ? grupos : await cargarGrupos();
+      await cargarAprendices(gruposActivos);
+    } catch (error) {
+      setMensajeError(true);
+      setMensaje(error.message || "Error al cargar archivo masivo");
+    }
+  }
+
+  function obtenerCodigoGrupo(grupo) {
+    return grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || grupo.id_grupo || grupo.id;
+  }
+
+  const detalleNombreCompleto = `${aprendizDetalle?.nombres || ""} ${aprendizDetalle?.apellidos || ""}`.trim();
+  const detalleIniciales = `${aprendizDetalle?.nombres?.[0] || "A"}${aprendizDetalle?.apellidos?.[0] || "P"}`.toUpperCase();
 
   return (
-    <div className="app-container">
-      
-      {/* Header Section */}
-      <header className="header-section">
-        <div className="title-area">
-          <h1>Registro de Aprendices</h1>
-          <p>Registra aprendices de forma individual o mediante carga masiva</p>
+    <div className="aprendices-page">
+      <header className="aprendices-header">
+        <div>
+          <span className="aprendices-eyebrow">Registro y vinculacion</span>
+          <h1>Gestion de aprendices</h1>
+          <p>Registra aprendices de forma individual o masiva y vincularlos a grupos activos.</p>
         </div>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => setActiveTab('individual')}
-          style={{ visibility: activeTab === 'individual' ? 'hidden' : 'visible' }}
-        >
-          + Nuevo aprendiz
-        </button>
+
+        <div className="aprendices-header-actions">
+          <button type="button" className="aprendices-secondary-btn" onClick={() => setModalMasivo(true)}>
+            <Upload size={18} />
+            Carga masiva
+          </button>
+          <button type="button" className="aprendices-primary-btn" onClick={() => setModalIndividual(true)}>
+            <Plus size={18} />
+            Registrar aprendiz
+          </button>
+        </div>
       </header>
 
-      {/* Tabs Navigation */}
-      <div className="tabs-container">
-        <button 
-          className={`tab-btn ${activeTab === 'individual' ? 'active' : 'inactive'}`}
-          onClick={() => setActiveTab('individual')}
-        >
-          Registro individual
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'masiva' ? 'active' : 'inactive'}`}
-          onClick={() => setActiveTab('masiva')}
-        >
-          Carga masiva
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'registrados' ? 'active' : 'inactive'}`}
-          onClick={() => setActiveTab('registrados')}
-        >
-          Aprendices registrados
-        </button>
-      </div>
+      {mensaje && <div className={`aprendices-alert ${mensajeError ? "danger" : "info"}`}>{mensaje}</div>}
 
-      {/* Main Content Area */}
-      
-      {/* === REGISTRO INDIVIDUAL === */}
-      {activeTab === 'individual' && (
-        <section className="card">
-          <div className="card-header">
-            <h2>Datos Personales</h2>
-            <span>Campos marcados con <span className="asterisk">*</span> son obligatorios</span>
+      <section className="aprendices-criteria">
+        <article>
+          <strong>Rol automatico</strong>
+          <span>Se registra como Aprendiz.</span>
+        </article>
+        <article>
+          <strong>Contrasena inicial</strong>
+          <span>Documento del aprendiz.</span>
+        </article>
+        <article>
+          <strong>Grupo activo</strong>
+          <span>Solo se listan grupos activos.</span>
+        </article>
+      </section>
+
+      <section className="aprendices-toolbar">
+        <div className="aprendices-search">
+          <Search size={19} />
+          <input
+            value={busqueda}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setPaginaActual(1);
+            }}
+            placeholder="Buscar por documento, nombre, correo o grupo"
+          />
+        </div>
+        <button type="button" className="ghost" onClick={() => { setBusqueda(""); setPaginaActual(1); }}>
+          Limpiar
+        </button>
+      </section>
+
+      <section className="aprendices-card">
+        <div className="aprendices-card-header">
+          <div>
+            <h2>Aprendices registrados</h2>
+            <p>Mostrando {desde}-{hasta} de {aprendicesFiltrados.length} aprendices</p>
           </div>
-          
-          {mensaje && (
-            <div className={`alert ${mensaje.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-              {mensaje.text}
+        </div>
+
+        <div className="aprendices-table-wrap">
+          <table className="aprendices-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Aprendiz</th>
+                <th>Correo</th>
+                <th>Telefono</th>
+                <th>Grupo</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aprendicesPagina.length > 0 ? (
+                aprendicesPagina.map((item) => (
+                  <tr key={item.id || item.numero_documento}>
+                    <td className="aprendices-highlight">{item.tipo_documento} {item.numero_documento}</td>
+                    <td>{item.nombres} {item.apellidos}</td>
+                    <td>{item.email}</td>
+                    <td>{item.telefono || "-"}</td>
+                    <td>{item.grupo}</td>
+                    <td><span className="aprendices-status">{item.estado}</span></td>
+                    <td>
+                      <div className="aprendices-actions">
+                        <button type="button" className="aprendices-icon-btn" onClick={() => abrirDetalle(item)} title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        <button type="button" className="aprendices-icon-btn danger" onClick={() => eliminarAprendiz(item)} title="Eliminar">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="aprendices-empty">No hay aprendices para mostrar</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {aprendicesFiltrados.length > APRENDICES_POR_PAGINA && (
+          <div className="aprendices-pagination">
+            <span>Pagina {paginaActual} de {totalPaginas}</span>
+            <div>
+              <button type="button" disabled={paginaActual === 1} onClick={() => cambiarPagina(paginaActual - 1)}>Anterior</button>
+              {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
+                <button key={pagina} type="button" className={pagina === paginaActual ? "active" : ""} onClick={() => cambiarPagina(pagina)}>
+                  {pagina}
+                </button>
+              ))}
+              <button type="button" disabled={paginaActual === totalPaginas} onClick={() => cambiarPagina(paginaActual + 1)}>Siguiente</button>
             </div>
-          )}
-          
-          <form onSubmit={handleIndividualSubmit}>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label>Número de documento <span className="asterisk">*</span></label>
-                <div className="document-group">
-                  <select 
-                    name="tipo_documento" 
-                    className="form-control" 
-                    value={formData.tipo_documento} 
-                    onChange={handleInputChange} 
-                    required
-                  >
-                    <option value="CC">CC</option>
-                    <option value="TI">TI</option>
-                    <option value="CE">CE</option>
+          </div>
+        )}
+      </section>
+
+      {aprendizDetalle && (
+        <div className="aprendices-modal-backdrop" role="presentation">
+          <section className="aprendices-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detalle-aprendiz-title">
+            <div className="aprendices-detail-topbar">
+              <div>
+                <span className="aprendices-eyebrow">Detalle del aprendiz</span>
+                <h2 id="detalle-aprendiz-title">{detalleNombreCompleto || "Aprendiz"}</h2>
+                <p>Ficha {aprendizDetalle.numero_ficha || "Sin asignar"}</p>
+              </div>
+            </div>
+
+            <div className="aprendices-detail-layout">
+              <aside className="aprendices-detail-profile-card">
+                <div className="aprendices-detail-avatar">{detalleIniciales}</div>
+                <span className="aprendices-detail-status-pill">{aprendizDetalle.estado || "ACTIVO"}</span>
+                <strong>{detalleNombreCompleto || "Aprendiz"}</strong>
+                <p>{aprendizDetalle.email || "No registrado"}</p>
+              </aside>
+
+              <div className="aprendices-detail-main">
+                <div className="aprendices-detail-grid">
+                  <div className="aprendices-detail-field">
+                    <span>ID</span>
+                    <strong>{aprendizDetalle.id_aprendiz || "-"}</strong>
+                  </div>
+                  <div className="aprendices-detail-field">
+                    <span>Estado</span>
+                    <strong>{aprendizDetalle.estado || "ACTIVO"}</strong>
+                  </div>
+                  <div className="aprendices-detail-field">
+                    <span>Documento</span>
+                    {detalleModoEdicion ? (
+                      <input name="numero_documento" value={detalleForm.numero_documento} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <strong>{aprendizDetalle.numero_documento || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="aprendices-detail-field">
+                    <span>Tipo</span>
+                    {detalleModoEdicion ? (
+                      <select name="tipo_documento" value={detalleForm.tipo_documento} onChange={cambiarDetalleForm}>
+                        <option value="CC">Cedula de ciudadania</option>
+                        <option value="TI">Tarjeta de identidad</option>
+                        <option value="CE">Cedula de extranjeria</option>
+                        <option value="PPT">Permiso por Proteccion Temporal</option>
+                        <option value="PEP">Permiso Especial de Permanencia</option>
+                        <option value="PA">Pasaporte</option>
+                      </select>
+                    ) : (
+                      <strong>{aprendizDetalle.tipo_documento || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="aprendices-detail-field">
+                    <span>Nombres</span>
+                    {detalleModoEdicion ? (
+                      <input name="nombres" value={detalleForm.nombres} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <strong>{aprendizDetalle.nombres || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="aprendices-detail-field">
+                    <span>Apellidos</span>
+                    {detalleModoEdicion ? (
+                      <input name="apellidos" value={detalleForm.apellidos} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <strong>{aprendizDetalle.apellidos || "-"}</strong>
+                    )}
+                  </div>
+                  <div className="aprendices-detail-field aprendices-detail-field-full">
+                    <span>Ficha activa</span>
+                    <strong>{aprendizDetalle.numero_ficha || "Sin asignar"}</strong>
+                  </div>
+                </div>
+
+                <div className="aprendices-detail-contact-list">
+                  <div className="aprendices-detail-contact-item">
+                    <Mail size={18} />
+                    {detalleModoEdicion ? (
+                      <input name="email" type="email" value={detalleForm.email} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <span>{aprendizDetalle.email || "No registrado"}</span>
+                    )}
+                  </div>
+                  <div className="aprendices-detail-contact-item">
+                    <Phone size={18} />
+                    {detalleModoEdicion ? (
+                      <input name="telefono" value={detalleForm.telefono} onChange={cambiarDetalleForm} />
+                    ) : (
+                      <span>{aprendizDetalle.telefono || "No registrado"}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="aprendices-detail-footer">
+              {detalleModoEdicion ? (
+                <>
+                  <button type="button" className="aprendices-secondary-btn" onClick={cancelarEdicionDetalle}>Cancelar</button>
+                  <button type="button" className="aprendices-primary-btn" onClick={guardarEdicionDetalle}>
+                    <Save size={16} />
+                    Guardar cambios
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="aprendices-secondary-btn" onClick={iniciarEdicionDetalle}>
+                    <Edit3 size={16} />
+                    Editar
+                  </button>
+                  <button type="button" className="aprendices-primary-btn" onClick={cerrarDetalle}>Cerrar</button>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {modalIndividual && (
+        <div className="aprendices-modal-backdrop" role="presentation">
+          <section className="aprendices-modal" role="dialog" aria-modal="true" aria-labelledby="registrar-aprendiz-title">
+            <div className="aprendices-modal-header">
+              <div>
+                <span className="aprendices-eyebrow">Registro individual</span>
+                <h2 id="registrar-aprendiz-title">Registrar aprendiz</h2>
+                <p>El rol sera Aprendiz y la contrasena inicial sera el documento.</p>
+              </div>
+            </div>
+
+            <form className="aprendices-form" onSubmit={guardarAprendiz}>
+              <div className="aprendices-form-grid">
+                <Campo label="Nombres" name="nombres" value={form.nombres} onChange={cambiarCampo} error={errores.nombres} />
+                <Campo label="Apellidos" name="apellidos" value={form.apellidos} onChange={cambiarCampo} error={errores.apellidos} />
+              </div>
+
+              <div className="aprendices-form-grid">
+                <label>
+                  <span>Tipo de documento</span>
+                  <select name="tipo_documento" value={form.tipo_documento} onChange={cambiarCampo} className={errores.tipo_documento ? "invalid" : ""}>
+                    <option value="">Seleccione</option>
+                    <option value="CC">Cedula de ciudadania</option>
+                    <option value="TI">Tarjeta de identidad</option>
+                    <option value="CE">Cedula de extranjeria</option>
+                    <option value="PPT">Permiso por Proteccion Temporal</option>
+                    <option value="PEP">Permiso Especial de Permanencia</option>
+                    <option value="PA">Pasaporte</option>
                   </select>
-                  <input 
-                    type="text" 
-                    name="numero_documento" 
-                    className={`form-control ${formData.numero_documento.length > 5 ? 'input-success' : ''}`}
-                    value={formData.numero_documento} 
-                    onChange={handleInputChange} 
-                    placeholder="1001234567"
-                    required 
-                  />
-                </div>
-                {/* Visual feedback optional based on the mockup */}
-                {formData.numero_documento.length > 5 && (
-                  <span style={{color: 'var(--primary-green)', fontSize: '0.85rem', marginTop: '0.2rem', display: 'block'}}>✓ Documento válido</span>
-                )}
+                  {errores.tipo_documento && <small className="error">{errores.tipo_documento}</small>}
+                </label>
+                <Campo label="Numero de documento" name="numero_documento" value={form.numero_documento} onChange={cambiarCampo} error={errores.numero_documento} />
               </div>
 
-              <div className="form-group">
-                <label>Nombres Completos <span className="asterisk">*</span></label>
-                {/* We split names and last names into two 50% inputs to keep them in one row visually, matching the mock's horizontal space but keeping backend compatible */}
-                <div style={{display: 'flex', gap: '1rem'}}>
-                  <input 
-                    type="text" 
-                    name="nombres" 
-                    className="form-control" 
-                    value={formData.nombres} 
-                    onChange={handleInputChange} 
-                    placeholder="Nombres"
-                    required 
-                  />
-                  <input 
-                    type="text" 
-                    name="apellidos" 
-                    className="form-control" 
-                    value={formData.apellidos} 
-                    onChange={handleInputChange} 
-                    placeholder="Apellidos"
-                    required 
-                  />
-                </div>
+              <div className="aprendices-form-grid">
+                <Campo label="Correo institucional" name="email" type="email" value={form.email} onChange={cambiarCampo} error={errores.email} />
+                <Campo label="Telefono" name="telefono" value={form.telefono} onChange={cambiarCampo} />
               </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label>Correo electrónico <span className="asterisk">*</span></label>
-                <input 
-                  type="email" 
-                  name="email" 
-                  className="form-control" 
-                  value={formData.email} 
-                  onChange={handleInputChange} 
-                  placeholder="correo@sena.edu.co"
-                  required 
-                />
-              </div>
-              <div className="form-group">
-                <label>Teléfono</label>
-                <input 
-                  type="text" 
-                  name="telefono" 
-                  className="form-control" 
-                  value={formData.telefono} 
-                  onChange={handleInputChange} 
-                  placeholder="3001234567"
-                />
-              </div>
-            </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Ficha de formación <span className="asterisk">*</span></label>
-                <select 
-                  name="numero_ficha" 
-                  className="form-control" 
-                  value={formData.numero_ficha} 
-                  onChange={handleInputChange} 
-                  required
-                >
-                  <option value="">Seleccione Ficha...</option>
-                  {fichas.map(f => (
-                    <option key={f.id_grupo} value={f.numero_ficha}>
-                      {f.numero_ficha} - {f.programa}
+              <label>
+                <span>Grupo activo</span>
+                <select name="numero_ficha" value={form.numero_ficha} onChange={cambiarCampo} className={errores.numero_ficha ? "invalid" : ""}>
+                  <option value="">Seleccione un grupo activo</option>
+                  {grupos.map((grupo) => (
+                    <option key={grupo.id_grupo || grupo.id || obtenerCodigoGrupo(grupo)} value={obtenerCodigoGrupo(grupo)}>
+                      {obtenerCodigoGrupo(grupo)} - {grupo.programa_formacion?.nombre_programa || grupo.programa || "Programa de formacion"}
                     </option>
                   ))}
                 </select>
-              </div>
-              
-              <div className="form-group" style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', paddingBottom: '0.85rem'}}>
-                 {/* Empty space matching mockup visually, we removed "rol asignado" */}
-              </div>
-            </div>
+                {errores.numero_ficha && <small className="error">{errores.numero_ficha}</small>}
+              </label>
 
-            <div className="info-box">
-              Si el documento no existe en el sistema, se creará el usuario automáticamente con rol <strong>Aprendiz</strong>. La contraseña inicial será su número de documento y deberá cambiarla en el primer inicio de sesión.
-            </div>
-
-            <div className="form-actions">
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                onClick={() => setFormData({tipo_documento: 'CC', numero_documento: '', nombres: '', apellidos: '', email: '', telefono: '', numero_ficha: ''})}
-              >
-                Cancelar
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Registrando...' : 'Registrar aprendiz'}
-              </button>
-            </div>
-          </form>
-        </section>
+              <div className="aprendices-modal-actions">
+                <button type="button" className="aprendices-secondary-btn" onClick={() => { limpiarFormulario(); setModalIndividual(false); }}>Cancelar</button>
+                <button type="submit" className="aprendices-primary-btn">Guardar aprendiz</button>
+              </div>
+            </form>
+          </section>
+        </div>
       )}
 
-      {/* === CARGA MASIVA === */}
-      {activeTab === 'masiva' && (
-        <section className="card">
-          <div className="card-header">
-            <h2>Carga Masiva (Excel)</h2>
-          </div>
-          <p style={{marginBottom: '1.5rem', color: 'var(--text-muted)'}}>
-            Sube un archivo .xlsx con las columnas:<br/>
-            <strong>tipo_documento, numero_documento, nombres, apellidos, email, numero_ficha</strong>, telefono.
-          </p>
-          
-          <form onSubmit={handleMasiveSubmit}>
-            <div className="file-upload-wrapper">
-              <div style={{color: 'var(--primary-green)', fontWeight: '600', fontSize: '1.1rem'}}>
-                {file ? file.name : 'Arrastra o haz clic para subir Excel (.xlsx)'}
+      {modalMasivo && (
+        <div className="aprendices-modal-backdrop" role="presentation">
+          <section className="aprendices-modal compact" role="dialog" aria-modal="true" aria-labelledby="carga-masiva-title">
+            <div className="aprendices-modal-header">
+              <div>
+                <span className="aprendices-eyebrow">Registro masivo</span>
+                <h2 id="carga-masiva-title">Carga de archivo</h2>
+                <p>Archivo Excel con las columnas tipo_documento, numero_documento, nombres, apellidos, email y numero_ficha.</p>
               </div>
-              <input 
-                id="excel-upload"
-                type="file" 
-                accept=".xlsx, .xls" 
-                onChange={handleFileChange}
-              />
             </div>
-            
-            <div className="form-actions" style={{marginTop: 0}}>
-              <button type="submit" className="btn btn-primary" disabled={masiveLoading || !file}>
-                {masiveLoading ? 'Procesando archivo...' : 'Registrar por Lote'}
-              </button>
-            </div>
-          </form>
 
-          {masiveResult && (
-              <div className="results-modal">
-                <h4>Resultados de Carga</h4>
-                {masiveResult.error ? (
-                  <p className="error-text">{masiveResult.error}</p>
-                ) : (
-                  <>
-                    <p style={{marginBottom: '1rem'}}>
-                      Total procesados: {masiveResult.total} | 
-                      <span className="success-text" style={{margin: '0 10px'}}>Exitos: {masiveResult.exitosos}</span> | 
-                      <span className="error-text">Fallos: {masiveResult.fallidos}</span>
-                    </p>
-                   <div className="table-container">
-  <table className="modern-table">
-    <thead>
-      <tr>
-        <th>Fila</th>
-        <th>Documento</th>
-        <th>Estado</th>
-        <th>Detalle</th>
-      </tr>
-    </thead>
-    <tbody>
-      {masiveResult.resultados && masiveResult.resultados.map((r, i) => (
-        <tr key={i}>
-          <td>{r.fila}</td>
-          <td>{r.numero_documento}</td>
-          <td>
-            {r.ok
-              ? <span className="success-text">✓ OK</span>
-              : <span className="error-text">✗ Error</span>
-            }
-          </td>
-          <td>
-            {r.ok
-              ? <span className="success-text">{r.mensaje}</span>
-              : <span className="error-text">{r.error}</span>
-            }
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-                  </>
-                )}
+            <form className="aprendices-form" onSubmit={cargarArchivoMasivo}>
+              <label className="aprendices-upload">
+                <FileSpreadsheet size={34} />
+                <strong>{archivo ? archivo.name : "Seleccionar archivo"}</strong>
+                <span>Formatos permitidos: .xlsx, .xls</span>
+                <input type="file" accept=".xlsx,.xls" onChange={(e) => setArchivo(e.target.files?.[0] || null)} />
+              </label>
+
+              <div className="aprendices-modal-actions">
+                <button type="button" className="aprendices-secondary-btn" onClick={() => { setArchivo(null); setModalMasivo(false); }}>Cancelar</button>
+                <button type="submit" className="aprendices-primary-btn">Cargar aprendices</button>
               </div>
-          )}
-        </section>
+            </form>
+          </section>
+        </div>
       )}
-
-      {/* === TABLA DE REGISTRADOS === */}
-      {activeTab === 'registrados' && (
-        <section className="card">
-          <div className="card-header">
-            <h2>Aprendices Registrados</h2>
-          </div>
-          <div className="table-container">
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>Doc.</th>
-                  <th>Nombre Completo</th>
-                  <th>Email</th>
-                  <th>Ficha</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {aprendices.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{textAlign: 'center', color: 'var(--text-muted)'}}>No hay aprendices registrados aún</td>
-                  </tr>
-                ) : (
-                  aprendices.map(a => (
-                    <tr key={a.id_persona || a.numero_documento}> {/* fallback if id_persona missing */}
-                      <td><strong>{a.tipo_documento}</strong> {a.numero_documento}</td>
-                      <td>{a.nombres} {a.apellidos}</td>
-                      <td>{a.email}</td>
-                      <td>
-                        {a.numero_ficha ? 
-                          <span className="badge">{a.numero_ficha}</span> : 
-                          <span style={{color: '#9CA3AF'}}>Sin Ficha</span>
-                        }
-                      </td>
-                      <td>
-                        <span style={{
-                          color: a.estado_formativo === 'EN_FORMACION' ? 'var(--primary-green)' : 'inherit',
-                          fontWeight: a.estado_formativo === 'EN_FORMACION' ? '600' : 'normal'
-                        }}>
-                          {a.estado_formativo ? a.estado_formativo.replace('_', ' ') : 'N/A'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-      
     </div>
   );
 }
 
-export default RegistroAprendices;
+function Campo({ label, name, value, onChange, error, type = "text" }) {
+  return (
+    <label>
+      <span>{label}</span>
+      <input name={name} type={type} value={value} onChange={onChange} className={error ? "invalid" : ""} />
+      {error && <small className="error">{error}</small>}
+    </label>
+  );
+}

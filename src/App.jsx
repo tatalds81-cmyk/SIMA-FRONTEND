@@ -1,62 +1,164 @@
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-// Vistas
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
-import Usuario from "./pages/usuarios/Usuario";
 import RegistroAprendices from "./pages/coordinador/RegistroAprendices";
+import PanelInstructor from "./pages/instructor/PanelInstructor";
+import InstructorSeccion from "./pages/instructor/InstructorSeccion";
 import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
+import Perfil from "./pages/perfil/Perfil";
+import Usuario from "./pages/usuarios/Usuario";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
+  const [rol, setRol] = useState((localStorage.getItem("rol") || "").toLowerCase());
 
   function manejarLogin() {
     setToken(localStorage.getItem("access"));
+    setRol((localStorage.getItem("rol") || "").toLowerCase());
   }
+
+  const esInstructor = rol === "instructor";
+  const rutaInicio = esInstructor ? "/instructor/dashboard" : "/dashboard";
 
   return (
     <BrowserRouter>
       <Routes>
         {token ? (
           <>
-            {/* Dashboard principal */}
             <Route
               path="/dashboard"
               element={
+                esInstructor ? (
+                  <Navigate to="/instructor/dashboard" replace />
+                ) : (
+                  <Dashboard>
+                    <PanelCoordinador />
+                  </Dashboard>
+                )
+              }
+            />
+
+            <Route
+              path="/instructor/dashboard"
+              element={
                 <Dashboard>
-                  <PanelCoordinador />
+                  <PanelInstructor />
                 </Dashboard>
               }
             />
-            <Route 
-              path="/aprendices" 
+
+            <Route
+              path="/instructor/grupos"
               element={
                 <Dashboard>
-                  <RegistroAprendices />
+                  <InstructorSeccion
+                    titulo="Mis grupos"
+                    descripcion="Consulta los grupos asignados, su jornada y accesos directos al detalle."
+                  />
                 </Dashboard>
-              } 
+              }
             />
 
-            {/* Gestión de usuarios */}
+            <Route
+              path="/instructor/asistencia"
+              element={
+                <Dashboard>
+                  <InstructorSeccion
+                    titulo="Asistencia"
+                    descripcion="Aqui puedes registrar y revisar asistencia por grupo, fecha o sesion."
+                  />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/observaciones"
+              element={
+                <Dashboard>
+                  <InstructorSeccion
+                    titulo="Observaciones"
+                    descripcion="Espacio para seguimiento de novedades, anotaciones y casos prioritarios."
+                  />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/calendario"
+              element={
+                <Dashboard>
+                  <InstructorSeccion
+                    titulo="Calendario"
+                    descripcion="Visualiza tus sesiones, horarios y proximas actividades del instructor."
+                  />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/reportes"
+              element={
+                <Dashboard>
+                  <InstructorSeccion
+                    titulo="Reportes"
+                    descripcion="Consulta reportes de asistencia, observaciones y consolidado de tus grupos."
+                  />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/eventos"
+              element={
+                <Dashboard>
+                  <InstructorSeccion
+                    titulo="Eventos de acceso"
+                    descripcion="Revisa actividad reciente del instructor y eventos importantes del sistema."
+                  />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/aprendices"
+              element={
+                esInstructor ? (
+                  <Navigate to="/instructor/grupos" replace />
+                ) : (
+                  <Dashboard>
+                    <RegistroAprendices />
+                  </Dashboard>
+                )
+              }
+            />
+
             <Route
               path="/usuarios"
               element={
-                <Dashboard>
-                  <Usuario />
-                </Dashboard>
+                esInstructor ? (
+                  <Navigate to="/instructor/dashboard" replace />
+                ) : (
+                  <Dashboard>
+                    <Usuario />
+                  </Dashboard>
+                )
               }
             />
 
-            {/* Otras rutas */}
             <Route
               path="/fichas"
               element={
-                <Dashboard>
-                  <Fichas />
-                </Dashboard>
+                esInstructor ? (
+                  <Navigate to="/instructor/grupos" replace />
+                ) : (
+                  <Dashboard>
+                    <Fichas />
+                  </Dashboard>
+                )
               }
             />
 
@@ -70,11 +172,24 @@ function App() {
             />
 
             <Route
-              path="/alertas"
+              path="/perfil"
               element={
                 <Dashboard>
-                  <div>Alertas</div>
+                  <Perfil />
                 </Dashboard>
+              }
+            />
+
+            <Route
+              path="/alertas"
+              element={
+                esInstructor ? (
+                  <Navigate to="/instructor/observaciones" replace />
+                ) : (
+                  <Dashboard>
+                    <div>Alertas</div>
+                  </Dashboard>
+                )
               }
             />
 
@@ -82,12 +197,12 @@ function App() {
               path="/configuracion"
               element={
                 <Dashboard>
-                  <div>Configuración</div>
+                  <div>Configuracion</div>
                 </Dashboard>
               }
             />
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to={rutaInicio} replace />} />
           </>
         ) : (
           <>

@@ -1,359 +1,379 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  GraduationCap,
-  UserCheck,
-  Layers,
+  AlertTriangle,
+  ArrowRight,
   BellRing,
+  BookOpen,
+  Building2,
+  ClipboardCheck,
+  FileText,
+  Layers,
+  Megaphone,
+  PlusCircle,
+  Settings,
+  ShieldAlert,
+  TrendingUp,
   UserPlus,
-  UsersRound,
-  PlusCircle
+  UsersRound
 } from "lucide-react";
-
-import CardResumen from "./CardResumen";
-import GraficoLineaMultiEje from "./GraficoLineaMultiEje";
-import GraficoBarrasApiladas from "./GraficoBarrasApiladas";
-import GraficoFichasRiesgo from "./GraficoFichasRiesgo";
 import "./coordinador.css";
-
-const URL_RESUMEN_COORDINADOR = "http://localhost:3000/api/dashboard/coordinador/resumen";
-const URL_USUARIOS = "/api/users";
-
-function obtenerHeadersDashboard() {
-  const token = localStorage.getItem("access") || localStorage.getItem("token");
-
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-function obtenerTokenDashboard() {
-  return localStorage.getItem("access") || localStorage.getItem("token");
-}
-
-function obtenerNumero(...valores) {
-  const valor = valores.find((item) => item !== undefined && item !== null);
-  const numero = Number(valor);
-
-  return Number.isFinite(numero) ? numero : 0;
-}
-
-function obtenerValorKpi(kpis, campos, palabrasClave = []) {
-  const valorDirecto = campos
-    .map((campo) => kpis?.[campo])
-    .find((valor) => valor !== undefined && valor !== null);
-
-  if (valorDirecto !== undefined && valorDirecto !== null) {
-    return obtenerNumero(valorDirecto);
-  }
-
-  const entradaRelacionada = Object.entries(kpis || {}).find(([campo]) => {
-    const campoNormalizado = campo.toLowerCase();
-
-    return palabrasClave.every((palabra) =>
-      campoNormalizado.includes(palabra)
-    );
-  });
-
-  return obtenerNumero(entradaRelacionada?.[1]);
-}
-
-function obtenerLista(respuesta) {
-  if (Array.isArray(respuesta)) return respuesta;
-  if (Array.isArray(respuesta?.data)) return respuesta.data;
-  if (Array.isArray(respuesta?.results)) return respuesta.results;
-  return [];
-}
-
-function normalizarTexto(valor) {
-  return String(valor || "").trim().toLowerCase();
-}
-
-function contarUsuariosActivosPorRol(usuarios, rolBuscado) {
-  return usuarios.filter((usuario) => {
-    const estado = normalizarTexto(usuario.estado);
-    const rol = normalizarTexto(usuario.rol?.nombre || usuario.rol);
-
-    return estado === "activo" && rol === rolBuscado;
-  }).length;
-}
 
 export default function PanelCoordinador() {
   const navigate = useNavigate();
-
   const [resumen, setResumen] = useState(null);
+  const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    async function cargarDashboard() {
+    let activo = true;
+
+    async function cargarResumen() {
       try {
-        setCargando(true);
-        setError("");
-
-        if (!obtenerTokenDashboard()) {
-          throw new Error("Debes iniciar sesión para cargar el dashboard.");
-        }
-
-        const [resResumen, resUsuarios] = await Promise.all([
-          fetch(URL_RESUMEN_COORDINADOR, {
-            method: "GET",
-            headers: obtenerHeadersDashboard(),
-          }),
-          fetch(URL_USUARIOS, {
-            method: "GET",
-            headers: obtenerHeadersDashboard(),
-          }),
-        ]);
-
-        const respuestaResumen = await resResumen.json();
-        const respuestaUsuarios = await resUsuarios.json();
-
-        if (!resResumen.ok) {
-          throw respuestaResumen;
-        }
-
-        if (!resUsuarios.ok) {
-          throw respuestaUsuarios;
-        }
-
-        const kpis = respuestaResumen?.data?.kpis || respuestaResumen?.data || {};
-        const usuarios = obtenerLista(respuestaUsuarios);
-
-        setResumen({
-          aprendices_activos: contarUsuariosActivosPorRol(usuarios, "aprendiz"),
-          instructores_activos: contarUsuariosActivosPorRol(usuarios, "instructor"),
-          total_fichas: obtenerValorKpi(
-            kpis,
-            [
-              "total_grupos_activos",
-              "grupos_activos",
-              "total_fichas",
-              "fichas_activas",
-              "fichas",
-            ],
-            ["grupo"]
-          ),
-          alertas_activas: obtenerValorKpi(
-            kpis,
-            [
-              "total_alertas_activas",
-              "alertas_activas",
-              "total_alertas",
-              "alertas",
-            ],
-            ["alerta"]
-          ),
+        const token = localStorage.getItem("access") || localStorage.getItem("token");
+        const res = await fetch("/api/dashboard/coordinador/resumen", {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {})
+          }
         });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(data?.message || data?.error || "No fue posible cargar el resumen del coordinador");
+        }
+
+        if (activo) {
+          setResumen(data?.data || null);
+          setError("");
+        }
       } catch (err) {
-        console.log("Error dashboard:", err);
-        setError(err?.message || err?.error || "Error al cargar el dashboard");
+        console.error("Error cargando dashboard:", err);
+        if (activo) {
+          setResumen(null);
+          setError(err.message || "No fue posible cargar el dashboard");
+        }
       } finally {
-        setCargando(false);
+        if (activo) setCargando(false);
       }
     }
 
-    cargarDashboard();
+    cargarResumen();
+    return () => {
+      activo = false;
+    };
   }, []);
 
-  function irCrearUsuario() {
-    navigate("/usuarios");
-  }
+  const kpis = resumen?.kpis || {};
+  const areas = resumen?.areas || [];
+  const programas = resumen?.programas || [];
 
-  function irCrearGrupo() {
-    navigate("/fichas");
-  }
-
-  function mostrarMensajeAprendiz() {
-    navigate("/aprendices");
-  }
-
-  const asistenciaSemanal = [
-    { nombre: "Lun", valor: 80 },
-    { nombre: "Mar", valor: 75 },
-    { nombre: "Mié", valor: 90 },
-    { nombre: "Jue", valor: 85 },
-    { nombre: "Vie", valor: 70 }
-  ];
-
-  const alertasSeveridad = [
-    { nombre: "Leves", valor: 5 },
-    { nombre: "Moderadas", valor: 3 },
-    { nombre: "Graves", valor: 2 },
-    { nombre: "Críticas", valor: 1 }
-  ];
-
-  const aprendicesRiesgo = [
-    {
-      nombre: "Juan Pérez",
-      inasistencias: 5,
-      observaciones: 2,
-      alertas: 1,
-      riesgo: "Alto"
-    },
-    {
-      nombre: "María Gómez",
-      inasistencias: 4,
-      observaciones: 1,
-      alertas: 1,
-      riesgo: "Medio"
-    },
-    {
-      nombre: "Ana Martínez",
-      inasistencias: 3,
-      observaciones: 2,
-      alertas: 0,
-      riesgo: "Medio"
-    }
-  ];
-
-  const tarjetasResumen = [
+  const resumenCards = useMemo(() => ([
     {
       titulo: "Aprendices activos",
-      valor: resumen?.aprendices_activos ?? 0,
-      descripcion: "Aprendices con estado activo en formación",
-      icono: <GraduationCap size={34} strokeWidth={2.5} />,
-      color: "verde"
+      valor: kpis.total_aprendices_activos ?? 0,
+      detalle: "Aprendices vinculados a grupos activos",
+      icono: UsersRound,
+      tono: "amarillo"
     },
     {
-      titulo: "Instructores activos",
-      valor: resumen?.instructores_activos ?? 0,
-      descripcion: "Instructores activos registrados en el sistema",
-      icono: <UserCheck size={34} strokeWidth={2.5} />,
-      color: "verde"
+      titulo: "Programas activos",
+      valor: kpis.total_programas ?? 0,
+      detalle: "Programas con grupos en tus areas",
+      icono: BookOpen,
+      tono: "azul"
     },
     {
-      titulo: "Fichas activas",
-      valor: resumen?.total_fichas ?? 0,
-      descripcion: "Grupos o fichas activas registradas en SIMA",
-      icono: <Layers size={34} strokeWidth={2.5} />,
-      color: "azul"
+      titulo: "Grupos activos",
+      valor: kpis.total_grupos_activos ?? 0,
+      detalle: "Fichas disponibles para seguimiento",
+      icono: Layers,
+      tono: "verde"
+    },
+    {
+      titulo: "Observaciones abiertas",
+      valor: kpis.total_observaciones_abiertas ?? 0,
+      detalle: "Casos que requieren seguimiento",
+      icono: ClipboardCheck,
+      tono: "cyan"
     },
     {
       titulo: "Alertas activas",
-      valor: resumen?.alertas_activas ?? 0,
-      descripcion: "Alertas académicas o de seguimiento activas",
-      icono: <BellRing size={34} strokeWidth={2.5} />,
-      color: "verde"
+      valor: kpis.total_alertas_activas ?? 0,
+      detalle: "Alertas asociadas a aprendices activos",
+      icono: AlertTriangle,
+      tono: "rojo",
+      alerta: true
     }
+  ]), [kpis]);
+
+  const areasResumen = useMemo(() => {
+    if (!areas.length) return [];
+    return areas.slice(0, 4).map((area) => ({
+      icono: Building2,
+      titulo: area.nombre_area,
+      subtitulo: `${area.total_grupos || 0} grupos activos`,
+      fecha: `Area #${area.id_area}`
+    }));
+  }, [areas]);
+
+  const estadoAcademico = useMemo(() => ([
+    { etiqueta: "Areas asignadas", valor: kpis.total_areas ?? 0 },
+    { etiqueta: "Programas activos", valor: kpis.total_programas ?? 0 },
+    { etiqueta: "Alertas activas", valor: kpis.total_alertas_activas ?? 0 },
+    { etiqueta: "Inasistencias validas", valor: kpis.total_inasistencias_validas ?? 0 }
+  ]), [kpis]);
+
+  const novedades = useMemo(() => {
+    if (!programas.length) {
+      return [
+        { icono: Megaphone, titulo: "Sin programas cargados", texto: "Aun no hay programas activos asociados a tus areas." }
+      ];
+    }
+
+    return programas.slice(0, 3).map((programa) => ({
+      icono: FileText,
+      titulo: programa.nombre_programa,
+      texto: `${programa.nombre_area} - ${programa.total_grupos || 0} grupos activos.`
+    }));
+  }, [programas]);
+
+  const asistenciaJornada = [
+    { nombre: "Manana", valor: 0, color: "#20b9d7" },
+    { nombre: "Tarde", valor: 0, color: "#052d4f" },
+    { nombre: "Noche", valor: 0, color: "#71ad00" }
   ];
+
+  const areasListadas = areas.slice(0, 2);
+  const alertasRecientes = [
+    `${kpis.total_alertas_activas ?? 0} alertas activas en tus areas`,
+    `${kpis.total_observaciones_abiertas ?? 0} observaciones abiertas por revisar`
+  ];
+
+  if (cargando) {
+    return (
+      <div className="coordinador-panel">
+        <div className="grupos-alert info">Cargando resumen del coordinador...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="coordinador-panel">
-      <div className="coordinador-seccion-titulo">Dashboard Coordinador</div>
+      {error && <div className="grupos-alert danger">{error}</div>}
 
-      {cargando && (
-        <div className="coordinador-alerta-info">
-          Cargando información...
-        </div>
-      )}
+      <section className="coordinador-kpi-grid" aria-label="Resumen general">
+        {resumenCards.map((card) => {
+          const Icon = card.icono;
 
-      {error && <div className="coordinador-alerta-error">{error}</div>}
+          return (
+            <article className={`coordinador-kpi-card tono-${card.tono}`} key={card.titulo}>
+              <div className="coordinador-kpi-top">
+                <span className="coordinador-kpi-icon">
+                  <Icon size={29} strokeWidth={2.1} />
+                </span>
+                <span className="coordinador-kpi-ring" aria-hidden="true"></span>
+              </div>
+              <h2>{card.titulo}</h2>
+              <strong>{card.valor}</strong>
+              <p className={card.alerta ? "negativo" : ""}>{card.alerta ? "Atencion requerida" : "Dato actualizado"}</p>
+              <small>{card.detalle}</small>
+            </article>
+          );
+        })}
+      </section>
 
-      {(resumen || error) && !cargando && (
-        <>
-          <div className="coordinador-grid-resumen">
-            {tarjetasResumen.map((tarjeta) => (
-              <CardResumen
-                key={tarjeta.titulo}
-                titulo={tarjeta.titulo}
-                valor={tarjeta.valor}
-                descripcion={tarjeta.descripcion}
-                icono={tarjeta.icono}
-                color={tarjeta.color}
-              />
+      <section className="coordinador-main-grid">
+        <article className="coordinador-card coordinador-asistencia-card">
+          <div className="coordinador-card-header">
+            <div>
+              <h2>Resumen institucional</h2>
+              <strong>{kpis.total_areas ?? 0} areas</strong>
+              <p>{kpis.total_grupos_activos ?? 0} grupos activos y {kpis.total_aprendices_activos ?? 0} aprendices vinculados.</p>
+            </div>
+            <button className="coordinador-select-btn" type="button">Datos reales</button>
+          </div>
+
+          <div className="coordinador-line-chart" aria-label="Resumen por areas y programas">
+            <div className="chart-scale">
+              <span>{kpis.total_aprendices_activos ?? 0}</span>
+              <span>{kpis.total_grupos_activos ?? 0}</span>
+              <span>{kpis.total_programas ?? 0}</span>
+              <span>{kpis.total_areas ?? 0}</span>
+              <span>0</span>
+            </div>
+            <svg viewBox="0 0 680 230" role="img">
+              <defs>
+                <linearGradient id="asistenciaFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#2ca8df" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#2ca8df" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path className="chart-area" d="M25 160 C120 120 180 115 255 130 C320 142 380 110 455 98 C530 85 605 92 655 78 L655 205 L25 205 Z" />
+              <path className="chart-line" d="M25 160 C120 120 180 115 255 130 C320 142 380 110 455 98 C530 85 605 92 655 78" />
+              {[25, 160, 290, 410, 540, 655].map((x, i) => (
+                <circle key={x} cx={x} cy={[160, 122, 132, 110, 94, 78][i]} r="5" />
+              ))}
+            </svg>
+            <div className="chart-months">
+              <span>Areas</span>
+              <span>Programas</span>
+              <span>Grupos</span>
+              <span>Alertas</span>
+              <span>Observ.</span>
+              <span>Aprendices</span>
+            </div>
+          </div>
+        </article>
+
+        <article className="coordinador-card coordinador-jornada-card">
+          <div className="coordinador-card-header compacto">
+            <div>
+              <h2>Estado operativo</h2>
+              <strong>{kpis.total_inasistencias_validas ?? 0}</strong>
+              <p>Inasistencias validas registradas</p>
+            </div>
+            <button className="coordinador-select-btn" type="button">Pendientes</button>
+          </div>
+
+          <div className="coordinador-bars" aria-label="Resumen operativo por jornada">
+            {asistenciaJornada.map((item) => (
+              <div className="coordinador-bar-item" key={item.nombre}>
+                <div className="coordinador-bar-track">
+                  <span
+                    className="coordinador-bar-fill"
+                    style={{ height: `${item.valor}%`, background: item.color }}
+                  ></span>
+                </div>
+                <strong>{item.nombre}</strong>
+                <small>Sin endpoint</small>
+              </div>
             ))}
           </div>
+        </article>
+      </section>
 
-          <div className="coordinador-panel-graficas">
-            <div className="coordinador-card-grande">
-              <div className="coordinador-card-header">
-                <h2>Asistencia semanal</h2>
+      <section className="coordinador-secondary-grid">
+        <article className="coordinador-card coordinador-registros">
+          <h2>Areas asignadas</h2>
+          <div className="coordinador-lista-registros">
+            {areasResumen.length > 0 ? areasResumen.map((registro) => {
+              const Icon = registro.icono;
+              return (
+                <div className="coordinador-registro-item" key={registro.titulo}>
+                  <span><Icon size={20} /></span>
+                  <div>
+                    <strong>{registro.titulo}</strong>
+                    <small>{registro.subtitulo}</small>
+                  </div>
+                  <time>{registro.fecha}</time>
+                </div>
+              );
+            }) : (
+              <div className="coordinador-registro-item">
+                <span><Building2 size={20} /></span>
+                <div>
+                  <strong>Sin areas activas</strong>
+                  <small>No hay asignaciones de coordinacion disponibles.</small>
+                </div>
+                <time>-</time>
               </div>
+            )}
+          </div>
+          <button className="coordinador-link-btn" type="button">
+            Ver resumen <ArrowRight size={17} />
+          </button>
+        </article>
 
-              <GraficoLineaMultiEje
-                etiquetas={asistenciaSemanal.map((item) => item.nombre)}
-              />
+        <article className="coordinador-card coordinador-estado">
+          <h2>Estado academico</h2>
+          {estadoAcademico.map((item) => (
+            <div className="coordinador-estado-row" key={item.etiqueta}>
+              <span>{item.etiqueta}</span>
+              <strong>{item.valor}</strong>
             </div>
+          ))}
+          <div className="coordinador-meta">
+            <div>
+              <span>Seguimiento general</span>
+              <strong>{kpis.total_alertas_activas ?? 0} alertas</strong>
+            </div>
+            <span className="coordinador-meta-track">
+              <span></span>
+            </span>
+          </div>
+        </article>
 
-            <div className="coordinador-card-grande">
-              <div className="coordinador-card-header">
-                <h2>Alertas por severidad</h2>
-              </div>
+        <article className="coordinador-novedades">
+          <h2>
+            <Megaphone size={21} />
+            Programas activos
+          </h2>
+          <div className="coordinador-novedades-list">
+            {novedades.map((item) => {
+              const Icon = item.icono;
+              return (
+                <div className="coordinador-novedad-item" key={item.titulo}>
+                  <Icon size={25} />
+                  <div>
+                    <strong>{item.titulo}</strong>
+                    <p>{item.texto}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button className="coordinador-novedades-btn" type="button">
+            Ver detalle <ArrowRight size={18} />
+          </button>
+        </article>
+      </section>
 
-              <GraficoBarrasApiladas
-                etiquetas={alertasSeveridad.map((item) => item.nombre)}
-              />
+      <section className="coordinador-bottom-grid">
+        <article className="coordinador-card coordinador-observatorio">
+          <h2>Observatorio del aprendiz</h2>
+          <div className="coordinador-observatorio-grid">
+            <div>
+              <h3>Areas priorizadas</h3>
+              <ul>
+                {areasListadas.length > 0 ? areasListadas.map((area) => (
+                  <li key={area.id_area}>{area.nombre_area} con {area.total_grupos || 0} grupos activos</li>
+                )) : <li>No hay areas para mostrar.</li>}
+              </ul>
+              <button type="button">Ver mas</button>
+            </div>
+            <div>
+              <h3>Alertas recientes</h3>
+              <ul className="alertas">
+                {alertasRecientes.map((texto) => (
+                  <li key={texto}>{texto}</li>
+                ))}
+              </ul>
+              <button type="button">Ver mas</button>
             </div>
           </div>
+        </article>
 
-          <div className="coordinador-card-grande coordinador-card-grafico-riesgo">
-            <div className="coordinador-card-header">
-              <h2>Fichas con mayor riesgo</h2>
-            </div>
-
-            <GraficoFichasRiesgo />
-          </div>
-
-          <div className="coordinador-riesgo-wrapper">
-            <div className="coordinador-card-grande coordinador-card-riesgo">
-              <h2>Top aprendices en riesgo</h2>
-
-              <table className="coordinador-tabla">
-                <thead>
-                  <tr>
-                    <th>Aprendiz</th>
-                    <th>Inasistencias</th>
-                    <th>Observaciones</th>
-                    <th>Alertas</th>
-                    <th>Riesgo</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {aprendicesRiesgo.map((aprendiz, index) => (
-                    <tr key={index}>
-                      <td>{aprendiz.nombre}</td>
-                      <td>{aprendiz.inasistencias}</td>
-                      <td>{aprendiz.observaciones}</td>
-                      <td>{aprendiz.alertas}</td>
-                      <td>
-                        <span
-                          className={`estado ${
-                            aprendiz.riesgo === "Alto"
-                              ? "denegado"
-                              : "pendiente"
-                          }`}
-                        >
-                          {aprendiz.riesgo}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="coordinador-acciones-rapidas">
-            <button className="btn-accion verde" onClick={irCrearUsuario}>
-              <UserPlus size={22} strokeWidth={2.5} />
-              <span>Crear Usuario</span>
-            </button>
-
-            <button className="btn-accion verde" onClick={irCrearGrupo}>
-              <UsersRound size={22} strokeWidth={2.5} />
-              <span>Crear Grupo</span>
-            </button>
-
-            <button className="btn-accion azul" onClick={mostrarMensajeAprendiz}>
-              <PlusCircle size={22} strokeWidth={2.5} />
-              <span>Registrar Aprendiz</span>
-            </button>
-          </div>
-        </>
-      )}
+        <article className="coordinador-card coordinador-acciones">
+          <h2>Acciones rapidas</h2>
+          <button type="button" onClick={() => navigate("/usuarios")}>
+            <UserPlus size={20} />
+            Crear usuario
+          </button>
+          <button type="button" onClick={() => navigate("/fichas")}>
+            <UsersRound size={20} />
+            Crear grupo
+          </button>
+          <button type="button" onClick={() => navigate("/aprendices")}>
+            <PlusCircle size={20} />
+            Registrar aprendiz
+          </button>
+          <button type="button" onClick={() => navigate("/fichas")}>
+            <ShieldAlert size={20} />
+            Revisar fichas
+          </button>
+        </article>
+      </section>
     </div>
   );
 }

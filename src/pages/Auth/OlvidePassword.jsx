@@ -1,99 +1,74 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import "./Login.css";
 
 export default function OlvidePassword({ onVolver }) {
-  const [username, setUsername] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [mensaje, setMensaje] = useState("");
 
-  const URL_OLVIDE = "/api/olvide-password/";
-
   function restablecerPassword(e) {
     e.preventDefault();
-
-    const data = {
-      username: username,
-      numero_documento: numeroDocumento
-    };
-
-    fetch(URL_OLVIDE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    })
-      .then((res) => {
-        return res.json().then((data) => {
-          if (!res.ok) throw data;
-          return data;
-        });
-      })
-      .then((data) => {
-        setMensaje(data.mensaje);
-        setUsername("");
-        setNumeroDocumento("");
-      })
-      .catch((error) => {
-        if (error.error) {
-          setMensaje(error.error);
-        } else {
-          setMensaje("Error al restablecer la contraseña");
-        }
-      });
+    setMensaje(
+      "La recuperacion de contrasena aun no esta conectada porque el backend actual no expone ese endpoint. Cuando lo tengas, esta pantalla ya queda lista para enlazarlo."
+    );
+    setNumeroDocumento("");
   }
 
   return (
     <div className="login-sima-container">
-      <div className="login-sima-logo">SIMA</div>
+      <section className="login-sima-hero" aria-label="Recuperacion de acceso">
+        <div className="login-sima-brand" aria-label="SENA">
+          <span className="login-sima-brand-dot"></span>
+          <span>SENA</span>
+        </div>
 
-      <div className="login-sima-card">
-        <h2 className="login-sima-title">RECUPERAR CONTRASEÑA</h2>
+        <div className="login-sima-copy">
+          <p className="login-sima-eyebrow">Recuperacion de acceso</p>
+          <h1>Restablece tu contrasena</h1>
+          <p>
+            Valida tu documento institucional. En cuanto el backend tenga el endpoint,
+            aqui mismo podremos ejecutar el restablecimiento real.
+          </p>
+        </div>
+      </section>
 
-        {mensaje && (
-          <div className="alert alert-info mt-3">
-            {mensaje}
-          </div>
-        )}
+      <main className="login-sima-panel">
+        <div className="login-sima-card" role="region" aria-labelledby="olvide-title">
+          <h2 className="login-sima-title" id="olvide-title">Recuperar contrasena</h2>
+          <p className="login-sima-subtitle">Ingresa tu numero de documento para continuar</p>
 
-        <form onSubmit={restablecerPassword}>
-          <div className="mb-3">
-            <label className="login-sima-label">USUARIO</label>
-            <input
-              type="text"
-              className="form-control login-sima-input"
-              placeholder="Ingrese su usuario"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
+          {mensaje && (
+            <div className="login-sima-message" role="status">
+              {mensaje}
+            </div>
+          )}
 
-          <div className="mb-3">
-            <label className="login-sima-label">NÚMERO DE DOCUMENTO</label>
-            <input
-              type="text"
-              className="form-control login-sima-input"
-              placeholder="Ingrese su número de documento"
-              value={numeroDocumento}
-              onChange={(e) => setNumeroDocumento(e.target.value)}
-              required
-            />
-          </div>
+          <form onSubmit={restablecerPassword} className="login-sima-form">
+            <div className="login-sima-field">
+              <label className="login-sima-label" htmlFor="recovery-document">Documento</label>
+              <div className="login-sima-input-wrap">
+                <input
+                  id="recovery-document"
+                  type="text"
+                  className="login-sima-input"
+                  placeholder="Ingresa tu numero de documento"
+                  value={numeroDocumento}
+                  onChange={(e) => setNumeroDocumento(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
-          <div className="d-flex justify-content-between align-items-center mt-4">
-            <button type="button" className="btn btn-secondary" onClick={onVolver}>
-              Volver
-            </button>
-
-            <button type="submit" className="login-sima-btn">
-              Restablecer
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="login-sima-wave"></div>
+            <div className="usuarios-modal-actions">
+              <button type="button" className="usuarios-secondary-btn" onClick={onVolver}>
+                Volver
+              </button>
+              <button type="submit" className="login-sima-btn">
+                Solicitar restablecimiento
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }
