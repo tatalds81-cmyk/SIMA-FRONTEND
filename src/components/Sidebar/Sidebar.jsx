@@ -16,18 +16,18 @@ import senaLogo from "../../assets/logoSena.png";
 const menuByRole = {
   instructor: [
     { icon: LayoutDashboard, label: "Inicio", path: "/instructor/dashboard", id: "inicio" },
-    { icon: UsersRound, label: "Mis grupos", path: "/instructor/grupos", id: "grupos" },
     { icon: ClipboardList, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
     { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
-    { icon: CalendarDays, label: "Calendario", path: "/instructor/calendario", id: "calendario" }
+    { icon: Users, label: "Aprendices", path: "/instructor/aprendices", id: "aprendices" },
+    { icon: Bell, label: "Alertas", path: "/alertas", id: "alertas" },
+    { icon: Settings, label: "Configuracion", path: "/configuracion", id: "configuracion" }
+    
 
   ],
   coordinador: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", id: "inicio" },
-    { icon: Users, label: "Aprendices", path: "/aprendices", id: "aprendices" },
     { icon: GraduationCap, label: "Instructores", path: "/usuarios", id: "usuarios" },
     { icon: UsersRound, label: "Grupos", path: "/fichas", id: "grupos" },
-    { icon: Bell, label: "Alertas", path: "/alertas", id: "alertas" },
     { icon: Settings, label: "Configuracion", path: "/configuracion", id: "configuracion" }
   ]
 };

@@ -64,6 +64,15 @@ function App() {
             />
 
             <Route
+              path="/instructor/aprendices"
+              element={
+                <Dashboard>
+                  <RegistroAprendices />
+                </Dashboard>
+              }
+            />
+
+            <Route
               path="/instructor/asistencia"
               element={
                 <Dashboard>
@@ -127,11 +136,9 @@ function App() {
               path="/aprendices"
               element={
                 esInstructor ? (
-                  <Navigate to="/instructor/grupos" replace />
+                  <Navigate to="/instructor/aprendices" replace />
                 ) : (
-                  <Dashboard>
-                    <RegistroAprendices />
-                  </Dashboard>
+                  <Navigate to="/dashboard" replace />
                 )
               }
             />

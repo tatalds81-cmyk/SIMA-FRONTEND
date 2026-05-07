@@ -51,6 +51,18 @@ const resumenCards = [
   }
 ];
 
+const obtenerNumero = (valor) => {
+  if (typeof valor === "number") return valor;
+  if (typeof valor === "string") return Number.parseFloat(valor.replace("%", "")) || 0;
+  return 0;
+};
+
+const calcularProgreso = (valor, maximo) => {
+  const numero = obtenerNumero(valor);
+  if (!numero || !maximo) return 0;
+  return Math.min(100, Math.max(0, Math.round((numero / maximo) * 100)));
+};
+
 const barras = [
   { grupo: "2456", programa: "ADSO", porcentaje: 90.2, color: "verde" },
   { grupo: "2457", programa: "Sistemas", porcentaje: 85.1, color: "azul" },
@@ -98,10 +110,21 @@ const agenda = [
 ];
 
 export default function PanelInstructor() {
+  const maximoResumen = Math.max(
+    ...resumenCards
+      .filter((card) => !card.valor?.toString().includes("%"))
+      .map((card) => obtenerNumero(card.valor)),
+    1
+  );
+  const cardsConProgreso = resumenCards.map((card) => ({
+    ...card,
+    progreso: calcularProgreso(card.valor, card.valor?.toString().includes("%") ? 100 : maximoResumen)
+  }));
+
   return (
     <div className="coordinador-panel instructor-panel-v2">
       <section className="instructor-kpi-grid" aria-label="Resumen del instructor">
-        {resumenCards.map((card) => {
+        {cardsConProgreso.map((card) => {
           const Icon = card.icono;
 
           return (
@@ -110,7 +133,12 @@ export default function PanelInstructor() {
                 <span className="coordinador-kpi-icon">
                   <Icon size={29} strokeWidth={2.1} />
                 </span>
-                <span className="coordinador-kpi-ring" aria-hidden="true"></span>
+                <span
+                  className="coordinador-kpi-ring"
+                  style={{ "--kpi-progress": `${card.progreso}%` }}
+                  role="img"
+                  aria-label={`${card.progreso}% de avance`}
+                ></span>
               </div>
               <h2>{card.titulo}</h2>
               <strong>{card.valor}</strong>

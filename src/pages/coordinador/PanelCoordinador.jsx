@@ -10,7 +10,6 @@ import {
   FileText,
   Layers,
   Megaphone,
-  PlusCircle,
   Settings,
   ShieldAlert,
   TrendingUp,
@@ -18,6 +17,18 @@ import {
   UsersRound
 } from "lucide-react";
 import "./coordinador.css";
+
+const obtenerNumero = (valor) => {
+  if (typeof valor === "number") return valor;
+  if (typeof valor === "string") return Number.parseFloat(valor.replace("%", "")) || 0;
+  return 0;
+};
+
+const calcularProgreso = (valor, maximo) => {
+  const numero = obtenerNumero(valor);
+  if (!numero || !maximo) return 0;
+  return Math.min(100, Math.max(0, Math.round((numero / maximo) * 100)));
+};
 
 export default function PanelCoordinador() {
   const navigate = useNavigate();
@@ -68,44 +79,52 @@ export default function PanelCoordinador() {
   const areas = resumen?.areas || [];
   const programas = resumen?.programas || [];
 
-  const resumenCards = useMemo(() => ([
-    {
-      titulo: "Aprendices activos",
-      valor: kpis.total_aprendices_activos ?? 0,
-      detalle: "Aprendices vinculados a grupos activos",
-      icono: UsersRound,
-      tono: "amarillo"
-    },
-    {
-      titulo: "Programas activos",
-      valor: kpis.total_programas ?? 0,
-      detalle: "Programas con grupos en tus areas",
-      icono: BookOpen,
-      tono: "azul"
-    },
-    {
-      titulo: "Grupos activos",
-      valor: kpis.total_grupos_activos ?? 0,
-      detalle: "Fichas disponibles para seguimiento",
-      icono: Layers,
-      tono: "verde"
-    },
-    {
-      titulo: "Observaciones abiertas",
-      valor: kpis.total_observaciones_abiertas ?? 0,
-      detalle: "Casos que requieren seguimiento",
-      icono: ClipboardCheck,
-      tono: "cyan"
-    },
-    {
-      titulo: "Alertas activas",
-      valor: kpis.total_alertas_activas ?? 0,
-      detalle: "Alertas asociadas a aprendices activos",
-      icono: AlertTriangle,
-      tono: "rojo",
-      alerta: true
-    }
-  ]), [kpis]);
+  const resumenCards = useMemo(() => {
+    const cards = [
+      {
+        titulo: "Aprendices activos",
+        valor: kpis.total_aprendices_activos ?? 0,
+        detalle: "Aprendices vinculados a grupos activos",
+        icono: UsersRound,
+        tono: "amarillo"
+      },
+      {
+        titulo: "Programas activos",
+        valor: kpis.total_programas ?? 0,
+        detalle: "Programas con grupos en tus areas",
+        icono: BookOpen,
+        tono: "azul"
+      },
+      {
+        titulo: "Grupos activos",
+        valor: kpis.total_grupos_activos ?? 0,
+        detalle: "Fichas disponibles para seguimiento",
+        icono: Layers,
+        tono: "verde"
+      },
+      {
+        titulo: "Observaciones abiertas",
+        valor: kpis.total_observaciones_abiertas ?? 0,
+        detalle: "Casos que requieren seguimiento",
+        icono: ClipboardCheck,
+        tono: "cyan"
+      },
+      {
+        titulo: "Alertas activas",
+        valor: kpis.total_alertas_activas ?? 0,
+        detalle: "Alertas asociadas a aprendices activos",
+        icono: AlertTriangle,
+        tono: "rojo",
+        alerta: true
+      }
+    ];
+    const maximo = Math.max(...cards.map((card) => obtenerNumero(card.valor)), 1);
+
+    return cards.map((card) => ({
+      ...card,
+      progreso: calcularProgreso(card.valor, maximo)
+    }));
+  }, [kpis]);
 
   const areasResumen = useMemo(() => {
     if (!areas.length) return [];
@@ -172,7 +191,12 @@ export default function PanelCoordinador() {
                 <span className="coordinador-kpi-icon">
                   <Icon size={29} strokeWidth={2.1} />
                 </span>
-                <span className="coordinador-kpi-ring" aria-hidden="true"></span>
+                <span
+                  className="coordinador-kpi-ring"
+                  style={{ "--kpi-progress": `${card.progreso}%` }}
+                  role="img"
+                  aria-label={`${card.progreso}% del total mas alto del resumen`}
+                ></span>
               </div>
               <h2>{card.titulo}</h2>
               <strong>{card.valor}</strong>
@@ -363,10 +387,6 @@ export default function PanelCoordinador() {
           <button type="button" onClick={() => navigate("/fichas")}>
             <UsersRound size={20} />
             Crear grupo
-          </button>
-          <button type="button" onClick={() => navigate("/aprendices")}>
-            <PlusCircle size={20} />
-            Registrar aprendiz
           </button>
           <button type="button" onClick={() => navigate("/fichas")}>
             <ShieldAlert size={20} />
