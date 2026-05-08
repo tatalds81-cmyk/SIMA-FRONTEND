@@ -194,7 +194,13 @@
 
 .usuarios-table td {
   color: #263a52;
-  font-weight: 650;
+  font-weight: 400;
+}
+
+.usuarios-documento {
+  color: var(--sima-green-dark) !important;
+  font-weight: 400 !important;
+  white-space: nowrap;
 }
 
 .usuarios-table input,
@@ -230,7 +236,7 @@
   background: #edf9e7;
   color: var(--sima-green-dark);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .usuarios-actions {
@@ -493,7 +499,7 @@
   background: #dfe6f3;
   color: #5d6c84;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -509,7 +515,7 @@
   margin: 8px 0 0;
   color: #66758a;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .usuarios-detail-main {
@@ -533,9 +539,9 @@
 
 .usuarios-detail-field span {
   display: block;
-  color: #708099;
-  font-size: 12px;
-  font-weight: 900;
+  color: var(--sima-text);
+  font-size: 13px;
+  font-weight: 900 !important;
   text-transform: uppercase;
 }
 
@@ -544,7 +550,7 @@
   margin-top: 8px;
   color: var(--sima-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 400 !important;
 }
 
 .usuarios-detail-contact-list {
@@ -563,7 +569,7 @@
   background: #f4f8fc;
   color: #42536c;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .usuarios-detail-contact-item svg {
