@@ -1,10 +1,12 @@
-import { useLocation, useNavigate } from "react-router-dom";
+﻿import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   CalendarDays,
   LayoutDashboard,
   Users,
-  UsersRound
+  UsersRound,
+  MessageSquareWarning
+
 } from "lucide-react";
 import "./sidebar.css";
 import senaLogo from "../../assets/logoSena.png";
@@ -15,6 +17,7 @@ const menuByRole = {
     { icon: UsersRound, label: "Mis grupos", path: "/instructor/grupos", id: "grupos" },
     { icon: Users, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
     { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "consultar-alertas" },
+    { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
     { icon: CalendarDays, label: "Calendario", path: "/instructor/calendario", id: "calendario" }
   ],
   coordinador: [
