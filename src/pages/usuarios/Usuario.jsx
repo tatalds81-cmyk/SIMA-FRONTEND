@@ -447,11 +447,9 @@ export default function Usuario() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Email</th>
+                <th>Documento</th>
                 <th>Nombres</th>
                 <th>Apellidos</th>
-                <th>Tipo Doc.</th>
-                <th>Documento</th>
                 <th>Rol</th>
                 <th>Estado</th>
                 <th>Acciones</th>
@@ -462,11 +460,9 @@ export default function Usuario() {
                 usuariosPagina.map((item) => (
                   <tr key={item.id}>
                     <td>{item.id}</td>
-                    <td>{item.email}</td>
+                    <td className="usuarios-documento">{item.tipo_documento} {item.numero_documento}</td>
                     <td>{item.nombres}</td>
                     <td>{item.apellidos}</td>
-                    <td>{item.tipo_documento}</td>
-                    <td>{item.numero_documento}</td>
                     <td>{obtenerNombreRol(item)}</td>
                     <td>
                       <span className="usuarios-status">{item.estado || "ACTIVO"}</span>
@@ -485,7 +481,7 @@ export default function Usuario() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="usuarios-empty">No hay usuarios para mostrar</td>
+                  <td colSpan="7" className="usuarios-empty">No hay usuarios para mostrar</td>
                 </tr>
               )}
             </tbody>
@@ -618,11 +614,11 @@ export default function Usuario() {
                 </>
               ) : (
                 <>
-                  <button type="button" className="usuarios-secondary-btn" onClick={iniciarEdicionDetalle}>
+                  <button type="button" className="usuarios-primary-btn" onClick={iniciarEdicionDetalle}>
                     <Edit3 size={16} />
                     Editar
                   </button>
-                  <button type="button" className="usuarios-primary-btn" onClick={cerrarDetalle}>Cerrar</button>
+                  <button type="button" className="usuarios-secondary-btn" onClick={cerrarDetalle}>Cerrar</button>
                 </>
               )}
             </div>

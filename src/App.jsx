@@ -11,6 +11,7 @@ import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 import Perfil from "./pages/perfil/Perfil";
 import Usuario from "./pages/usuarios/Usuario";
+import Observaciones from "./pages/observador/Observaciones";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
@@ -88,10 +89,7 @@ function App() {
               path="/instructor/observaciones"
               element={
                 <Dashboard>
-                  <InstructorSeccion
-                    titulo="Observaciones"
-                    descripcion="Espacio para seguimiento de novedades, anotaciones y casos prioritarios."
-                  />
+                  <Observaciones />
                 </Dashboard>
               }
             />

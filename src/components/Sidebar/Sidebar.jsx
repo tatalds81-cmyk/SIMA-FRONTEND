@@ -25,7 +25,7 @@ const menuByRole = {
 
   ],
   coordinador: [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", id: "inicio" },
+    { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },
     { icon: GraduationCap, label: "Instructores", path: "/usuarios", id: "usuarios" },
     { icon: UsersRound, label: "Grupos", path: "/fichas", id: "grupos" },
     { icon: Settings, label: "Configuracion", path: "/configuracion", id: "configuracion" }

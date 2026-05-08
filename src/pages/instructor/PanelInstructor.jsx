@@ -123,6 +123,10 @@ export default function PanelInstructor() {
 
   return (
     <div className="coordinador-panel instructor-panel-v2">
+      <section className="dashboard-welcome">
+        <h1>Bienvenido instructor</h1>
+      </section>
+
       <section className="instructor-kpi-grid" aria-label="Resumen del instructor">
         {cardsConProgreso.map((card) => {
           const Icon = card.icono;

@@ -138,11 +138,7 @@ export default function Aprendices() {
     setAprendices(fallback);
     setPaginaActual(1);
     setMensajeError(false);
-    setMensaje(
-      fallback.length > 0
-        ? "Se muestran aprendices reconstruidos desde los grupos activos."
-        : "No hay aprendices disponibles para mostrar."
-    );
+    setMensaje("");
   }
 
   useEffect(() => {
@@ -411,7 +407,6 @@ export default function Aprendices() {
     <div className="aprendices-page">
       <header className="aprendices-header">
         <div>
-          <span className="aprendices-eyebrow">Registro y vinculacion</span>
           <h1>Gestion de aprendices</h1>
           <p>Registra aprendices de forma individual o masiva y vincularlos a grupos activos.</p>
         </div>
@@ -429,21 +424,6 @@ export default function Aprendices() {
       </header>
 
       {mensaje && <div className={`aprendices-alert ${mensajeError ? "danger" : "info"}`}>{mensaje}</div>}
-
-      <section className="aprendices-criteria">
-        <article>
-          <strong>Rol automatico</strong>
-          <span>Se registra como Aprendiz.</span>
-        </article>
-        <article>
-          <strong>Contrasena inicial</strong>
-          <span>Documento del aprendiz.</span>
-        </article>
-        <article>
-          <strong>Grupo activo</strong>
-          <span>Solo se listan grupos activos.</span>
-        </article>
-      </section>
 
       <section className="aprendices-toolbar">
         <div className="aprendices-search">

@@ -29,6 +29,18 @@ export default function Observaciones() {
         <div className="obs-filters">
           <input placeholder="Buscar por aprendiz" />
 
+          {/* nuevo filtro */}
+
+          <select>
+
+            <option value="">Mis fichas</option>
+            <option >3064975</option>
+            <option >2003490</option>
+
+
+
+          </select>
+
           <select>
             <option value="">Tipo</option>
             <option>Académica</option>

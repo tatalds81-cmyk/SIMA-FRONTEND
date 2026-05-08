@@ -14,6 +14,7 @@ function Navbar() {
 
   const nombreUsuario = localStorage.getItem("username") || localStorage.getItem("usuario") || "Carlos Loda";
   const rolUsuario = localStorage.getItem("rol") || "Administrador";
+  const esInstructor = rolUsuario.toLowerCase() === "instructor";
 
   const manejarCerrarSesion = () => {
     localStorage.clear();
@@ -51,7 +52,7 @@ function Navbar() {
     .slice(0, 2);
 
   return (
-    <header className="sima-navbar-main">
+    <header className={`sima-navbar-main ${esInstructor ? "navbar-instructor" : ""}`}>
       <div className="sima-navbar-right">
         <button className="sima-navbar-icon" type="button" title="Notificaciones">
           <Bell size={23} />
