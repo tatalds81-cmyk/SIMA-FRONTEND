@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
-import RegistroAprendices from "./pages/coordinador/RegistroAprendices";
+import RegistroAprendices from "./pages/instructor/RegistroAprendices";
 import PanelInstructor from "./pages/instructor/PanelInstructor";
 import InstructorSeccion from "./pages/instructor/InstructorSeccion";
 import Fichas from "./pages/fichas/Fichas";
@@ -18,14 +18,15 @@ import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
-  const [rol, setRol] = useState((localStorage.getItem("rol") || "").toLowerCase());
+  const [rol, setRol] = useState(
+    (localStorage.getItem("rol") || "").toLowerCase()
+  );
 
   function manejarLogin() {
     setToken(localStorage.getItem("access"));
     setRol((localStorage.getItem("rol") || "").toLowerCase());
   }
 
-  // Función para cerrar sesión
   function manejarLogout() {
     localStorage.clear();
     sessionStorage.clear();
@@ -34,7 +35,9 @@ function App() {
   }
 
   const esInstructor = rol === "instructor";
-  const rutaInicio = esInstructor ? "/instructor/dashboard" : "/dashboard";
+  const rutaInicio = esInstructor
+    ? "/instructor/dashboard"
+    : "/dashboard";
 
   return (
     <BrowserRouter>
@@ -63,14 +66,12 @@ function App() {
               }
             />
 
+            {/* APRENDICES INSTRUCTOR */}
             <Route
-              path="/instructor/grupos"
+              path="/instructor/aprendices"
               element={
                 <Dashboard onLogout={manejarLogout}>
-                  <InstructorSeccion
-                    titulo="Mis grupos"
-                    descripcion="Consulta los grupos asignados, su jornada y accesos directos al detalle."
-                  />
+                  <RegistroAprendices />
                 </Dashboard>
               }
             />
@@ -92,18 +93,6 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <Observaciones />
-                </Dashboard>
-              }
-            />
-
-            <Route
-              path="/instructor/calendario"
-              element={
-                <Dashboard onLogout={manejarLogout}>
-                  <InstructorSeccion
-                    titulo="Calendario"
-                    descripcion="Visualiza tus sesiones, horarios y proximas actividades del instructor."
-                  />
                 </Dashboard>
               }
             />
@@ -132,11 +121,12 @@ function App() {
               }
             />
 
+            {/* APRENDICES COORDINADOR */}
             <Route
               path="/aprendices"
               element={
                 esInstructor ? (
-                  <Navigate to="/instructor/grupos" replace />
+                  <Navigate to="/instructor/aprendices" replace />
                 ) : (
                   <Dashboard onLogout={manejarLogout}>
                     <RegistroAprendices />
@@ -230,12 +220,21 @@ function App() {
               }
             />
 
-            <Route path="*" element={<Navigate to={rutaInicio} replace />} />
+            <Route
+              path="*"
+              element={<Navigate to={rutaInicio} replace />}
+            />
           </>
         ) : (
           <>
-            <Route path="/" element={<Login onLogin={manejarLogin} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="/"
+              element={<Login onLogin={manejarLogin} />}
+            />
+            <Route
+              path="*"
+              element={<Navigate to="/" replace />}
+            />
           </>
         )}
       </Routes>
