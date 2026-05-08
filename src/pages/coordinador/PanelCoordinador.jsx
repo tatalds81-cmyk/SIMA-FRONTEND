@@ -1,19 +1,14 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
-  BellRing,
   BookOpen,
-  Building2,
+  ChevronDown,
+  ChevronRight,
   ClipboardCheck,
   FileText,
   Layers,
   Megaphone,
-  Settings,
-  ShieldAlert,
-  TrendingUp,
-  UserPlus,
   UsersRound
 } from "lucide-react";
 import "./coordinador.css";
@@ -31,10 +26,11 @@ const calcularProgreso = (valor, maximo) => {
 };
 
 export default function PanelCoordinador() {
-  const navigate = useNavigate();
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [filtroResumenActivo, setFiltroResumenActivo] = useState("asistencia");
+  const [filtroOperativoActivo, setFiltroOperativoActivo] = useState("inasistencias");
 
   useEffect(() => {
     let activo = true;
@@ -76,7 +72,6 @@ export default function PanelCoordinador() {
   }, []);
 
   const kpis = resumen?.kpis || {};
-  const areas = resumen?.areas || [];
   const programas = resumen?.programas || [];
 
   const resumenCards = useMemo(() => {
@@ -126,16 +121,6 @@ export default function PanelCoordinador() {
     }));
   }, [kpis]);
 
-  const areasResumen = useMemo(() => {
-    if (!areas.length) return [];
-    return areas.slice(0, 4).map((area) => ({
-      icono: Building2,
-      titulo: area.nombre_area,
-      subtitulo: `${area.total_grupos || 0} grupos activos`,
-      fecha: `Area #${area.id_area}`
-    }));
-  }, [areas]);
-
   const estadoAcademico = useMemo(() => ([
     { etiqueta: "Areas asignadas", valor: kpis.total_areas ?? 0 },
     { etiqueta: "Programas activos", valor: kpis.total_programas ?? 0 },
@@ -163,10 +148,11 @@ export default function PanelCoordinador() {
     { nombre: "Noche", valor: 0, color: "#71ad00" }
   ];
 
-  const areasListadas = areas.slice(0, 2);
-  const alertasRecientes = [
-    `${kpis.total_alertas_activas ?? 0} alertas activas en tus areas`,
-    `${kpis.total_observaciones_abiertas ?? 0} observaciones abiertas por revisar`
+  const filtrosResumen = [
+    { id: "asistencia", label: "Asistencia y observaciones" },
+    { id: "tiempo", label: "Tiempo" },
+    { id: "programas", label: "Programas" },
+    { id: "inasistencias", label: "Inasistencias" }
   ];
 
   if (cargando) {
@@ -180,6 +166,10 @@ export default function PanelCoordinador() {
   return (
     <div className="coordinador-panel">
       {error && <div className="grupos-alert danger">{error}</div>}
+
+      <section className="dashboard-welcome">
+        <h1>Bienvenido coordinador</h1>
+      </section>
 
       <section className="coordinador-kpi-grid" aria-label="Resumen general">
         {resumenCards.map((card) => {
@@ -215,7 +205,24 @@ export default function PanelCoordinador() {
               <strong>{kpis.total_areas ?? 0} areas</strong>
               <p>{kpis.total_grupos_activos ?? 0} grupos activos y {kpis.total_aprendices_activos ?? 0} aprendices vinculados.</p>
             </div>
-            <button className="coordinador-select-btn" type="button">Datos reales</button>
+            <div className="coordinador-filter-actions" aria-label="Filtros de resumen institucional">
+              {filtrosResumen.map((filtro) => {
+                const activo = filtroResumenActivo === filtro.id;
+                const Icon = activo ? ChevronDown : ChevronRight;
+
+                return (
+                  <button
+                    className={`coordinador-select-btn ${activo ? "active" : ""}`}
+                    type="button"
+                    key={filtro.id}
+                    onClick={() => setFiltroResumenActivo(filtro.id)}
+                  >
+                    {filtro.label}
+                    <Icon size={15} />
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="coordinador-line-chart" aria-label="Resumen por areas y programas">
@@ -257,7 +264,14 @@ export default function PanelCoordinador() {
               <strong>{kpis.total_inasistencias_validas ?? 0}</strong>
               <p>Inasistencias validas registradas</p>
             </div>
-            <button className="coordinador-select-btn" type="button">Pendientes</button>
+            <button
+              className={`coordinador-select-btn ${filtroOperativoActivo === "inasistencias" ? "active" : ""}`}
+              type="button"
+              onClick={() => setFiltroOperativoActivo("inasistencias")}
+            >
+              Inasistencias
+              {filtroOperativoActivo === "inasistencias" ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+            </button>
           </div>
 
           <div className="coordinador-bars" aria-label="Resumen operativo por jornada">
@@ -278,37 +292,6 @@ export default function PanelCoordinador() {
       </section>
 
       <section className="coordinador-secondary-grid">
-        <article className="coordinador-card coordinador-registros">
-          <h2>Areas asignadas</h2>
-          <div className="coordinador-lista-registros">
-            {areasResumen.length > 0 ? areasResumen.map((registro) => {
-              const Icon = registro.icono;
-              return (
-                <div className="coordinador-registro-item" key={registro.titulo}>
-                  <span><Icon size={20} /></span>
-                  <div>
-                    <strong>{registro.titulo}</strong>
-                    <small>{registro.subtitulo}</small>
-                  </div>
-                  <time>{registro.fecha}</time>
-                </div>
-              );
-            }) : (
-              <div className="coordinador-registro-item">
-                <span><Building2 size={20} /></span>
-                <div>
-                  <strong>Sin areas activas</strong>
-                  <small>No hay asignaciones de coordinacion disponibles.</small>
-                </div>
-                <time>-</time>
-              </div>
-            )}
-          </div>
-          <button className="coordinador-link-btn" type="button">
-            Ver resumen <ArrowRight size={17} />
-          </button>
-        </article>
-
         <article className="coordinador-card coordinador-estado">
           <h2>Estado academico</h2>
           {estadoAcademico.map((item) => (
@@ -349,48 +332,6 @@ export default function PanelCoordinador() {
           </div>
           <button className="coordinador-novedades-btn" type="button">
             Ver detalle <ArrowRight size={18} />
-          </button>
-        </article>
-      </section>
-
-      <section className="coordinador-bottom-grid">
-        <article className="coordinador-card coordinador-observatorio">
-          <h2>Observatorio del aprendiz</h2>
-          <div className="coordinador-observatorio-grid">
-            <div>
-              <h3>Areas priorizadas</h3>
-              <ul>
-                {areasListadas.length > 0 ? areasListadas.map((area) => (
-                  <li key={area.id_area}>{area.nombre_area} con {area.total_grupos || 0} grupos activos</li>
-                )) : <li>No hay areas para mostrar.</li>}
-              </ul>
-              <button type="button">Ver mas</button>
-            </div>
-            <div>
-              <h3>Alertas recientes</h3>
-              <ul className="alertas">
-                {alertasRecientes.map((texto) => (
-                  <li key={texto}>{texto}</li>
-                ))}
-              </ul>
-              <button type="button">Ver mas</button>
-            </div>
-          </div>
-        </article>
-
-        <article className="coordinador-card coordinador-acciones">
-          <h2>Acciones rapidas</h2>
-          <button type="button" onClick={() => navigate("/usuarios")}>
-            <UserPlus size={20} />
-            Crear usuario
-          </button>
-          <button type="button" onClick={() => navigate("/fichas")}>
-            <UsersRound size={20} />
-            Crear grupo
-          </button>
-          <button type="button" onClick={() => navigate("/fichas")}>
-            <ShieldAlert size={20} />
-            Revisar fichas
           </button>
         </article>
       </section>

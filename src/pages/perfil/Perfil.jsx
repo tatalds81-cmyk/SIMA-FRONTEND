@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { Edit3, Mail, MapPinHouse, Phone, Save, ShieldCheck, UserRound } from "lucide-react";
+import { Building2, Camera, Edit3, ImagePlus, Mail, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
 import "./perfil.css";
 
 const perfilVacio = {
@@ -15,6 +15,8 @@ export default function Perfil() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [menuFotoAbierto, setMenuFotoAbierto] = useState(false);
+  const [fotoPerfil, setFotoPerfil] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
 
@@ -69,6 +71,20 @@ export default function Perfil() {
       .join("")
       .toUpperCase();
   }, [nombreCompleto]);
+
+  const areaPrincipal = perfil?.informacion_rol?.areas_asignadas?.[0] || "";
+
+  function cambiarFotoPerfil(e) {
+    const archivo = e.target.files?.[0];
+    if (!archivo) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFotoPerfil(reader.result?.toString() || "");
+      setMenuFotoAbierto(false);
+    };
+    reader.readAsDataURL(archivo);
+  }
 
   function cambiarCampo(e) {
     const { name, value } = e.target;
@@ -128,11 +144,46 @@ export default function Perfil() {
       {mensaje && <div className={`grupos-alert ${mensajeError ? "danger" : "info"}`}>{mensaje}</div>}
 
       <section className="perfil-hero">
-        <div className="perfil-avatar">{iniciales || "US"}</div>
+        <div className="perfil-avatar-wrap">
+          <button
+            type="button"
+            className="perfil-avatar"
+            onClick={() => setMenuFotoAbierto((abierto) => !abierto)}
+            aria-label="Opciones de foto de perfil"
+          >
+            {fotoPerfil ? <img src={fotoPerfil} alt="" /> : (iniciales || "US")}
+          </button>
+          {menuFotoAbierto && (
+            <div className="perfil-photo-menu">
+              <label>
+                <ImagePlus size={19} />
+                Elegir foto de perfil
+                <input type="file" accept="image/*" onChange={cambiarFotoPerfil} />
+              </label>
+              <label>
+                <Camera size={19} />
+                Subir foto
+                <input type="file" accept="image/*" onChange={cambiarFotoPerfil} />
+              </label>
+              <button type="button" onClick={() => setMenuFotoAbierto(false)}>
+                <X size={19} />
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
         <div className="perfil-hero-copy">
           <span className="perfil-eyebrow">Mi perfil</span>
           <h1>{nombreCompleto}</h1>
-          <p>{perfil?.rol || "Usuario"}</p>
+          <div className="perfil-hero-meta">
+            <p>{perfil?.rol || "Usuario"}</p>
+            {areaPrincipal && (
+              <span className="perfil-area-pill">
+                <Building2 size={16} />
+                {areaPrincipal}
+              </span>
+            )}
+          </div>
         </div>
         <div className="perfil-hero-actions">
           {modoEdicion ? (
@@ -144,9 +195,8 @@ export default function Perfil() {
               </button>
             </>
           ) : (
-            <button type="button" className="perfil-secondary-btn" onClick={() => setModoEdicion(true)}>
+            <button type="button" className="perfil-icon-edit-btn" onClick={() => setModoEdicion(true)} aria-label="Editar perfil">
               <Edit3 size={16} />
-              Editar perfil
             </button>
           )}
         </div>
@@ -224,15 +274,6 @@ export default function Perfil() {
                 <span>{perfil?.rol || "No definido"}</span>
               </div>
             </div>
-            {perfil?.informacion_rol?.areas_asignadas?.length > 0 && (
-              <div className="perfil-role-item">
-                <MapPinHouse size={18} />
-                <div>
-                  <strong>Areas asignadas</strong>
-                  <span>{perfil.informacion_rol.areas_asignadas.join(", ")}</span>
-                </div>
-              </div>
-            )}
             {perfil?.informacion_rol?.fichas_activas?.length > 0 && (
               <div className="perfil-role-item">
                 <Mail size={18} />
