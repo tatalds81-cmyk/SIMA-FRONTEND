@@ -167,7 +167,7 @@ export default function PanelCoordinador() {
     <div className="coordinador-panel">
       {error && <div className="grupos-alert danger">{error}</div>}
 
-      <section className="dashboard-welcome">
+      <section className="dashboard-role-welcome">
         <h1>Bienvenido coordinador</h1>
       </section>
 
