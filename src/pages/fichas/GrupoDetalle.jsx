@@ -1,367 +1,467 @@
-﻿import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Edit3, Save } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Edit3, Save, Users, AlertTriangle, ClipboardList, CalendarX, UserX } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./fichas.css";
+
+/* ── helpers ─────────────────────────────── */
+function RiesgoBadge({ nivel }) {
+  const map = {
+    Alto:  { cls: "gd-badge-alto",  label: "Alto"  },
+    Medio: { cls: "gd-badge-medio", label: "Medio" },
+    Bajo:  { cls: "gd-badge-bajo",  label: "Bajo"  },
+  };
+  const entry = map[nivel] || map.Bajo;
+  return <span className={`gd-badge ${entry.cls}`}>{entry.label}</span>;
+}
+
+function SeveridadLabel({ valor }) {
+  const map = {
+    Critica:  "gd-sev-critica",
+    Grave:    "gd-sev-grave",
+    Moderada: "gd-sev-moderada",
+    Leve:     "gd-sev-leve",
+  };
+  return <span className={`gd-sev ${map[valor] || ""}`}>{valor || "-"}</span>;
+}
+
+const BARRA_ASISTENCIA = [
+  { clave: "presente",   label: "Presente",   color: "#39a900" },
+  { clave: "tarde",      label: "Tarde",       color: "#f59e0b" },
+  { clave: "inasistente",label: "Inasistente", color: "#ef4444" },
+  { clave: "justificada",label: "Justificada", color: "#3b82f6" },
+];
+
+const BARRAS_SEVERIDAD = [
+  { clave: "leves",     label: "Leves",     color: "#f8d41f" },
+  { clave: "moderadas", label: "Moderadas", color: "#f59e0b" },
+  { clave: "graves",    label: "Graves",    color: "#ef4444" },
+  { clave: "criticas",  label: "Críticas",  color: "#7f1d1d" },
+];
 
 export default function GrupoDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  /* ── estado del grupo (ya existente) ── */
   const [grupo, setGrupo] = useState(null);
   const [aprendicesGrupo, setAprendicesGrupo] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [detalleModoEdicion, setDetalleModoEdicion] = useState(false);
-  const [detalleForm, setDetalleForm] = useState({
-    numero_ficha: "",
-    jornada: "",
-    trimestres: "",
-    fecha_inicio: ""
-  });
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [detalleForm, setDetalleForm] = useState({ numero_ficha: "", jornada: "", trimestres: "", fecha_inicio: "" });
+
+  /* ── estado para secciones pendientes de endpoint ── */
+  const [alertas, setAlertas] = useState(null);          // null = sin endpoint
+  const [asistencia, setAsistencia] = useState(null);    // null = sin endpoint
+  const [metricas, setMetricas] = useState(null);        // null = sin endpoint
+  const [periodoAsist, setPeriodoAsist] = useState("Hoy");
 
   useEffect(() => {
     let activo = true;
-
-    async function cargarDetalle() {
+    async function cargar() {
       try {
         const token = localStorage.getItem("access") || localStorage.getItem("token");
-        const headers = {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        };
-
-        const [grupoRes, aprendicesRes] = await Promise.all([
-          fetch(`/api/groups/${id}`, { method: "GET", headers }),
-          fetch(`/api/apprentices/grupo/${id}`, { method: "GET", headers })
+        const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+        const [gr, apr] = await Promise.all([
+          fetch(`/api/groups/${id}`, { headers: h }),
+          fetch(`/api/apprentices/grupo/${id}`, { headers: h }),
         ]);
-
-        const grupoData = await grupoRes.json().catch(() => null);
-        const aprendicesData = await aprendicesRes.json().catch(() => null);
-
-        if (!grupoRes.ok) throw grupoData;
-
+        const gData = await gr.json().catch(() => null);
+        const aData = await apr.json().catch(() => null);
+        if (!gr.ok) throw gData;
         if (activo) {
-          const grupoActual = grupoData?.data || null;
-          const listaAprendices =
-            aprendicesData?.data?.aprendices ||
-            aprendicesData?.data?.items ||
-            aprendicesData?.data ||
-            [];
-
-          setGrupo(grupoActual);
-          setAprendicesGrupo(Array.isArray(listaAprendices) ? listaAprendices : []);
+          const g = gData?.data || null;
+          const lista = aData?.data?.aprendices || aData?.data?.items || aData?.data || [];
+          setGrupo(g);
+          setAprendicesGrupo(Array.isArray(lista) ? lista : []);
           setDetalleForm({
-            numero_ficha: grupoActual?.numero_ficha || "",
-            jornada: grupoActual?.jornada || "",
-            trimestres: grupoActual?.trimestres || "",
-            fecha_inicio: grupoActual?.fecha_inicio || ""
+            numero_ficha: g?.numero_ficha || "",
+            jornada: g?.jornada || "",
+            trimestres: g?.trimestres || "",
+            fecha_inicio: g?.fecha_inicio || "",
           });
-          setError("");
         }
-      } catch (err) {
-        console.log("Error al cargar detalle:", err);
-        if (activo) {
-          setError(err?.message || err?.error || "Error al cargar la informacion del grupo");
-        }
+      } catch (e) {
+        if (activo) setError(e?.message || e?.error || "Error al cargar la ficha");
       } finally {
-        if (activo) {
-          setCargando(false);
-        }
+        if (activo) setCargando(false);
       }
     }
-
-    cargarDetalle();
-    return () => {
-      activo = false;
-    };
+    cargar();
+    return () => { activo = false; };
   }, [id]);
 
   const detalle = useMemo(() => {
     if (!grupo) return null;
-
     const estado = `${grupo.estado || "ACTIVO"}`.toUpperCase();
-    const estadoTexto = estado === "SUSPENDIDO" ? "En espera" : estado === "CERRADO" ? "Cerrada" : "Activa";
+    const estadoTexto = estado === "SUSPENDIDO" ? "En espera" : estado === "CERRADO" ? "Cerrada" : "Activo";
     const estadoClase = estado === "SUSPENDIDO" ? "suspendido" : estado === "CERRADO" ? "cerrado" : "activo";
-
-    const personaInstructor = grupo.instructor_lider?.usuario?.persona;
-    const instructor = personaInstructor
-      ? `${personaInstructor.nombres} ${personaInstructor.apellidos}`
-      : "Sin asignar";
-
-    const iniciales = personaInstructor
-      ? `${personaInstructor.nombres.charAt(0)}${personaInstructor.apellidos.charAt(0)}`
-      : "?";
-
+    const persona = grupo.instructor_lider?.usuario?.persona;
+    const instructor = persona ? `${persona.nombres} ${persona.apellidos}` : "Sin asignar";
+    const iniciales = persona ? `${persona.nombres[0]}${persona.apellidos[0]}` : "?";
     return {
       ficha: grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || id,
-      estadoTexto,
-      estadoClase,
+      estadoTexto, estadoClase,
       area: grupo.programa_formacion?.area?.nombre_area || "No especificada",
       programa: grupo.programa_formacion?.nombre_programa || "No especificado",
       jornada: grupo.jornada || "No especificada",
       trimestres: grupo.trimestres || 0,
       fechaInicio: grupo.fecha_inicio || "No registrada",
       fechaFin: grupo.fecha_fin || "No registrada",
-      instructor,
-      iniciales,
+      inicioProductiva: grupo.inicio_etapa_productiva || "No registrada",
+      instructor, iniciales,
       ambiente: grupo.ambiente?.nombre_ambiente || "Sin asignar",
       ubicacion: grupo.ambiente?.ubicacion || "No registrada",
       aprendices: aprendicesGrupo.length || grupo.total_aprendices || 0,
     };
   }, [grupo, id, aprendicesGrupo]);
 
-  const aprendicesPreview = useMemo(() => {
-    return aprendicesGrupo.slice(0, 5).map((item) => {
-      const persona = item.usuario?.persona || item.persona || {};
-      return {
-        id: item.id_aprendiz || item.id || persona.numero_documento,
-        nombre: `${persona.nombres || item.nombres || ""} ${persona.apellidos || item.apellidos || ""}`.trim() || "Aprendiz",
-        documento: persona.numero_documento || item.numero_documento || "-",
-        estado: item.usuario?.estado || item.estado || "ACTIVO"
-      };
-    });
-  }, [aprendicesGrupo]);
+  /* ── KPIs derivados de datos reales cuando lleguen ── */
+  const kpis = useMemo(() => [
+    { icon: Users,        label: "Aprendices activos",     valor: detalle?.aprendices ?? "-",       sub: detalle?.aprendices ? "registrados" : "Sin registros", cls: "gd-kpi-green" },
+    { icon: AlertTriangle,label: "Alertas activas",        valor: alertas?.total ?? "-",            sub: alertas ? "activas" : "Sin endpoint",                  cls: "gd-kpi-red"   },
+    { icon: ClipboardList,label: "Observaciones abiertas", valor: alertas?.observaciones ?? "-",    sub: alertas ? "abiertas" : "Sin endpoint",                 cls: "gd-kpi-yellow" },
+    { icon: CalendarX,    label: "Inasistencias válidas",  valor: asistencia?.inasistencias ?? "-", sub: asistencia ? "este mes" : "Sin endpoint",              cls: "gd-kpi-blue" },
+    { icon: UserX,        label: "Inactivos",              valor: metricas?.inactivos ?? "-",       sub: metricas ? "aprendices" : "Sin endpoint",              cls: "gd-kpi-gray" },
+  ], [detalle, alertas, asistencia, metricas]);
 
-  function cambiarDetalleForm(e) {
-    const { name, value } = e.target;
-    setDetalleForm((actual) => ({ ...actual, [name]: value }));
-  }
-
-  function iniciarEdicion() {
-    if (!grupo) return;
-    setDetalleForm({
-      numero_ficha: grupo.numero_ficha || "",
-      jornada: grupo.jornada || "",
-      trimestres: grupo.trimestres || "",
-      fecha_inicio: grupo.fecha_inicio || ""
-    });
-    setDetalleModoEdicion(true);
-  }
-
-  function cancelarEdicion() {
-    if (!grupo) return;
-    setDetalleModoEdicion(false);
-    setDetalleForm({
-      numero_ficha: grupo.numero_ficha || "",
-      jornada: grupo.jornada || "",
-      trimestres: grupo.trimestres || "",
-      fecha_inicio: grupo.fecha_inicio || ""
-    });
-  }
-
-  async function guardarCambios() {
+  /* ── funciones de edición (existentes) ── */
+  function cambiarForm(e) { const { name, value } = e.target; setDetalleForm(p => ({ ...p, [name]: value })); }
+  function cancelar() { setModoEdicion(false); setDetalleForm({ numero_ficha: grupo?.numero_ficha || "", jornada: grupo?.jornada || "", trimestres: grupo?.trimestres || "", fecha_inicio: grupo?.fecha_inicio || "" }); }
+  async function guardar() {
     try {
       const token = localStorage.getItem("access") || localStorage.getItem("token");
-      const payload = {
-        numero_ficha: detalleForm.numero_ficha.trim(),
-        jornada: detalleForm.jornada,
-        trimestres: parseInt(detalleForm.trimestres, 10),
-        fecha_inicio: detalleForm.fecha_inicio
-      };
-
-      const res = await fetch(`/api/groups/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload)
-      });
-
+      const res = await fetch(`/api/groups/${id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...detalleForm, trimestres: parseInt(detalleForm.trimestres, 10) }) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw data;
-
       setGrupo(data?.data || grupo);
-      setDetalleModoEdicion(false);
+      setModoEdicion(false);
       setMensaje("Grupo actualizado correctamente.");
-    } catch (err) {
-      console.log("Error al actualizar grupo:", err);
-      setMensaje(err?.message || err?.error || "No fue posible actualizar el grupo.");
-    }
+    } catch (e) { setMensaje(e?.message || e?.error || "No fue posible actualizar."); }
   }
 
-  if (cargando) {
-    return (
-      <div className="fichas-modulo fichas-detail-state">
-        <p>Cargando informacion de la ficha...</p>
-      </div>
-    );
-  }
+  if (cargando) return <div className="fichas-modulo fichas-detail-state"><p>Cargando información de la ficha...</p></div>;
+  if (error || !detalle) return (
+    <div className="fichas-modulo fichas-detail-state">
+      <div className="fichas-alerta error">{error || "No se pudo cargar la información del grupo."}</div>
+      <button className="fichas-btn-cancelar" onClick={() => navigate("/fichas")}>Volver a Grupos</button>
+    </div>
+  );
 
-  if (error || !detalle) {
-    return (
-      <div className="fichas-modulo fichas-detail-state">
-        <div className="fichas-alerta error">{error || "No se pudo cargar la informacion del grupo."}</div>
-        <button className="fichas-btn-cancelar" onClick={() => navigate("/fichas")}>Volver a Grupos</button>
-      </div>
-    );
-  }
-
+  /* ── render ── */
   return (
     <div className="fichas-modulo fichas-detail-page fichas-detail-page-v2">
-      <button className="fichas-detail-back" onClick={() => navigate("/fichas")}>
-        <ArrowLeft size={16} />
-        Volver a Mis Grupos
-      </button>
-
+      <button className="fichas-detail-back" onClick={() => navigate("/fichas")}><ArrowLeft size={16} /> Volver a Mis Grupos</button>
       {mensaje && <div className="grupos-alert info">{mensaje}</div>}
 
+      {/* ── BANNER ── */}
       <section className="fichas-banner">
-        <div>
-          <div className="fichas-banner-title-row">
-            <h1>Ficha {detalleModoEdicion ? detalleForm.numero_ficha || detalle.ficha : detalle.ficha}</h1>
+        <div className="gd-banner-inner">
+          <div>
+            <div className="fichas-banner-title-row">
+              <h1>{detalle.programa}</h1>
+              <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
+            </div>
+            <p>Ficha {detalle.ficha} · {detalle.jornada} · Instructor: {detalle.instructor}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── KPIs ── */}
+      <section className="gd-kpi-grid">
+        {kpis.map(({ icon: Icon, label, valor, sub, cls }) => (
+          <article key={label} className={`gd-kpi-card ${cls}`}>
+            <span className="gd-kpi-label">{label}</span>
+            <strong className="gd-kpi-valor">{valor}</strong>
+            <small className="gd-kpi-sub">{sub}</small>
+          </article>
+        ))}
+      </section>
+
+      {/* ── FILA PRINCIPAL: asistencia + línea de tiempo ── */}
+      <section className="gd-main-grid">
+        {/* Asistencia */}
+        <article className="fichas-panel gd-chart-card">
+          <div className="gd-card-header">
+            <h2>Asistencia — {periodoAsist}</h2>
+            <div className="gd-period-btns">
+              {["Hoy", "Semana", "Mes"].map(p => (
+                <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
+              ))}
+            </div>
+          </div>
+          {asistencia ? (
+            <div className="gd-bar-chart">
+              <div className="gd-bar-scale">
+                {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
+              </div>
+              <div className="gd-bars-wrap">
+                {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
+                  const pct = asistencia[periodoAsist.toLowerCase()]?.[clave] ?? 0;
+                  return (
+                    <div key={clave} className="gd-bar-item">
+                      <span>{pct}%</span>
+                      <div className="gd-bar-track">
+                        <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
+                      </div>
+                      <small>{label}</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="gd-pending-msg">Gráfica disponible cuando el endpoint esté activo.</div>
+          )}
+        </article>
+
+        {/* Línea de tiempo */}
+        <article className="fichas-panel gd-timeline-card">
+          <div className="gd-card-header">
+            <h2>Línea de Tiempo — Ficha {detalle.ficha}</h2>
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
           </div>
-          <p>{detalle.programa} - {detalle.area}</p>
-        </div>
-      </section>
-
-      <section className="fichas-mini-kpis">
-        <article className="fichas-mini-kpi green">
-          <span>Aprendices</span>
-          <strong>{detalle.aprendices || 0}</strong>
-          <small>{detalle.aprendices ? "Registrados" : "Sin registros"}</small>
-        </article>
-        <article className="fichas-mini-kpi red muted">
-          <span>Alertas activas</span>
-          <strong>-</strong>
-          <small>Sin endpoint</small>
-        </article>
-        <article className="fichas-mini-kpi yellow muted">
-          <span>Observaciones</span>
-          <strong>-</strong>
-          <small>Sin endpoint</small>
-        </article>
-        <article className="fichas-mini-kpi blue muted">
-          <span>Inasistencias</span>
-          <strong>-</strong>
-          <small>Sin endpoint</small>
-        </article>
-      </section>
-
-      <section className="fichas-detail-layout-v2">
-        <article className="fichas-panel fichas-panel-main">
-          <div className="fichas-panel-header-actions">
-            <h2>DETALLES ACADEMICOS</h2>
-            {detalleModoEdicion ? (
-              <div className="fichas-detail-actions">
-                <button type="button" className="grupos-secondary-btn" onClick={cancelarEdicion}>Cancelar</button>
-                <button type="button" className="grupos-primary-btn" onClick={guardarCambios}>
-                  <Save size={16} />
-                  Guardar
-                </button>
+          <p className="gd-timeline-sub">{detalle.programa} · {detalle.jornada} · Instructor: {detalle.instructor}</p>
+          <div className="gd-trimestre-track">
+            {Array.from({ length: detalle.trimestres || 6 }).map((_, i) => (
+              <div key={i} className="gd-trimestre-step">
+                <div className="gd-trimestre-dot">T{i + 1}</div>
+                {i < (detalle.trimestres || 6) - 1 && <div className="gd-trimestre-line" />}
               </div>
+            ))}
+          </div>
+          <div className="gd-timeline-rows">
+            <div className="gd-timeline-row"><span>Inicio de ficha</span><strong>{detalle.fechaInicio}</strong></div>
+            <div className="gd-timeline-row"><span>Fin de ficha</span><strong>{detalle.fechaFin}</strong></div>
+            <div className="gd-timeline-row"><span>Inicio etapa productiva</span><strong>{detalle.inicioProductiva}</strong></div>
+          </div>
+        </article>
+      </section>
+
+      {/* ── TABLA APRENDICES ── */}
+      <article className="fichas-panel">
+        <div className="fichas-panel-header-actions">
+          <h2>Aprendices de la Ficha {detalle.ficha}</h2>
+          <span className="gd-count-chip">{detalle.aprendices} registrados</span>
+        </div>
+        <div className="gd-table-wrap">
+          <table className="gd-table">
+            <thead>
+              <tr>
+                <th>Aprendiz</th>
+                <th>Documento</th>
+                <th>Estado Formativo</th>
+                <th>Alertas</th>
+                <th>Inasistencias</th>
+                <th>Riesgo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aprendicesGrupo.length > 0 ? aprendicesGrupo.map((item) => {
+                const p = item.usuario?.persona || item.persona || {};
+                const nombre = `${p.nombres || item.nombres || ""} ${p.apellidos || item.apellidos || ""}`.trim() || "Aprendiz";
+                const doc = p.numero_documento || item.numero_documento || "-";
+                const estado = item.estado_formativo || item.usuario?.estado || item.estado || "En formación";
+                const alertasCnt = item.alertas ?? "-";
+                const inasis = item.inasistencias ?? "-";
+                const riesgo = item.nivel_riesgo || "Bajo";
+                return (
+                  <tr key={item.id_aprendiz || item.id || doc}>
+                    <td><strong>{nombre}</strong></td>
+                    <td>{doc}</td>
+                    <td>{estado}</td>
+                    <td className={alertasCnt > 0 ? "gd-num-alerta" : ""}>{alertasCnt}</td>
+                    <td className={inasis > 0 ? "gd-num-inasis" : ""}>{inasis}</td>
+                    <td><RiesgoBadge nivel={riesgo} /></td>
+                  </tr>
+                );
+              }) : (
+                <tr><td colSpan={6} className="gd-empty">No hay aprendices registrados en esta ficha o el endpoint aún no está disponible.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      {/* ── TABLA ALERTAS (ancho completo, estilo imagen referencia) ── */}
+      <article className="fichas-panel">
+        <div className="fichas-panel-header-actions">
+          <h2>Alertas de la Ficha {detalle.ficha}</h2>
+        </div>
+        <div className="gd-table-wrap">
+          <table className="gd-table gd-alerts-table">
+            <thead>
+              <tr>
+                <th>Aprendiz</th>
+                <th>Detalle</th>
+                <th>Severidad</th>
+                <th>Fuente</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alertas?.lista?.length > 0 ? alertas.lista.map((a, i) => {
+                const esManual  = a.fuente === "Manual";
+                const esTardio  = typeof a.fecha === "string" && (a.fecha.toLowerCase().startsWith("hoy") || a.fecha.toLowerCase().startsWith("ayer"));
+                return (
+                  <tr key={i}>
+                    <td><strong>{a.aprendiz}</strong></td>
+                    <td className={esManual ? "gd-td-link" : ""}>{a.detalle}</td>
+                    <td><SeveridadLabel valor={a.severidad} /></td>
+                    <td className={esManual ? "gd-td-link" : ""}>{a.fuente}</td>
+                    <td className={esTardio ? "gd-td-link" : ""}>{a.fecha}</td>
+                  </tr>
+                );
+              }) : (
+                <tr><td colSpan={5} className="gd-empty">Sin datos — endpoint pendiente.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      {/* ── GRÁFICAS: severidad + alertas por tipo ── */}
+      <section className="gd-bottom-grid">
+        {/* Alertas por Severidad */}
+        <article className="fichas-panel gd-sev-chart-card">
+          <div className="gd-card-header"><h2>Alertas por Severidad</h2></div>
+          {alertas?.porSeveridad ? (
+            <div className="gd-sev-chart">
+              <div className="gd-sev-scale">
+                {[8, 6, 4, 2, 0].map(v => <span key={v}>{v}</span>)}
+              </div>
+              <div className="gd-sev-bars">
+                {BARRAS_SEVERIDAD.map(({ clave, label, color }) => {
+                  const val = alertas.porSeveridad[clave] ?? 0;
+                  const max = Math.max(...BARRAS_SEVERIDAD.map(b => alertas.porSeveridad[b.clave] ?? 0), 1);
+                  return (
+                    <div key={clave} className="gd-sev-bar-item">
+                      <span className="gd-sev-bar-val">{val}</span>
+                      <div className="gd-sev-bar-track">
+                        <span className="gd-sev-bar-fill" style={{ height: `${(val / max) * 100}%`, background: color }} />
+                      </div>
+                      <small>{label}</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="gd-pending-msg">Gráfica disponible cuando el endpoint esté activo.</div>
+          )}
+        </article>
+
+        {/* Alertas por Tipo */}
+        <article className="fichas-panel">
+          <div className="gd-card-header"><h2>Alertas por Tipo</h2></div>
+          {alertas?.porTipo ? (
+            <div className="gd-tipo-bars">
+              {(alertas.porTipo || []).map(({ tipo, cantidad, color }) => {
+                const maxTipo = Math.max(...(alertas.porTipo || []).map(t => t.cantidad), 1);
+                const pct = Math.round((cantidad / maxTipo) * 100);
+                return (
+                  <div key={tipo} className="gd-tipo-bar-row">
+                    <span className="gd-tipo-label">{tipo}</span>
+                    <div className="gd-tipo-track">
+                      <span className="gd-tipo-fill" style={{ width: `${pct}%`, background: color || "#2652cc" }} />
+                    </div>
+                    <strong className="gd-tipo-val">{cantidad}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="gd-pending-msg">Gráfica disponible cuando el endpoint esté activo.</div>
+          )}
+        </article>
+      </section>
+
+      {/* ── FICHA DETALLE / INFO GENERAL ── */}
+      <article className="fichas-panel">
+        <div className="gd-card-header" style={{ marginBottom: 18 }}>
+          <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>
+          <div className="gd-header-actions">
+            <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
+            {modoEdicion ? (
+              <>
+                <button type="button" className="grupos-secondary-btn" onClick={cancelar}>Cancelar</button>
+                <button type="button" className="grupos-primary-btn" onClick={guardar}><Save size={15} /> Guardar</button>
+              </>
             ) : (
-              <button type="button" className="grupos-secondary-btn" onClick={iniciarEdicion}>
-                <Edit3 size={16} />
-                Editar
-              </button>
+              <button type="button" className="grupos-secondary-btn" onClick={() => setModoEdicion(true)}><Edit3 size={15} /> Editar</button>
             )}
           </div>
-
-          <div className="fichas-detail-rows">
-            <div className="fichas-detail-field fichas-detail-field-full">
-              <span>NUMERO DE FICHA</span>
-              {detalleModoEdicion ? (
-                <input name="numero_ficha" value={detalleForm.numero_ficha} onChange={cambiarDetalleForm} />
-              ) : (
-                <strong>{detalle.ficha}</strong>
-              )}
-            </div>
-
-            <div className="fichas-detail-field fichas-detail-field-full">
-              <span>AREA DE FORMACION</span>
-              <strong>{detalle.area}</strong>
-            </div>
-
-            <div className="fichas-detail-field fichas-detail-field-full">
-              <span>PROGRAMA DE FORMACION</span>
-              <strong className="highlight">{detalle.programa}</strong>
-            </div>
-
-            <div className="fichas-detail-field">
-              <span>JORNADA</span>
-              {detalleModoEdicion ? (
-                <select name="jornada" value={detalleForm.jornada} onChange={cambiarDetalleForm}>
-                  <option value="Manana">Manana</option>
-                  <option value="Tarde">Tarde</option>
-                  <option value="Noche">Noche</option>
-                </select>
-              ) : (
-                <strong>{detalle.jornada}</strong>
-              )}
-            </div>
-
-            <div className="fichas-detail-field">
-              <span>DURACION</span>
-              {detalleModoEdicion ? (
-                <input type="number" min="1" name="trimestres" value={detalleForm.trimestres} onChange={cambiarDetalleForm} />
-              ) : (
-                <strong>{detalle.trimestres} Trimestres</strong>
-              )}
-            </div>
-
-            <div className="fichas-detail-field">
-              <span>FECHA DE INICIO</span>
-              {detalleModoEdicion ? (
-                <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarDetalleForm} />
-              ) : (
-                <strong>{detalle.fechaInicio}</strong>
-              )}
-            </div>
-
-            <div className="fichas-detail-field">
-              <span>FECHA DE FIN (ESTIMADA)</span>
-              <strong>{detalle.fechaFin}</strong>
+        </div>
+        <div className="gd-info-grid">
+          {/* columna izquierda */}
+          <div className="gd-info-col">
+            <p className="gd-info-section-label">Información General</p>
+            <div className="gd-info-rows">
+              <div className="gd-info-row"><span>Instructor líder</span><strong className="gd-green">{detalle.instructor}</strong></div>
+              <div className="gd-info-row"><span>Fecha inicio</span>
+                {modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.fechaInicio}</strong>}
+              </div>
+              <div className="gd-info-row"><span>Fecha fin</span><strong>{detalle.fechaFin}</strong></div>
+              <div className="gd-info-row"><span>Inicio etapa productiva</span><strong>{detalle.inicioProductiva}</strong></div>
+              <div className="gd-info-row"><span>Duración total</span>
+                {modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong>{detalle.trimestres} trimestres</strong>}
+              </div>
+              <div className="gd-info-row"><span>Jornada</span>
+                {modoEdicion ? (
+                  <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
+                    <option value="Manana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noche">Noche</option>
+                  </select>
+                ) : <strong>{detalle.jornada}</strong>}
+              </div>
+              <div className="gd-info-row"><span>Trimestre actual</span><strong>{metricas?.trimestreActual ?? "-"}</strong></div>
             </div>
           </div>
-        </article>
-
-        <div className="fichas-side-stack">
-          <article className="fichas-panel">
-            <h2>INSTRUCTOR LIDER</h2>
-            <div className="fichas-instructor-row">
-              <div className="fichas-instructor-avatar">{detalle.iniciales}</div>
-              <div>
-                <strong>{detalle.instructor}</strong>
-                <span>RESPONSABLE PRINCIPAL</span>
+          {/* columna derecha */}
+          <div className="gd-info-col">
+            <p className="gd-info-section-label">Aprendices y Métricas</p>
+            <div className="gd-metrics-grid">
+              <div className="gd-metric-box">
+                <span>Total aprendices</span>
+                <strong>{metricas?.totalAprendices ?? detalle.aprendices ?? "-"}</strong>
+              </div>
+              <div className="gd-metric-box gd-metric-green">
+                <span>Activos</span>
+                <strong>{metricas?.activos ?? "-"}</strong>
+              </div>
+              <div className="gd-metric-box">
+                <span>Condicionados</span>
+                <strong>{metricas?.condicionados ?? "-"}</strong>
+              </div>
+              <div className="gd-metric-box gd-metric-red">
+                <span>Inactivos</span>
+                <strong>{metricas?.inactivos ?? "-"}</strong>
               </div>
             </div>
-          </article>
-
-          <article className="fichas-panel">
-            <h2>AMBIENTE PRINCIPAL</h2>
-            <div className="fichas-ambient-block">
-              <span>NOMBRE DEL AMBIENTE</span>
-              <strong>{detalle.ambiente}</strong>
-            </div>
-            <div className="fichas-ambient-block">
-              <span>UBICACION</span>
-              <strong>{detalle.ubicacion}</strong>
-            </div>
-          </article>
+            <p className="gd-info-section-label" style={{ marginTop: 20 }}>Asistencia este mes (%)</p>
+            {asistencia?.mes ? (
+              <div className="gd-asist-bars">
+                {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
+                  const pct = asistencia.mes[clave] ?? 0;
+                  return (
+                    <div key={clave} className="gd-asist-bar-row">
+                      <span>{label}</span>
+                      <div className="gd-asist-track">
+                        <span className="gd-asist-fill" style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                      <strong>{pct}%</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="gd-pending-msg">Disponible cuando el endpoint esté activo.</div>
+            )}
+          </div>
         </div>
-      </section>
-
-      <section className="fichas-panel fichas-panel-main" style={{ marginTop: "20px" }}>
-        <div className="fichas-panel-header-actions">
-          <h2>APRENDICES DEL GRUPO</h2>
-          <span>{detalle.aprendices} registrados</span>
-        </div>
-        <div className="fichas-detail-rows">
-          {aprendicesPreview.length > 0 ? aprendicesPreview.map((aprendiz) => (
-            <div className="fichas-detail-field fichas-detail-field-full" key={aprendiz.id}>
-              <span>{aprendiz.documento}</span>
-              <strong>{aprendiz.nombre}</strong>
-            </div>
-          )) : (
-            <div className="fichas-detail-field fichas-detail-field-full">
-              <span>LISTADO</span>
-              <strong>No hay aprendices registrados en esta ficha.</strong>
-            </div>
-          )}
-        </div>
-      </section>
+      </article>
     </div>
   );
 }

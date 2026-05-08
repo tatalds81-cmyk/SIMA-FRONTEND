@@ -11,6 +11,9 @@ import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 import Perfil from "./pages/perfil/Perfil";
 import Usuario from "./pages/usuarios/Usuario";
+import ConsultarAlertas from "./pages/alertas/ConsultarAlertas";
+import DetalleAlerta from "./pages/alertas/DetalleAlerta";
+import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
@@ -19,6 +22,14 @@ function App() {
   function manejarLogin() {
     setToken(localStorage.getItem("access"));
     setRol((localStorage.getItem("rol") || "").toLowerCase());
+  }
+
+  // Función para cerrar sesión
+  function manejarLogout() {
+    localStorage.clear();
+    sessionStorage.clear();
+    setToken(null);
+    setRol("");
   }
 
   const esInstructor = rol === "instructor";
@@ -35,7 +46,7 @@ function App() {
                 esInstructor ? (
                   <Navigate to="/instructor/dashboard" replace />
                 ) : (
-                  <Dashboard>
+                  <Dashboard onLogout={manejarLogout}>
                     <PanelCoordinador />
                   </Dashboard>
                 )
@@ -45,7 +56,7 @@ function App() {
             <Route
               path="/instructor/dashboard"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <PanelInstructor />
                 </Dashboard>
               }
@@ -54,7 +65,7 @@ function App() {
             <Route
               path="/instructor/grupos"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <InstructorSeccion
                     titulo="Mis grupos"
                     descripcion="Consulta los grupos asignados, su jornada y accesos directos al detalle."
@@ -64,18 +75,9 @@ function App() {
             />
 
             <Route
-              path="/instructor/aprendices"
-              element={
-                <Dashboard>
-                  <RegistroAprendices />
-                </Dashboard>
-              }
-            />
-
-            <Route
               path="/instructor/asistencia"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <InstructorSeccion
                     titulo="Asistencia"
                     descripcion="Aqui puedes registrar y revisar asistencia por grupo, fecha o sesion."
@@ -87,7 +89,7 @@ function App() {
             <Route
               path="/instructor/observaciones"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <InstructorSeccion
                     titulo="Observaciones"
                     descripcion="Espacio para seguimiento de novedades, anotaciones y casos prioritarios."
@@ -99,7 +101,7 @@ function App() {
             <Route
               path="/instructor/calendario"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <InstructorSeccion
                     titulo="Calendario"
                     descripcion="Visualiza tus sesiones, horarios y proximas actividades del instructor."
@@ -111,7 +113,7 @@ function App() {
             <Route
               path="/instructor/reportes"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <InstructorSeccion
                     titulo="Reportes"
                     descripcion="Consulta reportes de asistencia, observaciones y consolidado de tus grupos."
@@ -123,7 +125,7 @@ function App() {
             <Route
               path="/instructor/eventos"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <InstructorSeccion
                     titulo="Eventos de acceso"
                     descripcion="Revisa actividad reciente del instructor y eventos importantes del sistema."
@@ -136,9 +138,11 @@ function App() {
               path="/aprendices"
               element={
                 esInstructor ? (
-                  <Navigate to="/instructor/aprendices" replace />
+                  <Navigate to="/instructor/grupos" replace />
                 ) : (
-                  <Navigate to="/dashboard" replace />
+                  <Dashboard onLogout={manejarLogout}>
+                    <RegistroAprendices />
+                  </Dashboard>
                 )
               }
             />
@@ -149,7 +153,7 @@ function App() {
                 esInstructor ? (
                   <Navigate to="/instructor/dashboard" replace />
                 ) : (
-                  <Dashboard>
+                  <Dashboard onLogout={manejarLogout}>
                     <Usuario />
                   </Dashboard>
                 )
@@ -162,7 +166,7 @@ function App() {
                 esInstructor ? (
                   <Navigate to="/instructor/grupos" replace />
                 ) : (
-                  <Dashboard>
+                  <Dashboard onLogout={manejarLogout}>
                     <Fichas />
                   </Dashboard>
                 )
@@ -172,7 +176,7 @@ function App() {
             <Route
               path="/fichas/:id"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <GrupoDetalle />
                 </Dashboard>
               }
@@ -181,7 +185,7 @@ function App() {
             <Route
               path="/perfil"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <Perfil />
                 </Dashboard>
               }
@@ -189,21 +193,40 @@ function App() {
 
             <Route
               path="/alertas"
+              element={<Navigate to="/alertas/consultar" replace />}
+            />
+
+            <Route
+              path="/alertas/consultar"
               element={
-                esInstructor ? (
-                  <Navigate to="/instructor/observaciones" replace />
-                ) : (
-                  <Dashboard>
-                    <div>Alertas</div>
-                  </Dashboard>
-                )
+                <Dashboard onLogout={manejarLogout}>
+                  <ConsultarAlertas />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/alertas/:id"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <DetalleAlerta />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/notificaciones"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <NotificacionesPage />
+                </Dashboard>
               }
             />
 
             <Route
               path="/configuracion"
               element={
-                <Dashboard>
+                <Dashboard onLogout={manejarLogout}>
                   <div>Configuracion</div>
                 </Dashboard>
               }

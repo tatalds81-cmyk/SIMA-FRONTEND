@@ -1,0 +1,196 @@
+/* ═══════════════════════════════════════════════════════════════
+   notificacionesPage.css
+   ═══════════════════════════════════════════════════════════════ */
+
+.nt-page {
+  padding: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* ── Breadcrumb ── */
+.nt-breadcrumb {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+.nt-breadcrumb span { cursor: pointer; transition: color 0.2s; }
+.nt-breadcrumb span:hover { color: #0b2442; }
+.nt-sep { color: #cbd5e1; cursor: default !important; }
+.nt-active { color: #2563eb; font-weight: 700; cursor: default !important; }
+
+/* ── Title Row ── */
+.nt-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.nt-title-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.nt-bell-bg {
+  width: 48px;
+  height: 48px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0b2442;
+}
+
+.nt-title-group h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0b2442;
+}
+
+.nt-title-group p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ── Actions ── */
+.nt-actions { display: flex; gap: 12px; }
+
+.nt-btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.nt-btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
+.nt-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.nt-btn-refresh {
+  width: 42px;
+  height: 42px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 10px;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nt-btn-refresh:hover:not(:disabled) { background: #e2e8f0; color: #0b2442; }
+
+/* ── List ── */
+.nt-content {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.nt-list { display: flex; flex-direction: column; }
+
+.nt-item {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  gap: 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s;
+  position: relative;
+}
+.nt-item:last-child { border-bottom: none; }
+.nt-item:hover { background: #f8fafc; }
+.nt-item.unread { background: #f0f7ff; }
+.nt-item.unread:hover { background: #e0f0ff; }
+
+.nt-item-icon {
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.nt-icon-bot { color: #7c3aed; }
+.nt-icon-sys { color: #2563eb; }
+.nt-icon-alert { color: #ef4444; }
+
+.nt-item-body {
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nt-item-main { display: flex; flex-direction: column; gap: 4px; }
+.nt-item-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #0f172a;
+  line-height: 1.4;
+}
+.nt-item-time { font-size: 12px; color: #94a3b8; font-weight: 500; }
+
+.nt-badge-new {
+  background: #2563eb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.nt-item-actions { opacity: 0; transition: opacity 0.2s; }
+.nt-item:hover .nt-item-actions { opacity: 1; }
+
+.nt-btn-action {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.nt-btn-action:hover { background: #fee2e2; color: #ef4444; }
+
+/* ── States ── */
+.nt-state-msg {
+  padding: 80px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #64748b;
+  gap: 16px;
+}
+.nt-state-msg.empty { color: #cbd5e1; }
+.nt-state-msg.empty h3 { color: #475569; margin: 0; font-size: 20px; }
+.nt-state-msg.empty p { margin: 0; }
+
+.spin { animation: nt-spin 1s linear infinite; }
+@keyframes nt-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
