@@ -6,7 +6,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   MessageSquareWarning,
-  Settings,
   Users,
   UsersRound
 } from "lucide-react";
@@ -19,16 +18,14 @@ const menuByRole = {
     { icon: ClipboardList, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
     { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
     { icon: Users, label: "Aprendices", path: "/instructor/aprendices", id: "aprendices" },
-    { icon: Bell, label: "Alertas", path: "/alertas", id: "alertas" },
-    { icon: Settings, label: "Configuracion", path: "/configuracion", id: "configuracion" }
+    { icon: Bell, label: "Alertas", path: "/alertas", id: "alertas" }
     
 
   ],
   coordinador: [
     { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },
     { icon: GraduationCap, label: "Instructores", path: "/usuarios", id: "usuarios" },
-    { icon: UsersRound, label: "Grupos", path: "/fichas", id: "grupos" },
-    { icon: Settings, label: "Configuracion", path: "/configuracion", id: "configuracion" }
+    { icon: UsersRound, label: "Grupos", path: "/fichas", id: "grupos" }
   ]
 };
 

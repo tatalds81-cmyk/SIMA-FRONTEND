@@ -124,6 +124,7 @@ export default function PanelInstructor() {
   return (
     <div className="coordinador-panel instructor-panel-v2">
       <section className="dashboard-welcome">
+      <section className="dashboard-role-welcome">
         <h1>Bienvenido instructor</h1>
       </section>
 
