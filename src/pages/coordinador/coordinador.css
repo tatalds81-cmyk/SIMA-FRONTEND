@@ -25,7 +25,7 @@
 }
 
 .coordinador-panel .dashboard-welcome,
-.instructor-panel-v2 .dashboard-welcome {
+.instructor-panel-v2 .dashboard-welcome,
 .coordinador-panel .dashboard-role-welcome,
 .instructor-panel-v2 .dashboard-role-welcome {
   width: 100%;
@@ -39,7 +39,7 @@
 }
 
 .coordinador-panel .dashboard-welcome h1,
-.instructor-panel-v2 .dashboard-welcome h1 {
+.instructor-panel-v2 .dashboard-welcome h1,
 .coordinador-panel .dashboard-role-welcome h1,
 .instructor-panel-v2 .dashboard-role-welcome h1 {
   margin: 0;
