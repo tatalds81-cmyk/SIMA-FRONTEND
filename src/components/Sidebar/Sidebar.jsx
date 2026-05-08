@@ -1,11 +1,8 @@
-﻿import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   CalendarDays,
-  ClipboardList,
-  GraduationCap,
   LayoutDashboard,
-  MessageSquareWarning,
   Users,
   UsersRound
 } from "lucide-react";
@@ -15,17 +12,17 @@ import senaLogo from "../../assets/logoSena.png";
 const menuByRole = {
   instructor: [
     { icon: LayoutDashboard, label: "Inicio", path: "/instructor/dashboard", id: "inicio" },
-    { icon: ClipboardList, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
-    { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
-    { icon: Users, label: "Aprendices", path: "/instructor/aprendices", id: "aprendices" },
-    { icon: Bell, label: "Alertas", path: "/alertas", id: "alertas" }
-    
-
+    { icon: UsersRound, label: "Mis grupos", path: "/instructor/grupos", id: "grupos" },
+    { icon: Users, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
+    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "consultar-alertas" },
+    { icon: CalendarDays, label: "Calendario", path: "/instructor/calendario", id: "calendario" }
   ],
   coordinador: [
     { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },
-    { icon: GraduationCap, label: "Instructores", path: "/usuarios", id: "usuarios" },
-    { icon: UsersRound, label: "Grupos", path: "/fichas", id: "grupos" }
+    { icon: Users, label: "Gestion de usuarios", path: "/usuarios", id: "usuarios" },
+    { icon: UsersRound, label: "Gestion de grupos", path: "/fichas", id: "grupos" },
+    { icon: Users, label: "Aprendices", path: "/aprendices", id: "aprendices" },
+    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "alertas" }
   ]
 };
 

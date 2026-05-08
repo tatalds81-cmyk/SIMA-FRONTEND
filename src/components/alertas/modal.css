@@ -1,0 +1,247 @@
+/* ═══════════════════════════════════════════════════════════════
+   modal.css (Rediseño Premium)
+   ═══════════════════════════════════════════════════════════════ */
+
+.mcal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(11, 36, 66, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: mcal-fade 0.3s ease;
+}
+
+.mcal-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(11, 36, 66, 0.25);
+  z-index: 1001;
+  padding: 32px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: mcal-slide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mcal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mcal-slide { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+
+/* ── Header ── */
+.mcal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.mcal-titulo {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0b2442;
+}
+
+.mcal-btn-close {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+.mcal-btn-close:hover { background: #e2e8f0; color: #0b2442; }
+
+/* ── Banner Info ── */
+.mcal-banner {
+  background: #f0f7ff;
+  border: 1px solid #cce3ff;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.mcal-banner-icon { color: #2563eb; flex-shrink: 0; margin-top: 2px; }
+.mcal-banner p { margin: 0; font-size: 13.5px; color: #1e40af; line-height: 1.5; font-weight: 500; }
+
+/* ── Formulario ── */
+.mcal-form { display: flex; flex-direction: column; gap: 20px; }
+
+.mcal-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+.mcal-req { color: #ef4444; }
+
+.mcal-field { position: relative; }
+
+.mcal-input, .mcal-select, .mcal-textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0f172a;
+  transition: all 0.2s;
+  background: #fff;
+}
+.mcal-input:focus, .mcal-select:focus, .mcal-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.mcal-input.error, .mcal-select.error, .mcal-textarea.error { border-color: #ef4444; }
+
+.mcal-search-wrap { position: relative; }
+.mcal-search-icon { position: absolute; right: 14px; top: 12px; color: #94a3b8; }
+.mcal-search-spin { position: absolute; right: 40px; top: 13px; color: #2563eb; animation: spin 1s linear infinite; }
+
+.mcal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* ── Severidad Leyenda ── */
+.mcal-sev-leyenda {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.mcal-sev-leyenda span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+.mcal-dot { width: 8px; height: 8px; border-radius: 50%; }
+.mcal-dot.leve { background: #22c55e; }
+.mcal-dot.moderada { background: #f59e0b; }
+.mcal-dot.grave { background: #ef4444; }
+
+/* ── Checkbox H27 ── */
+.mcal-notif-check {
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+.mcal-checkbox-container {
+  display: flex;
+  gap: 12px;
+  cursor: pointer;
+  align-items: flex-start;
+}
+.mcal-checkbox-container input { display: none; }
+.mcal-checkmark {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.2s;
+}
+.mcal-checkbox-container input:checked + .mcal-checkmark {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.mcal-checkbox-container input:checked + .mcal-checkmark::after {
+  content: "";
+  position: absolute;
+  left: 6px; top: 2px;
+  width: 5px; height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.mcal-check-text { display: flex; flex-direction: column; }
+.mcal-check-text strong { font-size: 13.5px; color: #334155; }
+.mcal-check-text span { font-size: 11px; color: #64748b; font-weight: 500; }
+
+/* ── Descripción ── */
+.mcal-textarea { resize: none; min-height: 100px; }
+.mcal-desc-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.mcal-contador { font-size: 11px; color: #94a3b8; font-weight: 600; }
+
+/* ── Dropdown Búsqueda ── */
+.mcal-dropdown {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  margin-top: 4px;
+  z-index: 50;
+  list-style: none;
+  padding: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.mcal-dropdown-item {
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.mcal-dropdown-item:hover { background: #f1f5f9; }
+.mcal-drop-nombre { font-size: 13.5px; font-weight: 700; color: #0f172a; }
+.mcal-drop-doc { font-size: 11px; color: #64748b; }
+
+/* ── Footer ── */
+.mcal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mcal-btn-cancelar {
+  padding: 11px 24px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mcal-btn-cancelar:hover { background: #f8fafc; color: #0b2442; }
+
+.mcal-btn-enviar {
+  padding: 11px 28px;
+  background: #0b2442;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(11, 36, 66, 0.2);
+}
+.mcal-btn-enviar:hover { background: #081a30; transform: translateY(-1px); }
+.mcal-btn-enviar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.mcal-error-msg { font-size: 11px; color: #ef4444; font-weight: 600; margin-top: 4px; display: block; }
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

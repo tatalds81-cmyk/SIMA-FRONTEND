@@ -1,0 +1,38 @@
+export const SEVERIDAD = {
+  LEVE: 'LEVE',
+  MODERADA: 'MODERADA',
+  GRAVE: 'GRAVE'
+};
+
+export const ESTADO_ALERTA = {
+  ABIERTA: 'ABIERTA',
+  ACTIVA: 'ACTIVA',
+  CERRADA: 'CERRADA',
+  EN_SEGUIMIENTO: 'EN_SEGUIMIENTO'
+};
+
+export const TIPO_ALERTA = {
+  ACADEMICA: 'ACADEMICA',
+  CONVIVENCIAL: 'CONVIVENCIAL',
+  INASISTENCIA_CONSECUTIVA: 'INASISTENCIA_CONSECUTIVA',
+  INASISTENCIA_ACUMULADA: 'INASISTENCIA_ACUMULADA',
+  RECURRENCIA_OBSERVACIONES: 'RECURRENCIA_OBSERVACIONES'
+};
+
+export const ORIGEN_ALERTA = {
+  MANUAL: 'MANUAL',
+  AUTOMATICA: 'AUTOMATICA'
+};
+
+export const SEVERIDAD_COLORES = {
+  LEVE:     { bg: '#FEF9C3', text: '#854D0E', border: '#FDE047' },
+  MODERADA: { bg: '#FEF3C7', text: '#92400E', border: '#F59E0B' },
+  GRAVE:    { bg: '#FEE2E2', text: '#991B1B', border: '#EF4444' }
+};
+
+export const ESTADO_COLORES = {
+  ABIERTA:        { bg: '#FEE2E2', text: '#991B1B' },
+  ACTIVA:         { bg: '#FEE2E2', text: '#991B1B' },
+  CERRADA:        { bg: '#DCFCE7', text: '#166534' },
+  EN_SEGUIMIENTO: { bg: '#DBEAFE', text: '#1E40AF' }
+};

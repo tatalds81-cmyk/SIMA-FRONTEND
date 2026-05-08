@@ -1,20 +1,20 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   ChevronDown,
   LogOut,
   UserRound
 } from "lucide-react";
 import "./Navbar.css";
+import NotificacionCampana from "../layout/NotificacionCampana";
 
 function Navbar() {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const nombreUsuario = localStorage.getItem("username") || localStorage.getItem("usuario") || "Carlos Loda";
-  const rolUsuario = localStorage.getItem("rol") || "Administrador";
-  const esInstructor = rolUsuario.toLowerCase() === "instructor";
+  const rolUsuario = (localStorage.getItem("rol") || "Administrador").toLowerCase();
+  const esInstructor = rolUsuario === "instructor";
 
   const manejarCerrarSesion = () => {
     localStorage.clear();
@@ -54,10 +54,7 @@ function Navbar() {
   return (
     <header className={`sima-navbar-main ${esInstructor ? "navbar-instructor" : ""}`}>
       <div className="sima-navbar-right">
-        <button className="sima-navbar-icon" type="button" title="Notificaciones">
-          <Bell size={23} />
-          <span className="sima-navbar-badge">1</span>
-        </button>
+        <NotificacionCampana />
 
         <button className="profile-section" type="button" onClick={toggleProfileMenu}>
           <span className="profile-avatar-circle">{initials || "CL"}</span>
