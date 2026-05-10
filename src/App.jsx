@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
-import RegistroAprendices from "./pages/coordinador/RegistroAprendices";
+import RegistroAprendices from "./pages/instructor/RegistroAprendices";
 import PanelInstructor from "./pages/instructor/PanelInstructor";
 import InstructorSeccion from "./pages/instructor/InstructorSeccion";
 import MisGrupos from "./pages/instructor/MisGrupos";
@@ -12,6 +12,7 @@ import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 import Perfil from "./pages/perfil/Perfil";
 import Usuario from "./pages/usuarios/Usuario";
+import Observaciones from "./pages/observador/Observaciones";
 import ConsultarAlertas from "./pages/alertas/ConsultarAlertas";
 import AlertasCoordinador from "./pages/alertas/AlertasCoordinador";
 import DetalleAlerta from "./pages/alertas/DetalleAlerta";
@@ -19,14 +20,15 @@ import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
-  const [rol, setRol] = useState((localStorage.getItem("rol") || "").toLowerCase());
+  const [rol, setRol] = useState(
+    (localStorage.getItem("rol") || "").toLowerCase()
+  );
 
   function manejarLogin() {
     setToken(localStorage.getItem("access"));
     setRol((localStorage.getItem("rol") || "").toLowerCase());
   }
 
-  // Función para cerrar sesión
   function manejarLogout() {
     localStorage.clear();
     sessionStorage.clear();
@@ -35,7 +37,9 @@ function App() {
   }
 
   const esInstructor = rol === "instructor";
-  const rutaInicio = esInstructor ? "/instructor/dashboard" : "/dashboard";
+  const rutaInicio = esInstructor
+    ? "/instructor/dashboard"
+    : "/dashboard";
 
   return (
     <BrowserRouter>
@@ -60,6 +64,16 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <PanelInstructor />
+                </Dashboard>
+              }
+            />
+
+            {/* APRENDICES INSTRUCTOR */}
+            <Route
+              path="/instructor/aprendices"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <RegistroAprendices />
                 </Dashboard>
               }
             />
@@ -89,22 +103,7 @@ function App() {
               path="/instructor/observaciones"
               element={
                 <Dashboard onLogout={manejarLogout}>
-                  <InstructorSeccion
-                    titulo="Observaciones"
-                    descripcion="Espacio para seguimiento de novedades, anotaciones y casos prioritarios."
-                  />
-                </Dashboard>
-              }
-            />
-
-            <Route
-              path="/instructor/calendario"
-              element={
-                <Dashboard onLogout={manejarLogout}>
-                  <InstructorSeccion
-                    titulo="Calendario"
-                    descripcion="Visualiza tus sesiones, horarios y proximas actividades del instructor."
-                  />
+                  <Observaciones />
                 </Dashboard>
               }
             />
@@ -133,11 +132,12 @@ function App() {
               }
             />
 
+            {/* APRENDICES COORDINADOR */}
             <Route
               path="/aprendices"
               element={
                 esInstructor ? (
-                  <Navigate to="/instructor/grupos" replace />
+                  <Navigate to="/instructor/aprendices" replace />
                 ) : (
                   <Dashboard onLogout={manejarLogout}>
                     <RegistroAprendices />
@@ -231,12 +231,21 @@ function App() {
               }
             />
 
-            <Route path="*" element={<Navigate to={rutaInicio} replace />} />
+            <Route
+              path="*"
+              element={<Navigate to={rutaInicio} replace />}
+            />
           </>
         ) : (
           <>
-            <Route path="/" element={<Login onLogin={manejarLogin} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="/"
+              element={<Login onLogin={manejarLogin} />}
+            />
+            <Route
+              path="*"
+              element={<Navigate to="/" replace />}
+            />
           </>
         )}
       </Routes>
