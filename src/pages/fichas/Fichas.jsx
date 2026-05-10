@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Layers, Plus, Search, Trash2, Upload } from "lucide-react";
 import "./fichas.css";
@@ -9,6 +9,8 @@ export default function GruposFormativos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("");
+  const [filtroJornada, setFiltroJornada] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
 
   const [grupos, setGrupos] = useState([]);
@@ -178,16 +180,28 @@ export default function GruposFormativos() {
   }, [numeroGrupo]);
 
   const gruposFiltrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
-    if (!texto) return grupos;
+    let filtrados = grupos;
 
-    return grupos.filter((grupo) => {
-      const codigo = grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "";
-      const programa = grupo.programa_formacion?.nombre_programa || grupo.programa || "";
-      const jornadaGrupo = grupo.jornada || "";
-      return `${codigo} ${programa} ${jornadaGrupo}`.toLowerCase().includes(texto);
-    });
-  }, [busqueda, grupos]);
+    if (busqueda.trim()) {
+      const texto = busqueda.trim().toLowerCase();
+      filtrados = filtrados.filter((grupo) => {
+        const codigo = grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "";
+        const programa = grupo.programa_formacion?.nombre_programa || grupo.programa || "";
+        const jornadaGrupo = grupo.jornada || "";
+        return `${codigo} ${programa} ${jornadaGrupo}`.toLowerCase().includes(texto);
+      });
+    }
+
+    if (filtroEstado) {
+      filtrados = filtrados.filter(grupo => (grupo.estado || "ACTIVO") === filtroEstado);
+    }
+
+    if (filtroJornada) {
+      filtrados = filtrados.filter(grupo => (grupo.jornada || "Manana") === filtroJornada);
+    }
+
+    return filtrados;
+  }, [busqueda, filtroEstado, filtroJornada, grupos]);
 
   const totalPaginas = Math.max(1, Math.ceil(gruposFiltrados.length / GRUPOS_POR_PAGINA));
   const inicioPagina = (paginaActual - 1) * GRUPOS_POR_PAGINA;
@@ -316,10 +330,11 @@ export default function GruposFormativos() {
   }
 
   function obtenerNombreInstructor(instructor) {
-    const nombres = instructor.usuario?.persona?.nombres || "";
-    const apellidos = instructor.usuario?.persona?.apellidos || "";
+    if (!instructor) return "Sin asignar";
+    const nombres = instructor.usuario?.persona?.nombres || instructor.nombres || "";
+    const apellidos = instructor.usuario?.persona?.apellidos || instructor.apellidos || "";
     const nombreCompleto = `${nombres} ${apellidos}`.trim();
-    return nombreCompleto || instructor.usuario?.email || `Instructor ${instructor.id_instructor}`;
+    return nombreCompleto || instructor.usuario?.email || `Instructor ${instructor.id_instructor || ''}`;
   }
 
   return (
@@ -361,11 +376,36 @@ export default function GruposFormativos() {
             placeholder="Buscar por codigo, programa o jornada"
           />
         </div>
+        
+        <select 
+          className="grupos-select-filtro" 
+          value={filtroJornada} 
+          onChange={(e) => { setFiltroJornada(e.target.value); setPaginaActual(1); }}
+        >
+          <option value="">Todas las jornadas</option>
+          <option value="Manana">Manana</option>
+          <option value="Tarde">Tarde</option>
+          <option value="Noche">Noche</option>
+        </select>
+
+        <select 
+          className="grupos-select-filtro" 
+          value={filtroEstado} 
+          onChange={(e) => { setFiltroEstado(e.target.value); setPaginaActual(1); }}
+        >
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="CERRADO">Cerrado</option>
+          <option value="SUSPENDIDO">Suspendido</option>
+        </select>
+
         <button
           type="button"
           className="ghost"
           onClick={() => {
             setBusqueda("");
+            setFiltroEstado("");
+            setFiltroJornada("");
             setPaginaActual(1);
           }}
         >
@@ -391,6 +431,7 @@ export default function GruposFormativos() {
                 <th>Aprendices</th>
                 <th>Trimestres</th>
                 <th>Estado</th>
+                <th>Lider</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -408,6 +449,7 @@ export default function GruposFormativos() {
                         {grupo.estado || "ACTIVO"}
                       </span>
                     </td>
+                    <td>{obtenerNombreInstructor(grupo.instructor_lider)}</td>
                     <td>
                       <div className="grupos-actions">
                         <button type="button" className="grupos-icon-btn" onClick={() => navigate(`/fichas/${grupo.id_grupo || grupo.id || index}`)} title="Ver detalle">

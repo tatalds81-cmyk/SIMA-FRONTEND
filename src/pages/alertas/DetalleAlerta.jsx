@@ -146,6 +146,31 @@ export default function DetalleAlerta() {
             </div>
             <div className="da-descripcion-content">{alerta.descripcion}</div>
           </section>
+
+          {alerta.observacionesVinculadas && alerta.observacionesVinculadas.length > 0 && (
+            <section className="da-card">
+              <div className="da-card-header">
+                <div className="da-card-titulo" style={{ color: '#0b2442' }}><Info size={18} /> Observaciones Vinculadas ({alerta.observacionesVinculadas.length})</div>
+              </div>
+              <div className="da-observaciones-list" style={{ padding: '20px' }}>
+                {alerta.observacionesVinculadas.map((obs, index) => (
+                  <div key={obs.id} style={{ 
+                    padding: '12px 16px', 
+                    background: '#f8fafc', 
+                    borderLeft: '4px solid #3b82f6', 
+                    borderRadius: '0 8px 8px 0',
+                    marginBottom: index === alerta.observacionesVinculadas.length - 1 ? 0 : '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>Observación {index + 1}</strong>
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>{formatFechaLarga(obs.fecha)}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#334155' }}>{obs.descripcion}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="da-col-aside">

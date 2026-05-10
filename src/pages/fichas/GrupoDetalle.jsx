@@ -35,12 +35,13 @@ const BARRAS_SEVERIDAD = [
   { clave: "leves",     label: "Leves",     color: "#f8d41f" },
   { clave: "moderadas", label: "Moderadas", color: "#f59e0b" },
   { clave: "graves",    label: "Graves",    color: "#ef4444" },
-  { clave: "criticas",  label: "Críticas",  color: "#7f1d1d" },
 ];
 
 export default function GrupoDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const rol = (localStorage.getItem("rol") || "").toLowerCase();
+  const esInstructor = rol === "instructor" || rol === "instructor_lider" || rol === "instructor_asignado";
 
   /* ── estado del grupo (ya existente) ── */
   const [grupo, setGrupo] = useState(null);
@@ -118,13 +119,21 @@ export default function GrupoDetalle() {
   }, [grupo, id, aprendicesGrupo]);
 
   /* ── KPIs derivados de datos reales cuando lleguen ── */
-  const kpis = useMemo(() => [
-    { icon: Users,        label: "Aprendices activos",     valor: detalle?.aprendices ?? "-",       sub: detalle?.aprendices ? "registrados" : "Sin registros", cls: "gd-kpi-green" },
-    { icon: AlertTriangle,label: "Alertas activas",        valor: alertas?.total ?? "-",            sub: alertas ? "activas" : "Sin endpoint",                  cls: "gd-kpi-red"   },
-    { icon: ClipboardList,label: "Observaciones abiertas", valor: alertas?.observaciones ?? "-",    sub: alertas ? "abiertas" : "Sin endpoint",                 cls: "gd-kpi-yellow" },
-    { icon: CalendarX,    label: "Inasistencias válidas",  valor: asistencia?.inasistencias ?? "-", sub: asistencia ? "este mes" : "Sin endpoint",              cls: "gd-kpi-blue" },
-    { icon: UserX,        label: "Inactivos",              valor: metricas?.inactivos ?? "-",       sub: metricas ? "aprendices" : "Sin endpoint",              cls: "gd-kpi-gray" },
-  ], [detalle, alertas, asistencia, metricas]);
+  const kpis = useMemo(() => {
+    const base = [
+      { icon: Users,        label: "Aprendices activos",     valor: detalle?.aprendices ?? "-",       sub: detalle?.aprendices ? "registrados" : "Sin registros", cls: "gd-kpi-green" },
+      { icon: CalendarX,    label: "Inasistencias válidas",  valor: asistencia?.inasistencias ?? "-", sub: asistencia ? "este mes" : "Sin endpoint",              cls: "gd-kpi-blue" },
+      { icon: UserX,        label: "Inactivos",              valor: metricas?.inactivos ?? "-",       sub: metricas ? "aprendices" : "Sin endpoint",              cls: "gd-kpi-gray" },
+    ];
+    
+    if (esInstructor) {
+      base.splice(1, 0, 
+        { icon: AlertTriangle,label: "Alertas activas",        valor: alertas?.total ?? "-",            sub: alertas ? "activas" : "Sin endpoint",                  cls: "gd-kpi-red"   },
+        { icon: ClipboardList,label: "Observaciones abiertas", valor: alertas?.observaciones ?? "-",    sub: alertas ? "abiertas" : "Sin endpoint",                 cls: "gd-kpi-yellow" }
+      );
+    }
+    return base;
+  }, [detalle, alertas, asistencia, metricas, esInstructor]);
 
   /* ── funciones de edición (existentes) ── */
   function cambiarForm(e) { const { name, value } = e.target; setDetalleForm(p => ({ ...p, [name]: value })); }
@@ -179,6 +188,75 @@ export default function GrupoDetalle() {
         ))}
       </section>
 
+      {/* ── FICHA DETALLE / INFO GENERAL ── */}
+      <article className="fichas-panel">
+        <div className="gd-card-header" style={{ marginBottom: 18 }}>
+          <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>
+          <div className="gd-header-actions">
+            <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
+            {modoEdicion ? (
+              <>
+                <button type="button" className="grupos-secondary-btn" onClick={cancelar}>Cancelar</button>
+                <button type="button" className="grupos-primary-btn" onClick={guardar}><Save size={15} /> Guardar</button>
+              </>
+            ) : (
+              <button type="button" className="grupos-secondary-btn" onClick={() => setModoEdicion(true)}><Edit3 size={15} /> Editar</button>
+            )}
+          </div>
+        </div>
+        <div className="gd-info-grid">
+          {/* columna izquierda */}
+          <div className="gd-info-col">
+            <p className="gd-info-section-label">Información General</p>
+            <div className="gd-info-rows">
+              <div className="gd-info-row"><span>Instructor líder</span><strong className="gd-green">{detalle.instructor}</strong></div>
+              <div className="gd-info-row"><span>Área</span><strong>{detalle.area}</strong></div>
+              <div className="gd-info-row"><span>Fecha inicio</span>
+                {modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.fechaInicio}</strong>}
+              </div>
+              <div className="gd-info-row"><span>Fecha fin</span><strong>{detalle.fechaFin}</strong></div>
+              <div className="gd-info-row"><span>Inicio etapa productiva</span><strong>{detalle.inicioProductiva}</strong></div>
+              <div className="gd-info-row"><span>Duración total</span>
+                {modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong>{detalle.trimestres} trimestres</strong>}
+              </div>
+              <div className="gd-info-row"><span>Jornada</span>
+                {modoEdicion ? (
+                  <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
+                    <option value="Manana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noche">Noche</option>
+                  </select>
+                ) : <strong>{detalle.jornada}</strong>}
+              </div>
+              <div className="gd-info-row"><span>Trimestre actual</span><strong>{metricas?.trimestreActual ?? "-"}</strong></div>
+            </div>
+          </div>
+          {/* columna derecha */}
+          <div className="gd-info-col">
+            <p className="gd-info-section-label">Aprendices y Métricas</p>
+            <div className="gd-metrics-grid">
+              <div className="gd-metric-box">
+                <span>Total aprendices</span>
+                <strong>{metricas?.totalAprendices ?? detalle.aprendices ?? "-"}</strong>
+              </div>
+              <div className="gd-metric-box gd-metric-green">
+                <span>Activos</span>
+                <strong>{metricas?.activos ?? "-"}</strong>
+              </div>
+              <div className="gd-metric-box">
+                <span>Condicionados</span>
+                <strong>{metricas?.condicionados ?? "-"}</strong>
+              </div>
+              <div className="gd-metric-box gd-metric-red">
+                <span>Inactivos</span>
+                <strong>{metricas?.inactivos ?? "-"}</strong>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </article>
+
       {/* ── FILA PRINCIPAL: asistencia + línea de tiempo ── */}
       <section className="gd-main-grid">
         {/* Asistencia */}
@@ -191,29 +269,25 @@ export default function GrupoDetalle() {
               ))}
             </div>
           </div>
-          {asistencia ? (
-            <div className="gd-bar-chart">
-              <div className="gd-bar-scale">
-                {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
-              </div>
-              <div className="gd-bars-wrap">
-                {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
-                  const pct = asistencia[periodoAsist.toLowerCase()]?.[clave] ?? 0;
-                  return (
-                    <div key={clave} className="gd-bar-item">
-                      <span>{pct}%</span>
-                      <div className="gd-bar-track">
-                        <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
-                      </div>
-                      <small>{label}</small>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="gd-bar-chart">
+            <div className="gd-bar-scale">
+              {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
             </div>
-          ) : (
-            <div className="gd-pending-msg">Gráfica disponible cuando el endpoint esté activo.</div>
-          )}
+            <div className="gd-bars-wrap">
+              {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
+                const pct = asistencia?.[periodoAsist.toLowerCase()]?.[clave] ?? 0;
+                return (
+                  <div key={clave} className="gd-bar-item">
+                    <span>{pct}%</span>
+                    <div className="gd-bar-track">
+                      <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
+                    </div>
+                    <small>{label}</small>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </article>
 
         {/* Línea de tiempo */}
@@ -284,8 +358,9 @@ export default function GrupoDetalle() {
         </div>
       </article>
 
-      {/* ── TABLA ALERTAS (ancho completo, estilo imagen referencia) ── */}
-      <article className="fichas-panel">
+      {/* ── TABLA ALERTAS (Solo Instructor) ── */}
+      {esInstructor && (
+        <article className="fichas-panel">
         <div className="fichas-panel-header-actions">
           <h2>Alertas de la Ficha {detalle.ficha}</h2>
         </div>
@@ -319,149 +394,40 @@ export default function GrupoDetalle() {
             </tbody>
           </table>
         </div>
-      </article>
+        </article>
+      )}
 
-      {/* ── GRÁFICAS: severidad + alertas por tipo ── */}
-      <section className="gd-bottom-grid">
+      {/* ── GRÁFICAS: severidad (Solo Instructor) ── */}
+      {esInstructor && (
+        <section>
         {/* Alertas por Severidad */}
         <article className="fichas-panel gd-sev-chart-card">
           <div className="gd-card-header"><h2>Alertas por Severidad</h2></div>
-          {alertas?.porSeveridad ? (
-            <div className="gd-sev-chart">
-              <div className="gd-sev-scale">
-                {[8, 6, 4, 2, 0].map(v => <span key={v}>{v}</span>)}
-              </div>
-              <div className="gd-sev-bars">
-                {BARRAS_SEVERIDAD.map(({ clave, label, color }) => {
-                  const val = alertas.porSeveridad[clave] ?? 0;
-                  const max = Math.max(...BARRAS_SEVERIDAD.map(b => alertas.porSeveridad[b.clave] ?? 0), 1);
-                  return (
-                    <div key={clave} className="gd-sev-bar-item">
-                      <span className="gd-sev-bar-val">{val}</span>
-                      <div className="gd-sev-bar-track">
-                        <span className="gd-sev-bar-fill" style={{ height: `${(val / max) * 100}%`, background: color }} />
-                      </div>
-                      <small>{label}</small>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="gd-sev-chart">
+            <div className="gd-sev-scale">
+              {[8, 6, 4, 2, 0].map(v => <span key={v}>{v}</span>)}
             </div>
-          ) : (
-            <div className="gd-pending-msg">Gráfica disponible cuando el endpoint esté activo.</div>
-          )}
-        </article>
-
-        {/* Alertas por Tipo */}
-        <article className="fichas-panel">
-          <div className="gd-card-header"><h2>Alertas por Tipo</h2></div>
-          {alertas?.porTipo ? (
-            <div className="gd-tipo-bars">
-              {(alertas.porTipo || []).map(({ tipo, cantidad, color }) => {
-                const maxTipo = Math.max(...(alertas.porTipo || []).map(t => t.cantidad), 1);
-                const pct = Math.round((cantidad / maxTipo) * 100);
+            <div className="gd-sev-bars" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              {BARRAS_SEVERIDAD.map(({ clave, label, color }) => {
+                const val = alertas?.porSeveridad?.[clave] ?? 0;
+                const max = Math.max(...BARRAS_SEVERIDAD.map(b => alertas?.porSeveridad?.[b.clave] ?? 0), 1);
                 return (
-                  <div key={tipo} className="gd-tipo-bar-row">
-                    <span className="gd-tipo-label">{tipo}</span>
-                    <div className="gd-tipo-track">
-                      <span className="gd-tipo-fill" style={{ width: `${pct}%`, background: color || "#2652cc" }} />
+                  <div key={clave} className="gd-sev-bar-item">
+                    <span className="gd-sev-bar-val">{val}</span>
+                    <div className="gd-sev-bar-track">
+                      <span className="gd-sev-bar-fill" style={{ height: `${(val / max) * 100}%`, background: color }} />
                     </div>
-                    <strong className="gd-tipo-val">{cantidad}</strong>
+                    <small>{label}</small>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <div className="gd-pending-msg">Gráfica disponible cuando el endpoint esté activo.</div>
-          )}
+          </div>
         </article>
-      </section>
 
-      {/* ── FICHA DETALLE / INFO GENERAL ── */}
-      <article className="fichas-panel">
-        <div className="gd-card-header" style={{ marginBottom: 18 }}>
-          <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>
-          <div className="gd-header-actions">
-            <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
-            {modoEdicion ? (
-              <>
-                <button type="button" className="grupos-secondary-btn" onClick={cancelar}>Cancelar</button>
-                <button type="button" className="grupos-primary-btn" onClick={guardar}><Save size={15} /> Guardar</button>
-              </>
-            ) : (
-              <button type="button" className="grupos-secondary-btn" onClick={() => setModoEdicion(true)}><Edit3 size={15} /> Editar</button>
-            )}
-          </div>
-        </div>
-        <div className="gd-info-grid">
-          {/* columna izquierda */}
-          <div className="gd-info-col">
-            <p className="gd-info-section-label">Información General</p>
-            <div className="gd-info-rows">
-              <div className="gd-info-row"><span>Instructor líder</span><strong className="gd-green">{detalle.instructor}</strong></div>
-              <div className="gd-info-row"><span>Fecha inicio</span>
-                {modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.fechaInicio}</strong>}
-              </div>
-              <div className="gd-info-row"><span>Fecha fin</span><strong>{detalle.fechaFin}</strong></div>
-              <div className="gd-info-row"><span>Inicio etapa productiva</span><strong>{detalle.inicioProductiva}</strong></div>
-              <div className="gd-info-row"><span>Duración total</span>
-                {modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong>{detalle.trimestres} trimestres</strong>}
-              </div>
-              <div className="gd-info-row"><span>Jornada</span>
-                {modoEdicion ? (
-                  <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
-                    <option value="Manana">Mañana</option>
-                    <option value="Tarde">Tarde</option>
-                    <option value="Noche">Noche</option>
-                  </select>
-                ) : <strong>{detalle.jornada}</strong>}
-              </div>
-              <div className="gd-info-row"><span>Trimestre actual</span><strong>{metricas?.trimestreActual ?? "-"}</strong></div>
-            </div>
-          </div>
-          {/* columna derecha */}
-          <div className="gd-info-col">
-            <p className="gd-info-section-label">Aprendices y Métricas</p>
-            <div className="gd-metrics-grid">
-              <div className="gd-metric-box">
-                <span>Total aprendices</span>
-                <strong>{metricas?.totalAprendices ?? detalle.aprendices ?? "-"}</strong>
-              </div>
-              <div className="gd-metric-box gd-metric-green">
-                <span>Activos</span>
-                <strong>{metricas?.activos ?? "-"}</strong>
-              </div>
-              <div className="gd-metric-box">
-                <span>Condicionados</span>
-                <strong>{metricas?.condicionados ?? "-"}</strong>
-              </div>
-              <div className="gd-metric-box gd-metric-red">
-                <span>Inactivos</span>
-                <strong>{metricas?.inactivos ?? "-"}</strong>
-              </div>
-            </div>
-            <p className="gd-info-section-label" style={{ marginTop: 20 }}>Asistencia este mes (%)</p>
-            {asistencia?.mes ? (
-              <div className="gd-asist-bars">
-                {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
-                  const pct = asistencia.mes[clave] ?? 0;
-                  return (
-                    <div key={clave} className="gd-asist-bar-row">
-                      <span>{label}</span>
-                      <div className="gd-asist-track">
-                        <span className="gd-asist-fill" style={{ width: `${pct}%`, background: color }} />
-                      </div>
-                      <strong>{pct}%</strong>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="gd-pending-msg">Disponible cuando el endpoint esté activo.</div>
-            )}
-          </div>
-        </div>
-      </article>
+        </section>
+      )}
+
     </div>
   );
 }

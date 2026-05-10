@@ -9,8 +9,9 @@ const USE_MOCK = true;
  * En producción (USE_MOCK = false), lee el rol real del localStorage.
  */
 export function getRolActual() {
-  if (USE_MOCK) return 'coordinador';
-  return (localStorage.getItem('rol') || '').toLowerCase();
+  const rolLocal = (localStorage.getItem('rol') || '').toLowerCase();
+  if (USE_MOCK && !rolLocal) return 'coordinador';
+  return rolLocal;
 }
 
 // ─── HELPER: Mensajes de error ───────────────────────────────────────────────
@@ -42,7 +43,11 @@ let MOCK_ALERTAS = [
     estado: 'ACTIVA',
     fechaCreacion: new Date().toISOString(),
     responsableNombre: 'Franco Reina',
-    descripcion: 'El aprendiz no ha entregado las últimas 3 evidencias técnicas de la fase de diseño.'
+    descripcion: 'El aprendiz no ha entregado las últimas 3 evidencias técnicas de la fase de diseño.',
+    observacionesVinculadas: [
+      { id: 'OBS-1', fecha: new Date(Date.now() - 5*86400000).toISOString(), descripcion: 'Falta de entrega evidencia 1' },
+      { id: 'OBS-2', fecha: new Date(Date.now() - 3*86400000).toISOString(), descripcion: 'Falta de entrega evidencia 2' }
+    ]
   },
   {
     id: 'AL-102',
@@ -54,7 +59,27 @@ let MOCK_ALERTAS = [
     estado: 'EN_SEGUIMIENTO',
     fechaCreacion: new Date(Date.now() - 86400000).toISOString(),
     responsableNombre: 'Sistema',
-    descripcion: 'Se reporta uso inadecuado de equipos en el laboratorio de electrónica.'
+    origen: 'AUTOMATICO',
+    fuente: 'SISTEMA',
+    descripcion: 'Se reporta uso inadecuado de equipos en el laboratorio de electrónica.',
+    observacionesVinculadas: [
+      { id: 'OBS-3', fecha: new Date(Date.now() - 2*86400000).toISOString(), descripcion: 'Llamado de atención verbal por mal uso de cautín.' }
+    ]
+  },
+  {
+    id: 'AL-103',
+    aprendizNombre: 'Carlos Alberto Perez',
+    aprendizDocumento: '1122334455',
+    grupoCodigo: '3064975 (ADSO)',
+    tipoAlerta: 'INASISTENCIA_CONSECUTIVA',
+    severidad: 'GRAVE',
+    estado: 'ABIERTA',
+    fechaCreacion: new Date(Date.now() - 48*3600000).toISOString(),
+    responsableNombre: 'Sistema',
+    origen: 'AUTOMATICO',
+    fuente: 'SISTEMA',
+    descripcion: 'El aprendiz ha superado el límite de fallas permitidas en la semana.',
+    observacionesVinculadas: []
   }
 ];
 
@@ -133,7 +158,7 @@ export async function obtenerAlertaPorId(id) {
   }
 }
 
-export async function cerrarAlerta(id, justificacion) {
+export async function cerrarAlerta(id, justificacion, estadoFinal = 'CERRADA') {
   if (USE_MOCK) {
     return new Promise(resolve => {
       setTimeout(() => {
@@ -141,8 +166,10 @@ export async function cerrarAlerta(id, justificacion) {
         if (index !== -1) {
           MOCK_ALERTAS[index] = { 
             ...MOCK_ALERTAS[index], 
-            estado: 'CERRADA',
-            justificacionCierre: justificacion
+            estado: estadoFinal,
+            justificacionCierre: justificacion,
+            fechaCierre: new Date().toISOString(),
+            cerradoPor: 'Coordinador (Tú)'
           };
         }
         resolve({ data: true, error: null });
@@ -151,7 +178,7 @@ export async function cerrarAlerta(id, justificacion) {
   }
   // Cuando haya backend real: PATCH /api/alertas/:id/cerrar
   try {
-    const { data } = await api.patch(`/api/alertas/${id}/cerrar`, { justificacion });
+    const { data } = await api.patch(`/api/alertas/${id}/cerrar`, { justificacion, estadoFinal });
     return { data, error: null };
   } catch (error) {
     return { data: null, error: error.response?.status || mensajeError(error), fullError: error };
@@ -162,6 +189,55 @@ export async function obtenerAlertasPorAprendiz(aprendizId) {
   if (USE_MOCK) return { data: MOCK_ALERTAS, error: null };
   try {
     const { data } = await api.get(`/api/alertas/aprendiz/${aprendizId}`);
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: mensajeError(error) };
+  }
+}
+
+export async function obtenerGruposAlertasCoordinador() {
+  if (USE_MOCK) {
+    // Agrupar MOCK_ALERTAS por grupoCodigo y contar severidades
+    const resumen = {};
+    MOCK_ALERTAS.forEach(alerta => {
+      if (alerta.estado === 'CERRADA' || alerta.estado === 'RESUELTA') return;
+      const g = alerta.grupoCodigo;
+      if (!resumen[g]) {
+        resumen[g] = {
+          grupoCodigo: g,
+          instructorLider: g.includes('ADSO') ? 'Franco Reina' : 'Maria Gomez',
+          totalAlertas: 0,
+          leves: 0, moderadas: 0, graves: 0,
+          ultimaAlerta: alerta.fechaCreacion
+        };
+      }
+      resumen[g].totalAlertas++;
+      if (alerta.severidad === 'LEVE') resumen[g].leves++;
+      if (alerta.severidad === 'MODERADA') resumen[g].moderadas++;
+      if (alerta.severidad === 'GRAVE') resumen[g].graves++;
+      if (new Date(alerta.fechaCreacion) > new Date(resumen[g].ultimaAlerta)) {
+        resumen[g].ultimaAlerta = alerta.fechaCreacion;
+      }
+    });
+    return new Promise(resolve => setTimeout(() => resolve({ data: Object.values(resumen), error: null }), 600));
+  }
+
+  try {
+    const { data } = await api.get('/api/alertas/coordinador/grupos');
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: mensajeError(error) };
+  }
+}
+
+export async function obtenerAlertasPorGrupo(grupoCodigo) {
+  if (USE_MOCK) {
+    const filtradas = MOCK_ALERTAS.filter(a => a.grupoCodigo === grupoCodigo && a.estado !== 'CERRADA' && a.estado !== 'RESUELTA');
+    return new Promise(resolve => setTimeout(() => resolve({ data: filtradas, error: null }), 400));
+  }
+
+  try {
+    const { data } = await api.get(`/api/alertas/grupo/${encodeURIComponent(grupoCodigo)}`);
     return { data, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
