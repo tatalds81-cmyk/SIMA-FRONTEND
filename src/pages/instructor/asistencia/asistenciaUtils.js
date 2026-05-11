@@ -43,6 +43,7 @@ export function obtenerClaseMetodoRegistro(aprendiz) {
   const metodo = normalizarTexto(obtenerMetodoRegistro(aprendiz));
 
   if (metodo.includes("huella")) return "biometrico";
+  if (metodo.includes("qr")) return "qr";
   if (metodo.includes("cierre")) return "automatico";
   if (metodo.includes("manual")) return "manual";
 
@@ -121,12 +122,70 @@ export function obtenerHoraActualTexto(fecha = new Date()) {
   return formatearHora(`${fecha.getHours()}:${fecha.getMinutes()}`);
 }
 
-// Retorna la jornada base según el texto recibido
-export function obtenerJornadaBase(jornada) {
+export function obtenerClaveJornada(jornada) {
   const textoJornada = normalizarTexto(jornada);
 
-  if (textoJornada.includes("tarde")) return HORARIOS_JORNADA.tarde;
-  if (textoJornada.includes("noche")) return HORARIOS_JORNADA.noche;
+  if (textoJornada.includes("tarde")) return "tarde";
+  if (textoJornada.includes("noche")) return "noche";
+
+  return "manana";
+}
+
+function obtenerClaveJornadaDesdeMinutos(minutosInicio) {
+  const inicioTarde = convertirHoraAMinutos(HORARIOS_JORNADA.tarde.inicio);
+  const inicioNoche = convertirHoraAMinutos(HORARIOS_JORNADA.noche.inicio);
+
+  if (minutosInicio >= inicioNoche) return "noche";
+  if (minutosInicio >= inicioTarde) return "tarde";
+
+  return "manana";
+}
+
+function obtenerClaveJornadaHorario(horario) {
+  const textoHorario = normalizarTexto(
+    [
+      horario?.jornada,
+      horario?.nombre,
+      horario?.titulo,
+      horario?.id,
+      horario?.id_horario,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+  if (textoHorario.includes("tarde")) return "tarde";
+  if (textoHorario.includes("noche")) return "noche";
+  if (textoHorario.includes("manana")) return "manana";
+
+  const inicio =
+    typeof horario?.inicioMinutos === "number"
+      ? horario.inicioMinutos
+      : convertirHoraAMinutos(
+          horario?.hora_inicio ||
+            horario?.horaInicio ||
+            horario?.inicio ||
+            horario?.start ||
+            HORARIOS_JORNADA.manana.inicio
+        );
+
+  return obtenerClaveJornadaDesdeMinutos(inicio);
+}
+
+function filtrarHorariosPorJornada(horarios, jornadaSeleccionada) {
+  const claveJornada = obtenerClaveJornada(jornadaSeleccionada);
+
+  return horarios.filter(
+    (horario) => obtenerClaveJornadaHorario(horario) === claveJornada
+  );
+}
+
+// Retorna la jornada base según el texto recibido
+export function obtenerJornadaBase(jornada) {
+  const claveJornada = obtenerClaveJornada(jornada);
+
+  if (claveJornada === "tarde") return HORARIOS_JORNADA.tarde;
+  if (claveJornada === "noche") return HORARIOS_JORNADA.noche;
 
   return HORARIOS_JORNADA.manana;
 }
@@ -458,7 +517,16 @@ export function obtenerHorarioPorJornada(jornada) {
 export function obtenerHorariosGrupo(grupo, jornadaSeleccionada) {
   const horariosBackend = normalizarHorariosGrupo(grupo?.horarios);
 
-  if (horariosBackend.length) return horariosBackend;
+  if (horariosBackend.length) {
+    const horariosJornada = filtrarHorariosPorJornada(
+      horariosBackend,
+      jornadaSeleccionada || grupo?.jornada
+    );
+
+    return horariosJornada.length
+      ? horariosJornada
+      : obtenerHorarioPorJornada(jornadaSeleccionada || grupo?.jornada);
+  }
 
   const horariosLocales =
     horariosSimuladosPorGrupo[String(grupo?.ficha)] ||
@@ -466,7 +534,15 @@ export function obtenerHorariosGrupo(grupo, jornadaSeleccionada) {
     horariosSimuladosPorGrupo[String(grupo?.idGrupo)];
 
   if (horariosLocales?.length) {
-    return horariosLocales.map(completarHorario);
+    const horariosNormalizados = horariosLocales.map(completarHorario);
+    const horariosJornada = filtrarHorariosPorJornada(
+      horariosNormalizados,
+      jornadaSeleccionada || grupo?.jornada
+    );
+
+    return horariosJornada.length
+      ? horariosJornada
+      : obtenerHorarioPorJornada(jornadaSeleccionada || grupo?.jornada);
   }
 
   return obtenerHorarioPorJornada(jornadaSeleccionada || grupo?.jornada);

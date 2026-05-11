@@ -5,7 +5,7 @@ import {
   Clock3,
   Fingerprint,
   PencilLine,
-  Save,
+  QrCode,
   ShieldAlert,
   UserCheck,
   UsersRound,
@@ -13,14 +13,10 @@ import {
   XCircle,
 } from "lucide-react";
 
-import {
-  alertaFormInicial,
-  severidades,
-  tiposAlertaManual,
-  tiposObservacion,
-  obtenerTextoTipoAlerta,
-  obtenerValorTipoAlerta,
-} from "./asistenciaForms";
+import ModalCrearAlerta from "../../../components/alertas/ModalCrearAlerta";
+import ModalObservacionCompartida from "../../../components/observaciones/ModalObservacion";
+
+import { severidades, tiposObservacion } from "./asistenciaForms";
 
 import {
   obtenerClaseEstado,
@@ -35,6 +31,70 @@ const estadosManuales = [
   { valor: "Tarde", clase: "tarde", Icono: Clock3 },
   { valor: "Justificada", clase: "justificada", Icono: ShieldAlert },
 ];
+
+function AprendizCell({ aprendiz }) {
+  return (
+    <div className="aprendiz-cell">
+      <span className="aprendiz-avatar">{obtenerIniciales(aprendiz.nombre)}</span>
+
+      <div>
+        <strong>{aprendiz.nombre}</strong>
+        <small>{aprendiz.documento}</small>
+      </div>
+    </div>
+  );
+}
+
+function RegistroCell({ aprendiz }) {
+  return (
+    <div className="registro-biometrico-cell">
+      <span className={`estado-chip ${obtenerClaseEstado(aprendiz.estado)}`}>
+        {aprendiz.estado || "Sin marcar"}
+      </span>
+
+      <span className={`metodo-chip ${obtenerClaseMetodoRegistro(aprendiz)}`}>
+        {obtenerMetodoRegistro(aprendiz)}
+      </span>
+
+      {aprendiz.horaRegistro && <small>{aprendiz.horaRegistro}</small>}
+    </div>
+  );
+}
+
+function AccionesAprendiz({
+  aprendiz,
+  asistenciaHabilitada = true,
+  alertaEnviando,
+  onAbrirObservacion,
+  onAbrirAlerta,
+}) {
+  return (
+    <div className="modal-novedad-acciones">
+      <button
+        type="button"
+        className="btn-observacion"
+        disabled={!asistenciaHabilitada}
+        onClick={() => onAbrirObservacion(aprendiz)}
+      >
+        <PencilLine size={15} />
+        <span>Observación</span>
+      </button>
+
+      <button
+        type="button"
+        className="btn-alerta-manual"
+        disabled={
+          !asistenciaHabilitada ||
+          alertaEnviando === (aprendiz.id_aprendiz || aprendiz.id)
+        }
+        onClick={() => onAbrirAlerta(aprendiz)}
+      >
+        <AlertTriangle size={15} />
+        <span>Alerta</span>
+      </button>
+    </div>
+  );
+}
 
 export function ModalDetalleAsistencia({
   visible,
@@ -146,57 +206,14 @@ export function ModalDetalleAsistencia({
                 className="modal-aprendiz-item modal-aprendiz-detalle"
                 key={aprendiz.id}
               >
-                <div className="aprendiz-cell">
-                  <span className="aprendiz-avatar">
-                    {obtenerIniciales(aprendiz.nombre)}
-                  </span>
-
-                  <div>
-                    <strong>{aprendiz.nombre}</strong>
-                    <small>{aprendiz.documento}</small>
-                  </div>
-                </div>
-
-                <div className="registro-biometrico-cell">
-                  <span
-                    className={`estado-chip ${obtenerClaseEstado(
-                      aprendiz.estado
-                    )}`}
-                  >
-                    {aprendiz.estado || "Sin marcar"}
-                  </span>
-
-                  <span
-                    className={`metodo-chip ${obtenerClaseMetodoRegistro(
-                      aprendiz
-                    )}`}
-                  >
-                    {obtenerMetodoRegistro(aprendiz)}
-                  </span>
-                </div>
-
-                <div className="modal-novedad-acciones">
-                  <button
-                    type="button"
-                    className="btn-observacion"
-                    onClick={() => onAbrirObservacion(aprendiz)}
-                  >
-                    <PencilLine size={15} />
-                    <span>Observación</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-alerta-manual"
-                    disabled={
-                      alertaEnviando === (aprendiz.id_aprendiz || aprendiz.id)
-                    }
-                    onClick={() => onAbrirAlerta(aprendiz)}
-                  >
-                    <AlertTriangle size={15} />
-                    <span>Alerta</span>
-                  </button>
-                </div>
+                <AprendizCell aprendiz={aprendiz} />
+                <RegistroCell aprendiz={aprendiz} />
+                <AccionesAprendiz
+                  aprendiz={aprendiz}
+                  alertaEnviando={alertaEnviando}
+                  onAbrirObservacion={onAbrirObservacion}
+                  onAbrirAlerta={onAbrirAlerta}
+                />
               </article>
             ))}
           </div>
@@ -257,34 +274,8 @@ export function ModalAsistenciaManual({
                 key={aprendiz.id}
               >
                 <div className="manual-aprendiz-info">
-                  <div className="aprendiz-cell">
-                    <span className="aprendiz-avatar">
-                      {obtenerIniciales(aprendiz.nombre)}
-                    </span>
-
-                    <div>
-                      <strong>{aprendiz.nombre}</strong>
-                      <small>{aprendiz.documento}</small>
-                    </div>
-                  </div>
-
-                  <div className="registro-biometrico-cell">
-                    <span
-                      className={`estado-chip ${obtenerClaseEstado(
-                        aprendiz.estado
-                      )}`}
-                    >
-                      {aprendiz.estado || "Sin marcar"}
-                    </span>
-
-                    <span
-                      className={`metodo-chip ${obtenerClaseMetodoRegistro(
-                        aprendiz
-                      )}`}
-                    >
-                      {obtenerMetodoRegistro(aprendiz)}
-                    </span>
-                  </div>
+                  <AprendizCell aprendiz={aprendiz} />
+                  <RegistroCell aprendiz={aprendiz} />
                 </div>
 
                 <div className="botones-estado">
@@ -304,28 +295,13 @@ export function ModalAsistenciaManual({
                   ))}
                 </div>
 
-                <div className="modal-novedad-acciones">
-                  <button
-                    type="button"
-                    className="btn-observacion"
-                    onClick={() => onAbrirObservacion(aprendiz)}
-                  >
-                    <PencilLine size={15} />
-                    <span>Observación</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-alerta-manual"
-                    disabled={
-                      alertaEnviando === (aprendiz.id_aprendiz || aprendiz.id)
-                    }
-                    onClick={() => onAbrirAlerta(aprendiz)}
-                  >
-                    <AlertTriangle size={15} />
-                    <span>Alerta</span>
-                  </button>
-                </div>
+                <AccionesAprendiz
+                  aprendiz={aprendiz}
+                  asistenciaHabilitada={asistenciaHabilitada}
+                  alertaEnviando={alertaEnviando}
+                  onAbrirObservacion={onAbrirObservacion}
+                  onAbrirAlerta={onAbrirAlerta}
+                />
               </article>
             ))}
           </div>
@@ -380,61 +356,15 @@ export function ModalRegistrosAsistencia({
                 className="modal-aprendiz-item modal-aprendiz-detalle"
                 key={aprendiz.id}
               >
-                <div className="aprendiz-cell">
-                  <span className="aprendiz-avatar">
-                    {obtenerIniciales(aprendiz.nombre)}
-                  </span>
-
-                  <div>
-                    <strong>{aprendiz.nombre}</strong>
-                    <small>{aprendiz.documento}</small>
-                  </div>
-                </div>
-
-                <div className="registro-biometrico-cell">
-                  <span
-                    className={`estado-chip ${obtenerClaseEstado(
-                      aprendiz.estado
-                    )}`}
-                  >
-                    {aprendiz.estado}
-                  </span>
-
-                  <span
-                    className={`metodo-chip ${obtenerClaseMetodoRegistro(
-                      aprendiz
-                    )}`}
-                  >
-                    {obtenerMetodoRegistro(aprendiz)}
-                  </span>
-
-                  {aprendiz.horaRegistro && <small>{aprendiz.horaRegistro}</small>}
-                </div>
-
-                <div className="modal-novedad-acciones">
-                  <button
-                    type="button"
-                    className="btn-observacion modal-accion-principal"
-                    disabled={!asistenciaHabilitada}
-                    onClick={() => onAbrirObservacion(aprendiz)}
-                  >
-                    <PencilLine size={15} />
-                    <span>Observación</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-alerta-manual modal-accion-alerta"
-                    disabled={
-                      !asistenciaHabilitada ||
-                      alertaEnviando === (aprendiz.id_aprendiz || aprendiz.id)
-                    }
-                    onClick={() => onAbrirAlerta(aprendiz)}
-                  >
-                    <AlertTriangle size={15} />
-                    <span>Alerta</span>
-                  </button>
-                </div>
+                <AprendizCell aprendiz={aprendiz} />
+                <RegistroCell aprendiz={aprendiz} />
+                <AccionesAprendiz
+                  aprendiz={aprendiz}
+                  asistenciaHabilitada={asistenciaHabilitada}
+                  alertaEnviando={alertaEnviando}
+                  onAbrirObservacion={onAbrirObservacion}
+                  onAbrirAlerta={onAbrirAlerta}
+                />
               </article>
             ))
           ) : (
@@ -455,16 +385,7 @@ export function ModalRegistrosAsistencia({
                 className="modal-aprendiz-item modal-aprendiz-novedad"
                 key={aprendiz.id}
               >
-                <div className="aprendiz-cell">
-                  <span className="aprendiz-avatar">
-                    {obtenerIniciales(aprendiz.nombre)}
-                  </span>
-
-                  <div>
-                    <strong>{aprendiz.nombre}</strong>
-                    <small>{aprendiz.documento}</small>
-                  </div>
-                </div>
+                <AprendizCell aprendiz={aprendiz} />
 
                 <div className="modal-novedad-acciones">
                   <button
@@ -534,135 +455,103 @@ export function ModalObservacion({
   onSubmit,
   onChangeForm,
 }) {
-  if (!aprendiz) return null;
-
   return (
-    <div className="asistencia-modal-backdrop">
-      <section className="asistencia-modal">
-        <div className="asistencia-modal-header">
-          <div>
-            <span className="tabla-eyebrow">Nuevo registro</span>
-            <h2>Registrar observación</h2>
-            <p>{aprendiz.nombre}</p>
-          </div>
-
-          <button type="button" className="modal-cerrar" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <form className="asistencia-modal-form" onSubmit={onSubmit}>
-          <div className="modal-aprendiz-resumen">
-            <span className="aprendiz-avatar">
-              {obtenerIniciales(aprendiz.nombre)}
-            </span>
-
-            <div>
-              <strong>{aprendiz.nombre}</strong>
-              <small>
-                {aprendiz.documento} · Ficha {grupoActual.ficha}
-              </small>
-            </div>
-          </div>
-
-          <div className="modal-form-grid">
-            <label className="campo">
-              <span>Tipo de observación</span>
-
-              <select
-                value={observacionForm.tipo}
-                onChange={(e) =>
-                  onChangeForm((actual) => ({
-                    ...actual,
-                    tipo: e.target.value,
-                  }))
-                }
-                required
-              >
-                {tiposObservacion.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="campo">
-              <span>Severidad</span>
-
-              <select
-                value={observacionForm.severidad}
-                onChange={(e) =>
-                  onChangeForm((actual) => ({
-                    ...actual,
-                    severidad: e.target.value,
-                  }))
-                }
-                required
-              >
-                {severidades.map((severidad) => (
-                  <option key={severidad} value={severidad}>
-                    {severidad}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <label className="campo modal-campo-completo">
-            <span>Descripción del evento</span>
-
-            <textarea
-              value={observacionForm.descripcion}
-              minLength={longitudMinimaDescripcion}
-              placeholder="Describe el hecho observado y el compromiso acordado."
-              onChange={(e) =>
-                onChangeForm((actual) => ({
-                  ...actual,
-                  descripcion: e.target.value,
-                }))
-              }
-              required
-            />
-          </label>
-
-          {observacionError && <div className="modal-error">{observacionError}</div>}
-
-          <div className="asistencia-modal-actions">
-            <button type="button" className="btn-limpiar" onClick={onClose}>
-              Cancelar
-            </button>
-
-            <button type="submit" className="btn-guardar">
-              <Save size={16} />
-              <span>Guardar observación</span>
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+    <ModalObservacionCompartida
+      isOpen={Boolean(aprendiz)}
+      aprendiz={aprendiz}
+      grupoActual={grupoActual}
+      form={observacionForm}
+      error={observacionError}
+      tipos={tiposObservacion}
+      severidades={severidades}
+      minLength={longitudMinimaDescripcion}
+      onClose={onClose}
+      onSubmit={onSubmit}
+      onChange={onChangeForm}
+    />
   );
 }
 
 export function ModalAlerta({
   aprendiz,
+  grupoActual,
   alertaForm,
-  alertaError,
-  longitudMinimaDescripcion,
   onClose,
-  onSubmit,
-  onChangeForm,
+  onAlertaCreada,
 }) {
   if (!aprendiz) return null;
 
   return (
+    <ModalCrearAlerta
+      key={aprendiz.id_aprendiz || aprendiz.id}
+      isOpen
+      aprendizInicial={{
+        id: aprendiz.id_aprendiz || aprendiz.id,
+        nombre: aprendiz.nombre,
+        documento: aprendiz.documento,
+      }}
+      grupoInicial={{
+        id: grupoActual?.idGrupo || grupoActual?.id,
+        codigo: `${grupoActual?.ficha || "Ficha"} (${grupoActual?.programa || ""})`,
+      }}
+      formInicial={{
+        tipoAlerta: alertaForm?.tipo || "inasistencia",
+        severidad: String(alertaForm?.severidad || "MODERADA").toUpperCase(),
+        descripcion: alertaForm?.justificacion || alertaForm?.descripcion || "",
+      }}
+      onClose={onClose}
+      onAlertaCreada={(resultado) => onAlertaCreada?.(aprendiz, resultado)}
+    />
+  );
+}
+
+export function ModalSesionGuardada({ sesion, onClose }) {
+  if (!sesion) return null;
+
+  const resumen = sesion.resumen || {};
+  const registros = Array.isArray(sesion.registros) ? sesion.registros : [];
+  const tarjetasResumen = [
+    {
+      titulo: "Presentes",
+      valor: resumen.presentes || 0,
+      detalle: `${resumen.porcentaje || 0}% de asistencia`,
+      tono: "verde",
+      Icono: UserCheck,
+    },
+    {
+      titulo: "Huellas",
+      valor: resumen.biometricos || 0,
+      detalle: "Validaciones biométricas",
+      tono: "verde",
+      Icono: Fingerprint,
+    },
+    {
+      titulo: "QR",
+      valor: resumen.qr || 0,
+      detalle: "Lecturas de código",
+      tono: "azul",
+      Icono: QrCode,
+    },
+    {
+      titulo: "Ausentes",
+      valor: resumen.ausentes || 0,
+      detalle: `${resumen.justificadas || 0} justificadas`,
+      tono: "gris",
+      Icono: XCircle,
+    },
+  ];
+
+  return (
     <div className="asistencia-modal-backdrop">
-      <section className="asistencia-modal">
+      <section className="asistencia-modal asistencia-modal-detalle">
         <div className="asistencia-modal-header">
           <div>
-            <span className="tabla-eyebrow">Alerta manual</span>
-            <h2>Reportar situación crítica</h2>
-            <p>{aprendiz.nombre}</p>
+            <span className="tabla-eyebrow">Sesión guardada</span>
+            <h2>{sesion.codigo || sesion.nombre}</h2>
+            <p>
+              {sesion.fecha} · Ficha {sesion.ficha} · {sesion.horarioTexto} ·{" "}
+              {sesion.instructor}
+            </p>
           </div>
 
           <button type="button" className="modal-cerrar" onClick={onClose}>
@@ -670,84 +559,62 @@ export function ModalAlerta({
           </button>
         </div>
 
-        <form className="asistencia-modal-form" onSubmit={onSubmit}>
-          <div className="modal-form-grid">
-            <label className="campo">
-              <span>Tipo de alerta</span>
+        <div className="modal-detalle-body">
+          <div className="modal-detalle-resumen">
+            {tarjetasResumen.map(({ titulo, valor, detalle, tono, Icono }) => (
+              <article className={`modal-resumen-item ${tono}`} key={titulo}>
+                <Icono size={18} />
 
-              <select
-                value={alertaForm.tipo}
-                onChange={(e) =>
-                  onChangeForm((actual) => ({
-                    ...actual,
-                    tipo: e.target.value,
-                  }))
-                }
-                required
-              >
-                {tiposAlertaManual.map((tipo) => (
-                  <option
-                    key={obtenerValorTipoAlerta(tipo)}
-                    value={obtenerValorTipoAlerta(tipo)}
-                  >
-                    {obtenerTextoTipoAlerta(tipo)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="campo">
-              <span>Severidad</span>
-
-              <select
-                value={alertaForm.severidad || alertaFormInicial.severidad}
-                onChange={(e) =>
-                  onChangeForm((actual) => ({
-                    ...actual,
-                    severidad: e.target.value,
-                  }))
-                }
-                required
-              >
-                {severidades.map((severidad) => (
-                  <option key={severidad} value={severidad}>
-                    {severidad}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <div>
+                  <span>{titulo}</span>
+                  <strong>{valor}</strong>
+                  <small>{detalle}</small>
+                </div>
+              </article>
+            ))}
           </div>
 
-          <label className="campo modal-campo-completo">
-            <span>Justificación</span>
-
-            <textarea
-              value={alertaForm.justificacion || ""}
-              minLength={longitudMinimaDescripcion}
-              placeholder="Explica por qué se genera la alerta manual."
-              onChange={(e) =>
-                onChangeForm((actual) => ({
-                  ...actual,
-                  justificacion: e.target.value,
-                }))
-              }
-              required
-            />
-          </label>
-
-          {alertaError && <div className="modal-error">{alertaError}</div>}
-
-          <div className="asistencia-modal-actions">
-            <button type="button" className="btn-limpiar" onClick={onClose}>
-              Cancelar
-            </button>
-
-            <button type="submit" className="btn-guardar">
-              <AlertTriangle size={16} />
-              <span>Crear alerta</span>
-            </button>
+          <div className="modal-sesion-contexto">
+            <span>
+              Estado: <strong>{sesion.estado}</strong>
+            </span>
+            <span>
+              Ambiente: <strong>{sesion.ambiente}</strong>
+            </span>
+            <span>
+              Guardada: <strong>{sesion.guardadaEn || "Sin fecha"}</strong>
+            </span>
           </div>
-        </form>
+
+          <div className="modal-listado modal-listado-detalle">
+            <div className="modal-seccion-titulo">
+              <strong>Registros dentro de la sesión</strong>
+              <span>{registros.length}</span>
+            </div>
+
+            {registros.map((registro) => {
+              const registroNormalizado = {
+                ...registro,
+                metodoRegistro:
+                  registro.metodoRegistro || registro.metodo_registro || "",
+              };
+
+              return (
+                <article
+                  className="modal-aprendiz-item modal-aprendiz-detalle"
+                  key={`${registro.id_aprendiz || registro.id}-${registro.documento}`}
+                >
+                  <AprendizCell aprendiz={registro} />
+                  <RegistroCell aprendiz={registroNormalizado} />
+
+                  <div className="modal-observacion-sesion">
+                    {registro.observacion || "Sin observación"}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </section>
     </div>
   );

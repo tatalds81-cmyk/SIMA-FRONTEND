@@ -1,12 +1,12 @@
 import "./asistenciaInstructor.css";
 
 import {
-  AccionesAsistencia,
   AsistenciaEncabezado,
   BiometriaOperacion,
   FiltrosAsistencia,
-  HorarioSesionPanel,
   MensajeAsistencia,
+  SesionActualPanel,
+  SesionesAsistenciaPanel,
 } from "./asistencia/AsistenciaPaneles";
 
 import {
@@ -15,6 +15,7 @@ import {
   ModalDetalleAsistencia,
   ModalObservacion,
   ModalRegistrosAsistencia,
+  ModalSesionGuardada,
 } from "./asistencia/AsistenciaModals";
 
 import { useAsistenciaInstructor } from "./asistencia/useAsistenciaInstructor";
@@ -48,11 +49,10 @@ export default function AsistenciaInstructor() {
         onCambiarHorario={asistencia.cambiarHorarioSeleccionado}
       />
 
-      <HorarioSesionPanel
+      <SesionActualPanel
+        sesionActual={asistencia.sesionActual}
+        qrSesion={asistencia.qrSesion}
         estadoHorario={asistencia.estadoHorario}
-        etiquetaSesion={asistencia.etiquetaSesion}
-        fechaSesion={asistencia.fechaSesion}
-        horarioSeleccionado={asistencia.horarioSeleccionado}
         fechaHoraActual={asistencia.fechaHoraActual}
       />
 
@@ -60,26 +60,39 @@ export default function AsistenciaInstructor() {
         asistenciaHabilitada={asistencia.asistenciaHabilitada}
         proximoAprendizBiometria={asistencia.proximoAprendizBiometria}
         registrosBiometricos={asistencia.registrosBiometricos}
+        registrosQr={asistencia.registrosQr}
+        ajustesManuales={asistencia.ajustesManuales}
+        aprendicesRegistrados={asistencia.aprendicesRegistrados}
         pendientes={asistencia.pendientes}
+        presentes={asistencia.presentes}
+        ausentes={asistencia.ausentes}
+        tarde={asistencia.tarde}
+        justificadas={asistencia.justificadas}
+        total={asistencia.total}
         porcentaje={asistencia.porcentaje}
+        qrSesion={asistencia.qrSesion}
         onRegistrarHuella={asistencia.registrarHuellaBiometrica}
+        onGestionarQr={
+          asistencia.qrSesion
+            ? asistencia.registrarQrSesion
+            : asistencia.generarQrSesion
+        }
+        onAsistenciaManual={asistencia.abrirModalAsistenciaManual}
         onVerDetalle={asistencia.abrirModalDetalleAsistencia}
         onVerRegistrados={asistencia.abrirModalInasistencias}
+        onCerrarPendientes={asistencia.marcarPendientesComoAusentes}
+        onGuardar={asistencia.guardarAsistencia}
         onRegistrarObservacion={() =>
           asistencia.proximoAprendizBiometria &&
           asistencia.abrirModalObservacion(asistencia.proximoAprendizBiometria)
         }
       />
 
-      <AccionesAsistencia
-        asistenciaHabilitada={asistencia.asistenciaHabilitada}
-        pendientes={asistencia.pendientes}
-        presentes={asistencia.presentes}
-        total={asistencia.total}
-        onAsistenciaManual={asistencia.abrirModalAsistenciaManual}
-        onLimpiar={asistencia.limpiarAsistencia}
-        onCerrarPendientes={asistencia.marcarPendientesComoAusentes}
-        onGuardar={asistencia.guardarAsistencia}
+      <SesionesAsistenciaPanel
+        sesiones={asistencia.sesionesVisibles}
+        metricas={asistencia.metricasSesiones}
+        alcanceSesiones={asistencia.alcanceSesiones}
+        onVerSesion={asistencia.abrirDetalleSesionGuardada}
       />
 
       <ModalDetalleAsistencia
@@ -143,12 +156,15 @@ export default function AsistenciaInstructor() {
 
       <ModalAlerta
         aprendiz={asistencia.modalAlerta}
+        grupoActual={asistencia.grupoActual}
         alertaForm={asistencia.alertaForm}
-        alertaError={asistencia.alertaError}
-        longitudMinimaDescripcion={asistencia.longitudMinimaDescripcion}
         onClose={asistencia.cerrarModalAlerta}
-        onSubmit={asistencia.crearAlertaManual}
-        onChangeForm={asistencia.setAlertaForm}
+        onAlertaCreada={asistencia.registrarAlertaCreada}
+      />
+
+      <ModalSesionGuardada
+        sesion={asistencia.modalSesionDetalle}
+        onClose={asistencia.cerrarDetalleSesionGuardada}
       />
     </div>
   );

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   aprendicesIniciales,
   gruposSimulados,
   observacionesIniciales,
+  sesionesIniciales,
 } from "./asistenciaData";
 
 import {
@@ -20,6 +21,7 @@ import { alertaFormInicial, observacionFormInicial } from "./asistenciaForms";
 import {
   formatearFechaHora,
   formatearHora,
+  normalizarTexto,
   obtenerEstadoHorario,
   obtenerEstadoPorHuella,
   obtenerFechaInput,
@@ -34,13 +36,233 @@ const MINUTOS_CIERRE_DESPUES = 20;
 const MINUTOS_TOLERANCIA_TARDE = 10;
 const LONGITUD_MINIMA_DESCRIPCION = 15;
 const MODO_PRUEBA_ASISTENCIA = true;
+const FUENTE_GRUPO_PRUEBA = "prueba";
+const STORAGE_SESIONES = "asistencia_sesiones";
+const GRUPO_SIN_ASIGNACION = {
+  id: "",
+  idGrupo: "",
+  ficha: "Sin ficha",
+  programa: "No tienes grupos asignados para asistencia",
+  jornada: "Mañana",
+  rolInstructor: "",
+  horarios: [],
+  fuente: "sin-acceso",
+};
+
+function obtenerUsuarioGuardado() {
+  try {
+    const usuario = localStorage.getItem("user_data");
+    return usuario ? JSON.parse(usuario) || {} : {};
+  } catch (error) {
+    console.warn("No fue posible leer los datos del usuario:", error);
+    return {};
+  }
+}
+
+function normalizarClave(valor) {
+  return String(valor || "").trim();
+}
+
+function normalizarListaClaves(valor) {
+  const lista = Array.isArray(valor)
+    ? valor
+    : String(valor || "")
+        .split(/[,\s|/]+/)
+        .filter(Boolean);
+
+  return lista.map(normalizarClave).filter(Boolean);
+}
+
+function obtenerPerfilInstructorActual() {
+  const usuario = obtenerUsuarioGuardado();
+  const persona = usuario.persona || {};
+  const infoRol = usuario.informacion_rol || {};
+  const nombrePersona = `${persona.nombres || ""} ${persona.apellidos || ""}`.trim();
+
+  const ids = normalizarListaClaves([
+    localStorage.getItem("id_instructor"),
+    localStorage.getItem("id_usuario"),
+    localStorage.getItem("user_id"),
+    usuario.id_instructor,
+    usuario.idInstructor,
+    usuario.id_usuario,
+    usuario.id,
+    usuario.instructor?.id_instructor,
+    usuario.instructor?.id,
+  ]);
+
+  const documentos = normalizarListaClaves([
+    localStorage.getItem("user_documento"),
+    persona.numero_documento,
+    usuario.numero_documento,
+    usuario.documento,
+  ]);
+
+  const nombres = [
+    obtenerInstructorActual(),
+    nombrePersona,
+    usuario.nombre_completo,
+    usuario.nombre,
+    usuario.username,
+    usuario.email,
+  ]
+    .map(normalizarTexto)
+    .filter(Boolean);
+
+  const fichasActivas = [
+    ...normalizarListaClaves(infoRol.fichas_activas),
+    ...normalizarListaClaves(infoRol.fichas_asignadas),
+  ];
+  const fichasLideradas = normalizarListaClaves(infoRol.fichas_lideradas || []);
+  const textoRol = normalizarTexto(
+    [
+      localStorage.getItem("tipoInstructor"),
+      localStorage.getItem("tipo_instructor"),
+      localStorage.getItem("rol_asistencia"),
+      localStorage.getItem("rol"),
+      usuario.tipo_instructor,
+      usuario.tipoInstructor,
+      usuario.rol,
+      infoRol.tipo_instructor,
+      infoRol.tipoInstructor,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+  return {
+    ids: [...new Set(ids)],
+    documentos: [...new Set(documentos)],
+    nombres: [...new Set(nombres)],
+    fichasActivas: [...new Set(fichasActivas)],
+    fichasLideradas: [...new Set(fichasLideradas)],
+    esLiderGlobal:
+      textoRol.includes("lider") ||
+      textoRol.includes("líder") ||
+      textoRol.includes("lead"),
+  };
+}
 
 function obtenerInstructorActual() {
   return (
     localStorage.getItem("username") ||
     localStorage.getItem("usuario") ||
-    "Instructor del sistema"
+    localStorage.getItem("nombre_usuario") ||
+    "Franco Reina"
   );
+}
+
+function obtenerInstructorIdActual() {
+  return (
+    localStorage.getItem("id_instructor") ||
+    localStorage.getItem("id_usuario") ||
+    localStorage.getItem("user_id") ||
+    normalizarTexto(obtenerInstructorActual()).replace(/\s+/g, "-")
+  );
+}
+
+function obtenerClavesGrupo(grupo) {
+  return [
+    grupo?.idGrupo,
+    grupo?.id_grupo,
+    grupo?.id,
+    grupo?.grupoId,
+    grupo?.ficha,
+    grupo?.numero_ficha,
+  ]
+    .map(normalizarClave)
+    .filter(Boolean);
+}
+
+function referenciaCoincideConInstructor(referencia, perfilInstructor) {
+  if (!referencia) return false;
+
+  const id = normalizarClave(referencia.id || referencia.id_instructor);
+  const documento = normalizarClave(
+    referencia.documento || referencia.numero_documento
+  );
+  const nombre = normalizarTexto(referencia.nombre || referencia.nombre_completo);
+
+  return (
+    (id && perfilInstructor.ids.includes(id)) ||
+    (documento && perfilInstructor.documentos.includes(documento)) ||
+    (nombre && perfilInstructor.nombres.includes(nombre))
+  );
+}
+
+function grupoAsignadoAInstructor(grupo, perfilInstructor) {
+  const clavesGrupo = obtenerClavesGrupo(grupo);
+  const fichasPermitidas = [
+    ...perfilInstructor.fichasActivas,
+    ...perfilInstructor.fichasLideradas,
+  ];
+
+  if (
+    fichasPermitidas.length &&
+    clavesGrupo.some((clave) => fichasPermitidas.includes(clave))
+  ) {
+    return true;
+  }
+
+  const referencias = [
+    {
+      id: grupo?.instructorId,
+      documento: grupo?.instructorDocumento,
+      nombre: grupo?.instructorNombre,
+    },
+    ...(Array.isArray(grupo?.instructores) ? grupo.instructores : []),
+  ];
+
+  return referencias.some((referencia) =>
+    referenciaCoincideConInstructor(referencia, perfilInstructor)
+  );
+}
+
+function instructorPuedeVerTodo(perfilInstructor) {
+  return (
+    perfilInstructor.esLiderGlobal || perfilInstructor.fichasLideradas.length > 0
+  );
+}
+
+function instructorPuedeGestionarGrupo(grupo, perfilInstructor, esInstructorLider) {
+  if (!grupo?.id || grupo?.fuente === "sin-acceso") return false;
+  if (grupo.fuente === FUENTE_GRUPO_PRUEBA) return MODO_PRUEBA_ASISTENCIA;
+  if (esInstructorLider) return true;
+
+  return grupoAsignadoAInstructor(grupo, perfilInstructor);
+}
+
+function filtrarGruposPorInstructor(grupos, perfilInstructor, esInstructorLider) {
+  if (esInstructorLider) return grupos;
+
+  return grupos.filter((grupo) => grupoAsignadoAInstructor(grupo, perfilInstructor));
+}
+
+function obtenerGruposDePrueba() {
+  return gruposSimulados.map((grupo) => ({
+    ...grupo,
+    fuente: FUENTE_GRUPO_PRUEBA,
+  }));
+}
+
+function resolverGruposParaAsistencia(grupos, perfilInstructor, esInstructorLider) {
+  const gruposPermitidos = filtrarGruposPorInstructor(
+    grupos,
+    perfilInstructor,
+    esInstructorLider
+  );
+
+  if (gruposPermitidos.length || !MODO_PRUEBA_ASISTENCIA) {
+    return {
+      grupos: gruposPermitidos,
+      modoPrueba: false,
+    };
+  }
+
+  return {
+    grupos: obtenerGruposDePrueba(),
+    modoPrueba: true,
+  };
 }
 
 function cargarObservacionesLocales() {
@@ -54,17 +276,134 @@ function cargarObservacionesLocales() {
   }
 }
 
-export function useAsistenciaInstructor() {
-  const [gruposDisponibles, setGruposDisponibles] = useState(gruposSimulados);
-  const [grupoSeleccionado, setGrupoSeleccionado] = useState(
-    gruposSimulados[0].id
+function cargarSesionesLocales() {
+  try {
+    const guardadas = localStorage.getItem(STORAGE_SESIONES);
+    const lista = guardadas ? JSON.parse(guardadas) : null;
+    return Array.isArray(lista) ? lista : sesionesIniciales;
+  } catch (error) {
+    console.warn("No fue posible cargar sesiones locales:", error);
+    return sesionesIniciales;
+  }
+}
+
+function limpiarRegistroAprendiz(aprendiz) {
+  return {
+    ...aprendiz,
+    estado: "",
+    observacion: "",
+    metodoRegistro: "",
+    horaRegistro: "",
+  };
+}
+
+function limpiarSegmentoSesion(valor) {
+  return String(valor || "sin-dato")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+}
+
+function crearIdSesion(grupo, fechaSesion, horario) {
+  return [
+    "sesion",
+    limpiarSegmentoSesion(grupo?.idGrupo || grupo?.id || grupo?.ficha),
+    limpiarSegmentoSesion(fechaSesion),
+    limpiarSegmentoSesion(horario?.id || horario?.nombre || "sin-horario"),
+  ].join("-");
+}
+
+function obtenerEstadoSesion(estadoHorario) {
+  if (estadoHorario.abierta) return "Abierta";
+  if (estadoHorario.estado === "programada") return "Programada";
+  return "Cerrada";
+}
+
+function contarRegistrosPorMetodo(registros, metodoBuscado) {
+  return registros.filter((registro) =>
+    normalizarTexto(registro.metodoRegistro || registro.metodo_registro).includes(
+      metodoBuscado
+    )
+  ).length;
+}
+
+function calcularMetricasSesiones(sesiones) {
+  const totales = sesiones.reduce(
+    (acumulado, sesion) => {
+      const registros = Array.isArray(sesion.registros) ? sesion.registros : [];
+      const resumen = sesion.resumen || {};
+
+      const presentes =
+        Number(resumen.presentes) ||
+        registros.filter((registro) =>
+          ["Asistió", "Tarde"].includes(registro.estado)
+        ).length;
+
+      const ausentes =
+        Number(resumen.ausentes) ||
+        registros.filter((registro) => registro.estado === "Ausente").length;
+
+      const tardes =
+        Number(resumen.tardes) ||
+        registros.filter((registro) => registro.estado === "Tarde").length;
+
+      const justificadas =
+        Number(resumen.justificadas) ||
+        registros.filter((registro) => registro.estado === "Justificada").length;
+
+      const total = Number(resumen.total) || registros.length;
+
+      return {
+        totalSesiones: acumulado.totalSesiones + 1,
+        totalAprendices: acumulado.totalAprendices + total,
+        presentes: acumulado.presentes + presentes,
+        ausentes: acumulado.ausentes + ausentes,
+        tardes: acumulado.tardes + tardes,
+        justificadas: acumulado.justificadas + justificadas,
+        huellas:
+          acumulado.huellas +
+          (Number(resumen.biometricos) || contarRegistrosPorMetodo(registros, "huella")),
+        qr:
+          acumulado.qr +
+          (Number(resumen.qr) || contarRegistrosPorMetodo(registros, "qr")),
+      };
+    },
+    {
+      totalSesiones: 0,
+      totalAprendices: 0,
+      presentes: 0,
+      ausentes: 0,
+      tardes: 0,
+      justificadas: 0,
+      huellas: 0,
+      qr: 0,
+    }
   );
+
+  return {
+    ...totales,
+    promedio:
+      totales.totalAprendices > 0
+        ? Math.round((totales.presentes / totales.totalAprendices) * 100)
+        : 0,
+  };
+}
+
+export function useAsistenciaInstructor() {
+  const [gruposDisponibles, setGruposDisponibles] = useState([
+    GRUPO_SIN_ASIGNACION,
+  ]);
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
   const [fechaSesion, setFechaSesion] = useState(() => obtenerFechaInput());
   const [jornada, setJornada] = useState("Mañana");
   const [horarioSeleccionadoId, setHorarioSeleccionadoId] = useState("");
   const [fechaHoraActual, setFechaHoraActual] = useState(() => new Date());
+  const [sesionesGuardadas, setSesionesGuardadas] = useState(cargarSesionesLocales);
+  const [qrSesion, setQrSesion] = useState(null);
 
-  const [aprendices, setAprendices] = useState(aprendicesIniciales);
+  const [aprendices, setAprendices] = useState([]);
   const [cargandoGrupos, setCargandoGrupos] = useState(false);
   const [cargandoAprendices, setCargandoAprendices] = useState(false);
   const [lecturasBiometricas, setLecturasBiometricas] = useState([]);
@@ -83,11 +422,56 @@ export function useAsistenciaInstructor() {
   const [alertaForm, setAlertaForm] = useState(alertaFormInicial);
   const [alertaError, setAlertaError] = useState("");
   const [alertaEnviando, setAlertaEnviando] = useState(null);
+  const [modalSesionDetalle, setModalSesionDetalle] = useState(null);
+
+  const instructorActual = useMemo(() => obtenerInstructorActual(), []);
+  const instructorIdActual = useMemo(() => obtenerInstructorIdActual(), []);
+  const perfilInstructor = useMemo(() => obtenerPerfilInstructorActual(), []);
+  const esInstructorLider = useMemo(
+    () => instructorPuedeVerTodo(perfilInstructor),
+    [perfilInstructor]
+  );
 
   const grupoActual =
     gruposDisponibles.find((grupo) => grupo.id === grupoSeleccionado) ||
     gruposDisponibles[0] ||
-    gruposSimulados[0];
+    GRUPO_SIN_ASIGNACION;
+
+  const grupoActualPermitido = instructorPuedeGestionarGrupo(
+    grupoActual,
+    perfilInstructor,
+    esInstructorLider
+  );
+
+  const aplicarGruposPermitidos = useCallback((grupos, modoPrueba = false) => {
+    const primerGrupo = grupos[0];
+
+    if (!primerGrupo) {
+      setGruposDisponibles([GRUPO_SIN_ASIGNACION]);
+      setGrupoSeleccionado("");
+      setJornada("Mañana");
+      setAprendices([]);
+      mostrarMensajeAsistencia(
+        "No tienes grupos asignados para tomar asistencia.",
+        "warning"
+      );
+      return;
+    }
+
+    setGruposDisponibles(grupos);
+    setGrupoSeleccionado(primerGrupo.id);
+    setJornada(primerGrupo.jornada || "Mañana");
+    setAprendices([]);
+    setMensajeAsistencia(
+      modoPrueba
+        ? {
+            texto:
+              "Modo prueba activo: usando grupos simulados para validar asistencia.",
+            tipo: "warning",
+          }
+        : null
+    );
+  }, []);
 
   useEffect(() => {
     const intervalo = window.setInterval(() => {
@@ -103,6 +487,10 @@ export function useAsistenciaInstructor() {
       JSON.stringify(observaciones)
     );
   }, [observaciones]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_SESIONES, JSON.stringify(sesionesGuardadas));
+  }, [sesionesGuardadas]);
 
   useEffect(() => {
     let activo = true;
@@ -123,21 +511,33 @@ export function useAsistenciaInstructor() {
         const gruposBackend = extraerLista(data)
           .map(normalizarGrupo)
           .filter((grupo) => grupo.id);
+        const gruposAsistencia = resolverGruposParaAsistencia(
+          gruposBackend,
+          perfilInstructor,
+          esInstructorLider
+        );
 
-        if (!activo || !gruposBackend.length) return;
+        if (!activo) return;
 
-        setGruposDisponibles(gruposBackend);
-        setGrupoSeleccionado(gruposBackend[0].id);
-        setJornada(gruposBackend[0].jornada || "Mañana");
+        aplicarGruposPermitidos(
+          gruposAsistencia.grupos,
+          gruposAsistencia.modoPrueba
+        );
       } catch (error) {
         console.warn("Asistencia en modo local:", error);
 
         if (!activo) return;
 
-        setGruposDisponibles(gruposSimulados);
-        setGrupoSeleccionado(gruposSimulados[0].id);
-        setJornada(gruposSimulados[0].jornada);
-        setAprendices(aprendicesIniciales);
+        const gruposAsistencia = resolverGruposParaAsistencia(
+          gruposSimulados,
+          perfilInstructor,
+          esInstructorLider
+        );
+
+        aplicarGruposPermitidos(
+          gruposAsistencia.grupos,
+          gruposAsistencia.modoPrueba
+        );
       } finally {
         if (activo) setCargandoGrupos(false);
       }
@@ -148,15 +548,28 @@ export function useAsistenciaInstructor() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [aplicarGruposPermitidos, esInstructorLider, perfilInstructor]);
 
   useEffect(() => {
     let activo = true;
     const idGrupo = grupoActual?.idGrupo;
 
+    if (!grupoActualPermitido) {
+      const timeout = window.setTimeout(() => {
+        if (activo) setAprendices([]);
+      }, 0);
+
+      return () => {
+        activo = false;
+        window.clearTimeout(timeout);
+      };
+    }
+
     if (!idGrupo) {
       const timeout = window.setTimeout(() => {
-        if (activo) setAprendices(aprendicesIniciales);
+        if (activo) {
+          setAprendices(grupoActual?.id ? aprendicesIniciales : []);
+        }
       }, 0);
 
       return () => {
@@ -197,11 +610,12 @@ export function useAsistenciaInstructor() {
     return () => {
       activo = false;
     };
-  }, [grupoActual?.idGrupo]);
+  }, [grupoActual?.id, grupoActual?.idGrupo, grupoActualPermitido]);
 
   const horariosGrupoActual = useMemo(
-    () => obtenerHorariosGrupo(grupoActual, jornada),
-    [grupoActual, jornada]
+    () =>
+      grupoActualPermitido ? obtenerHorariosGrupo(grupoActual, jornada) : [],
+    [grupoActual, grupoActualPermitido, jornada]
   );
 
   const horariosFechaSeleccionada = useMemo(
@@ -230,7 +644,9 @@ export function useAsistenciaInstructor() {
   );
 
   const asistenciaHabilitada =
-    (estadoHorario.abierta || MODO_PRUEBA_ASISTENCIA) && !cargandoAprendices;
+    grupoActualPermitido &&
+    (estadoHorario.abierta || MODO_PRUEBA_ASISTENCIA) &&
+    !cargandoAprendices;
 
   const etiquetaSesion = estadoHorario.festivo
     ? `Día festivo: ${estadoHorario.festivo.nombre}`
@@ -257,6 +673,9 @@ export function useAsistenciaInstructor() {
   const registrosBiometricos = aprendices.filter(
     (aprendiz) => obtenerMetodoRegistro(aprendiz) === "Huella biométrica"
   ).length;
+  const registrosQr = aprendices.filter(
+    (aprendiz) => obtenerMetodoRegistro(aprendiz) === "Código QR"
+  ).length;
   const ajustesManuales = aprendices.filter(
     (aprendiz) => obtenerMetodoRegistro(aprendiz) === "Ajuste manual"
   ).length;
@@ -273,7 +692,148 @@ export function useAsistenciaInstructor() {
   );
   const porcentaje = total > 0 ? Math.round((presentes / total) * 100) : 0;
 
+  const sesionActual = useMemo(() => {
+    const idGrupo = grupoActual?.idGrupo || grupoActual?.id || grupoActual?.ficha;
+    const id = crearIdSesion(grupoActual, fechaSesion, horarioSeleccionado);
+    const horarioTexto = horarioSeleccionado
+      ? `${formatearHora(horarioSeleccionado.inicio)} - ${formatearHora(
+          horarioSeleccionado.fin
+        )}`
+      : "Sin horario";
+
+    const registros = aprendices.map((aprendiz) => ({
+      id_aprendiz: aprendiz.id_aprendiz || aprendiz.id,
+      nombre: aprendiz.nombre,
+      documento: aprendiz.documento,
+      estado: aprendiz.estado || "Sin marcar",
+      metodoRegistro: obtenerMetodoRegistro(aprendiz),
+      metodo_registro: obtenerMetodoRegistro(aprendiz),
+      horaRegistro: aprendiz.horaRegistro || "",
+      hora_registro: aprendiz.horaRegistro || "",
+      observacion: aprendiz.observacion || "",
+    }));
+
+    return {
+      id,
+      codigo: `SES-${grupoActual?.ficha || "SF"}-${fechaSesion.replaceAll(
+        "-",
+        ""
+      )}`,
+      idGrupo,
+      ficha: grupoActual.ficha,
+      programa: grupoActual.programa,
+      fecha: fechaSesion,
+      jornada,
+      horarioId: horarioSeleccionado?.id || "",
+      nombre: horarioSeleccionado?.nombre || etiquetaSesion,
+      horarioTexto,
+      ambiente: horarioSeleccionado?.ambiente || "Ambiente por asignar",
+      instructor: instructorActual,
+      instructorId: instructorIdActual,
+      estado: obtenerEstadoSesion(estadoHorario),
+      estadoTecnico: estadoHorario.estado,
+      qr: qrSesion?.sesionId === id ? qrSesion : null,
+      resumen: {
+        total,
+        presentes,
+        ausentes,
+        tardes: tarde,
+        justificadas,
+        pendientes,
+        porcentaje,
+        biometricos: registrosBiometricos,
+        manuales: ajustesManuales,
+        qr: registrosQr,
+      },
+      registros,
+      lecturasBiometricas,
+    };
+  }, [
+    ajustesManuales,
+    aprendices,
+    ausentes,
+    estadoHorario,
+    etiquetaSesion,
+    fechaSesion,
+    grupoActual,
+    instructorActual,
+    instructorIdActual,
+    jornada,
+    justificadas,
+    lecturasBiometricas,
+    pendientes,
+    porcentaje,
+    presentes,
+    qrSesion,
+    registrosBiometricos,
+    registrosQr,
+    horarioSeleccionado,
+    tarde,
+    total,
+  ]);
+
+  const sesionesVisibles = useMemo(() => {
+    const ordenarSesiones = (sesiones) =>
+      [...sesiones].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+
+    if (esInstructorLider) return ordenarSesiones(sesionesGuardadas);
+    if (!grupoActualPermitido) return [];
+
+    const clavesGrupo = obtenerClavesGrupo(grupoActual);
+
+    return ordenarSesiones(
+      sesionesGuardadas
+      .filter((sesion) => {
+        const clavesSesion = [
+          sesion.idGrupo,
+          sesion.id_grupo,
+          sesion.grupoId,
+          sesion.ficha,
+        ]
+          .filter(Boolean)
+          .map(String);
+
+        return clavesSesion.some((clave) => clavesGrupo.includes(clave));
+      })
+      .filter((sesion) => {
+        return (
+          String(sesion.instructorId || "") === String(instructorIdActual) ||
+          normalizarTexto(sesion.instructor) === normalizarTexto(instructorActual)
+        );
+      })
+    );
+  }, [
+    esInstructorLider,
+    grupoActual,
+    grupoActualPermitido,
+    instructorActual,
+    instructorIdActual,
+    sesionesGuardadas,
+  ]);
+
+  const metricasSesiones = useMemo(
+    () => calcularMetricasSesiones(sesionesVisibles),
+    [sesionesVisibles]
+  );
+
+  const alcanceSesiones = esInstructorLider
+    ? "Instructor lider: ves todas las sesiones disponibles."
+    : grupoActualPermitido
+    ? "Instructor asignado: ves las sesiones donde figuras como encargado."
+    : "Sin grupos asignados para este instructor.";
+
+  function validarGrupoPermitido() {
+    if (grupoActualPermitido) return true;
+
+    mostrarMensajeAsistencia(
+      "No puedes gestionar asistencia de un grupo que no tienes asignado.",
+      "warning"
+    );
+    return false;
+  }
+
   function validarSesionAbierta() {
+    if (!validarGrupoPermitido()) return false;
     if (MODO_PRUEBA_ASISTENCIA) return true;
     if (estadoHorario.abierta) return true;
 
@@ -288,11 +848,28 @@ export function useAsistenciaInstructor() {
   function reiniciarSesionSeleccionada() {
     setHorarioSeleccionadoId("");
     setLecturasBiometricas([]);
+    setQrSesion(null);
     setMensajeAsistencia(null);
+    setAprendices((lista) => lista.map(limpiarRegistroAprendiz));
   }
 
   function seleccionarGrupo(idGrupo) {
     const nuevoGrupo = gruposDisponibles.find((grupo) => grupo.id === idGrupo);
+
+    if (
+      !nuevoGrupo ||
+      !instructorPuedeGestionarGrupo(
+        nuevoGrupo,
+        perfilInstructor,
+        esInstructorLider
+      )
+    ) {
+      mostrarMensajeAsistencia(
+        "No puedes abrir un grupo que no tienes asignado.",
+        "warning"
+      );
+      return;
+    }
 
     setGrupoSeleccionado(idGrupo);
     setJornada(nuevoGrupo?.jornada || jornada);
@@ -312,7 +889,9 @@ export function useAsistenciaInstructor() {
   function cambiarHorarioSeleccionado(idHorario) {
     setHorarioSeleccionadoId(idHorario);
     setLecturasBiometricas([]);
+    setQrSesion(null);
     setMensajeAsistencia(null);
+    setAprendices((lista) => lista.map(limpiarRegistroAprendiz));
   }
 
   function abrirModalInasistencias() {
@@ -337,6 +916,81 @@ export function useAsistenciaInstructor() {
 
   function cerrarModalAsistenciaManual() {
     setModalAsistenciaManual(false);
+  }
+
+  function abrirDetalleSesionGuardada(sesion) {
+    setModalSesionDetalle(sesion);
+  }
+
+  function cerrarDetalleSesionGuardada() {
+    setModalSesionDetalle(null);
+  }
+
+  function generarQrSesion() {
+    if (!validarSesionAbierta()) return;
+
+    const fecha = new Date();
+    const codigo = `${sesionActual.codigo}-${fecha
+      .getTime()
+      .toString(36)
+      .toUpperCase()}`;
+
+    setQrSesion({
+      sesionId: sesionActual.id,
+      codigo,
+      generadoEn: obtenerHoraActualTexto(fecha),
+      venceEn: horarioSeleccionado?.fin
+        ? formatearHora(horarioSeleccionado.fin)
+        : "Cierre de la sesión",
+    });
+
+    mostrarMensajeAsistencia("QR generado para la sesión actual.", "success");
+  }
+
+  function registrarQrSesion() {
+    if (!validarSesionAbierta()) return;
+
+    if (!qrSesion || qrSesion.sesionId !== sesionActual.id) {
+      mostrarMensajeAsistencia("Primero genera el QR de esta sesión.", "warning");
+      return;
+    }
+
+    const aprendiz = proximoAprendizBiometria;
+
+    if (!aprendiz) {
+      alert("Todos los aprendices ya tienen registro para esta sesión.");
+      return;
+    }
+
+    const fechaRegistro = new Date();
+    const horaRegistro = obtenerHoraActualTexto(fechaRegistro);
+    const estadoQr = obtenerEstadoPorHuella(
+      horarioSeleccionado,
+      fechaRegistro,
+      MINUTOS_TOLERANCIA_TARDE
+    );
+
+    setAprendices((lista) =>
+      lista.map((item) =>
+        item.id === aprendiz.id
+          ? {
+              ...item,
+              estado: estadoQr,
+              metodoRegistro: "Código QR",
+              horaRegistro,
+              observacion:
+                estadoQr === "Tarde"
+                  ? `QR validado después de ${MINUTOS_TOLERANCIA_TARDE} minutos de tolerancia.`
+                  : item.observacion,
+            }
+          : item
+      )
+    );
+
+    mostrarMensajeAsistencia(
+      `${aprendiz.nombre}: asistencia registrada por QR.`,
+      "success"
+    );
   }
 
   function registrarHuellaBiometrica() {
@@ -480,6 +1134,8 @@ export function useAsistenciaInstructor() {
   }
 
   function abrirModalObservacion(aprendiz) {
+    if (!validarGrupoPermitido()) return;
+
     setModalInasistencias(false);
     setModalDetalleAsistencia(false);
     setModalAsistenciaManual(false);
@@ -499,6 +1155,8 @@ export function useAsistenciaInstructor() {
 
   function guardarObservacion(e) {
     e.preventDefault();
+
+    if (!validarGrupoPermitido()) return;
 
     const descripcion = String(observacionForm.descripcion || "").trim();
 
@@ -545,6 +1203,8 @@ export function useAsistenciaInstructor() {
   }
 
   function abrirModalAlerta(aprendiz) {
+    if (!validarGrupoPermitido()) return;
+
     const tipoSugerido =
       aprendiz.estado === "Ausente" || aprendiz.estado === "Tarde" || !aprendiz.estado
         ? "inasistencia"
@@ -574,8 +1234,39 @@ export function useAsistenciaInstructor() {
     setAlertaError("");
   }
 
+  function registrarAlertaCreada(aprendiz, resultado) {
+    if (!validarGrupoPermitido()) return;
+
+    const justificacion =
+      resultado?.payload?.descripcion ||
+      alertaForm.justificacion ||
+      alertaForm.descripcion ||
+      "Alerta manual registrada por el instructor.";
+
+    setAprendices((lista) =>
+      lista.map((item) =>
+        item.id === aprendiz.id
+          ? {
+              ...item,
+              estado: item.estado || "Ausente",
+              observacion: justificacion,
+              metodoRegistro: item.metodoRegistro || "Ajuste manual",
+              horaRegistro: item.horaRegistro || obtenerHoraActualTexto(),
+            }
+          : item
+      )
+    );
+
+    mostrarMensajeAsistencia(
+      `Alerta manual registrada para ${aprendiz.nombre}.`,
+      "success"
+    );
+  }
+
   async function crearAlertaManual(e) {
     e.preventDefault();
+
+    if (!validarGrupoPermitido()) return;
 
     const justificacion = String(
       alertaForm.justificacion || alertaForm.descripcion || ""
@@ -679,7 +1370,12 @@ export function useAsistenciaInstructor() {
       fecha: fechaSesion,
       jornada,
       horario_id: horarioSeleccionado?.id || "",
+      id_sesion: sesionActual.id,
       sesion: etiquetaSesion,
+      sesion_contexto: {
+        ...sesionActual,
+        guardadaEn: formatearFechaHora(new Date()),
+      },
       resumen: {
         total,
         presentes,
@@ -687,6 +1383,9 @@ export function useAsistenciaInstructor() {
         tardes: tarde,
         justificadas,
         porcentaje,
+        biometricos: registrosBiometricos,
+        manuales: ajustesManuales,
+        qr: registrosQr,
       },
       registros,
       lecturas_biometricas: lecturasBiometricas,
@@ -716,6 +1415,16 @@ export function useAsistenciaInstructor() {
       }
     }
 
+    const sesionGuardada = {
+      ...sesionActual,
+      guardadaEn: formatearFechaHora(new Date()),
+    };
+
+    setSesionesGuardadas((actuales) => [
+      sesionGuardada,
+      ...actuales.filter((sesion) => sesion.id !== sesionGuardada.id),
+    ]);
+
     mostrarMensajeAsistencia(
       guardadoBackend
         ? "Asistencia guardada correctamente."
@@ -726,6 +1435,10 @@ export function useAsistenciaInstructor() {
 
   return {
     grupoActual,
+    sesionActual,
+    sesionesVisibles,
+    metricasSesiones,
+    alcanceSesiones,
     porcentaje,
     presentes,
     total,
@@ -743,6 +1456,7 @@ export function useAsistenciaInstructor() {
     asistenciaHabilitada,
     proximoAprendizBiometria,
     registrosBiometricos,
+    registrosQr,
     ajustesManuales,
     ausentes,
     tarde,
@@ -761,11 +1475,15 @@ export function useAsistenciaInstructor() {
     modalAlerta,
     alertaForm,
     alertaError,
+    modalSesionDetalle,
+    qrSesion,
     longitudMinimaDescripcion: LONGITUD_MINIMA_DESCRIPCION,
     seleccionarGrupo,
     cambiarFechaSesion,
     cambiarJornada,
     cambiarHorarioSeleccionado,
+    generarQrSesion,
+    registrarQrSesion,
     registrarHuellaBiometrica,
     abrirModalInasistencias,
     cerrarModalInasistencias,
@@ -773,6 +1491,8 @@ export function useAsistenciaInstructor() {
     cerrarModalDetalleAsistencia,
     abrirModalAsistenciaManual,
     cerrarModalAsistenciaManual,
+    abrirDetalleSesionGuardada,
+    cerrarDetalleSesionGuardada,
     aplicarNovedadAprendiz,
     cambiarEstadoManual,
     abrirModalObservacion,
@@ -782,6 +1502,7 @@ export function useAsistenciaInstructor() {
     abrirModalAlerta,
     cerrarModalAlerta,
     crearAlertaManual,
+    registrarAlertaCreada,
     setAlertaForm,
     limpiarAsistencia,
     marcarPendientesComoAusentes,

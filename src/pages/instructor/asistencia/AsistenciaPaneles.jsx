@@ -3,15 +3,23 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock3,
-  Eraser,
   Fingerprint,
+  History,
   PencilLine,
+  QrCode,
   Save,
-  UsersRound,
+  ShieldAlert,
+  TrendingUp,
+  UserCheck,
   XCircle,
 } from "lucide-react";
 
-import { formatearHora } from "./asistenciaUtils";
+import {
+  formatearHora,
+  obtenerClaseMetodoRegistro,
+  obtenerIniciales,
+  obtenerMetodoRegistro,
+} from "./asistenciaUtils";
 
 export function AsistenciaEncabezado({
   grupoActual,
@@ -74,13 +82,15 @@ export function FiltrosAsistencia({
   onCambiarJornada,
   onCambiarHorario,
 }) {
+  const tieneGrupos = gruposDisponibles.some((grupo) => grupo.id);
+
   return (
     <section className="asistencia-filtros">
       <label className="campo campo-grupo">
         <span>Grupo</span>
 
         <select
-          disabled={cargandoGrupos}
+          disabled={cargandoGrupos || !tieneGrupos}
           value={grupoSeleccionado}
           onChange={(e) => onSeleccionarGrupo(e.target.value)}
         >
@@ -100,6 +110,7 @@ export function FiltrosAsistencia({
 
           <input
             type="date"
+            disabled={!tieneGrupos}
             value={fechaSesion}
             onChange={(e) => onCambiarFecha(e.target.value)}
           />
@@ -109,7 +120,11 @@ export function FiltrosAsistencia({
       <label className="campo">
         <span>Jornada</span>
 
-        <select value={jornada} onChange={(e) => onCambiarJornada(e.target.value)}>
+        <select
+          disabled={!tieneGrupos}
+          value={jornada}
+          onChange={(e) => onCambiarJornada(e.target.value)}
+        >
           <option>Mañana</option>
           <option>Tarde</option>
           <option>Noche</option>
@@ -121,7 +136,7 @@ export function FiltrosAsistencia({
 
         <select
           value={horarioSeleccionado?.id || ""}
-          disabled={!horariosFechaSeleccionada.length}
+          disabled={!tieneGrupos || !horariosFechaSeleccionada.length}
           onChange={(e) => onCambiarHorario(e.target.value)}
         >
           {horariosFechaSeleccionada.length ? (
@@ -144,45 +159,94 @@ export function FiltrosAsistencia({
   );
 }
 
-export function HorarioSesionPanel({
+export function SesionActualPanel({
+  sesionActual,
+  qrSesion,
   estadoHorario,
-  etiquetaSesion,
-  fechaSesion,
-  horarioSeleccionado,
   fechaHoraActual,
 }) {
+  if (!sesionActual) return null;
+
+  const registrosTomados =
+    sesionActual.resumen.total - sesionActual.resumen.pendientes;
+
   return (
-    <section className={`horario-sesion-panel ${estadoHorario.estado}`}>
-      <div className="horario-sesion-icono">
-        <Clock3 size={22} />
-      </div>
-
-      <div className="horario-sesion-info">
-        <span>{estadoHorario.titulo}</span>
-        <strong>{etiquetaSesion}</strong>
-
-        <p>
-          {fechaSesion} · {estadoHorario.detalle}
-          {horarioSeleccionado?.ambiente
-            ? ` · ${horarioSeleccionado.ambiente}`
-            : ""}
-        </p>
-
-        {estadoHorario.siguienteTexto && (
-          <small>{estadoHorario.siguienteTexto}</small>
-        )}
-      </div>
-
-      <div className="horario-sesion-meta">
-        <span>
-          {formatearHora(
-            `${fechaHoraActual.getHours()}:${fechaHoraActual.getMinutes()}`
-          )}
+    <section className="sesion-actual-panel">
+      <div className="sesion-actual-header">
+        <span className="tabla-eyebrow">
+          <ClipboardCheck size={16} />
+          Sesión actual
         </span>
 
-        <strong>{estadoHorario.abierta ? "Activa" : "Bloqueada"}</strong>
+        <span className={`estado-sesion-badge ${sesionActual.estadoTecnico}`}>
+          {sesionActual.estado}
+        </span>
       </div>
+
+      <strong className="sesion-codigo">{sesionActual.codigo}</strong>
+
+      <div className="sesion-metadata-grid">
+        <div className="sesion-meta-item">
+          <span>Instructor</span>
+          <strong>{sesionActual.instructor}</strong>
+        </div>
+
+        <div className="sesion-meta-item">
+          <span>Horario</span>
+          <strong>{sesionActual.horarioTexto}</strong>
+        </div>
+
+        <div className="sesion-meta-item">
+          <span>Registros</span>
+          <strong>
+            {registrosTomados}/{sesionActual.resumen.total}
+          </strong>
+        </div>
+
+        <div className="sesion-meta-item">
+          <span>Hora actual</span>
+          <strong>
+            {formatearHora(
+              `${fechaHoraActual.getHours()}:${fechaHoraActual.getMinutes()}`
+            )}
+          </strong>
+        </div>
+      </div>
+
+      <p className="sesion-estado-detalle">
+        {estadoHorario.detalle}
+        {qrSesion ? ` · QR activo desde ${qrSesion.generadoEn}` : ""}
+      </p>
+
+      {estadoHorario.siguienteTexto && (
+        <small className="sesion-siguiente">{estadoHorario.siguienteTexto}</small>
+      )}
     </section>
+  );
+}
+
+function RegistroMetodoButton({
+  tipo,
+  Icono,
+  titulo,
+  detalle,
+  activo = false,
+  disabled,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      className={`registro-metodo ${tipo} ${activo ? "activo" : ""}`}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span>
+        <Icono size={42} />
+      </span>
+      <strong>{titulo}</strong>
+      <small>{detalle}</small>
+    </button>
   );
 }
 
@@ -190,39 +254,114 @@ export function BiometriaOperacion({
   asistenciaHabilitada,
   proximoAprendizBiometria,
   registrosBiometricos,
+  registrosQr = 0,
+  ajustesManuales = 0,
+  aprendicesRegistrados = [],
   pendientes,
+  presentes,
+  ausentes,
+  tarde,
+  justificadas,
+  total,
   porcentaje,
+  qrSesion,
   onRegistrarHuella,
+  onGestionarQr,
+  onAsistenciaManual,
   onVerDetalle,
   onVerRegistrados,
+  onCerrarPendientes,
+  onGuardar,
   onRegistrarObservacion,
 }) {
+  const registrosEnVivo = aprendicesRegistrados.slice(0, 6);
+
   return (
-    <section className="biometria-operacion">
-      <article
-        className={`biometria-lector ${
-          asistenciaHabilitada ? "listo" : "bloqueado"
-        }`}
-      >
-        <div className="biometria-lector-header">
+    <section className="sesion-operacion-panel">
+      <article className="asistencia-tiempo-real-card">
+        <div className="biometria-card-header">
+          <span className="tabla-eyebrow">Asistencia en tiempo real</span>
+          <strong>{registrosEnVivo.length ? "En vivo" : "Sin registros"}</strong>
+        </div>
+
+        <div className="asistencia-live-list">
+          {registrosEnVivo.length ? (
+            registrosEnVivo.map((aprendiz) => (
+              <div className="asistencia-live-item" key={aprendiz.id}>
+                <span className="aprendiz-avatar">
+                  {obtenerIniciales(aprendiz.nombre)}
+                </span>
+
+                <div>
+                  <strong>{aprendiz.nombre}</strong>
+                  <small>{aprendiz.documento}</small>
+                </div>
+
+                <time>{aprendiz.horaRegistro || "--"}</time>
+
+                <span
+                  className={`metodo-chip ${obtenerClaseMetodoRegistro(
+                    aprendiz
+                  )}`}
+                >
+                  {obtenerMetodoRegistro(aprendiz)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="sesion-empty-state sesion-empty-compact">
+              <ClipboardCheck size={18} />
+              <span>Aún no hay registros.</span>
+            </div>
+          )}
+        </div>
+
+        <button type="button" className="btn-ver-sesion" onClick={onVerRegistrados}>
+          Ver todos los registros
+        </button>
+      </article>
+
+      <article className="registrar-asistencia-card">
+        <div className="biometria-card-header registrar-header">
           <span className="tabla-eyebrow">
-            <Fingerprint size={16} />
-            Biometría
+            <ClipboardCheck size={16} />
+            Registrar asistencia
           </span>
 
           <strong>
-            {asistenciaHabilitada ? "Lector listo" : "Lector bloqueado"}
+            {asistenciaHabilitada ? "Sesión activa" : "Sesión bloqueada"}
           </strong>
         </div>
 
-        <button
-          type="button"
-          className="huella-sensor"
-          disabled={!asistenciaHabilitada || !proximoAprendizBiometria}
-          onClick={onRegistrarHuella}
-        >
-          <Fingerprint size={58} />
-        </button>
+        <div className="registro-metodos-grid">
+          <RegistroMetodoButton
+            tipo="huella"
+            Icono={Fingerprint}
+            titulo="Huella"
+            detalle="Iniciar lector"
+            disabled={!asistenciaHabilitada || !proximoAprendizBiometria}
+            onClick={onRegistrarHuella}
+          />
+
+          <RegistroMetodoButton
+            tipo="qr"
+            Icono={QrCode}
+            titulo={qrSesion ? "QR activo" : "QR"}
+            detalle={qrSesion ? "Registrar escaneo" : "Generar código"}
+            activo={Boolean(qrSesion)}
+            disabled={!asistenciaHabilitada}
+            onClick={onGestionarQr}
+          />
+
+          <RegistroMetodoButton
+            tipo="manual"
+            Icono={PencilLine}
+            titulo="Manual"
+            detalle="Registrar asistencia"
+            disabled={!asistenciaHabilitada}
+            onClick={onAsistenciaManual}
+          />
+        </div>
 
         <div
           className={`biometria-siguiente ${
@@ -243,139 +382,238 @@ export function BiometriaOperacion({
           )}
         </div>
 
-        <div className="biometria-lector-footer">
-          <span>{registrosBiometricos} validaciones</span>
-          <strong>{pendientes} pendientes</strong>
+        <div className="dispositivos-sesion">
+          <div>
+            <Fingerprint size={18} />
+            <span>Lector de huellas</span>
+            <strong>{asistenciaHabilitada ? "Conectado" : "Bloqueado"}</strong>
+          </div>
+
+          <div>
+            <QrCode size={18} />
+            <span>QR de sesión</span>
+            <strong>
+              {qrSesion ? `Activo desde ${qrSesion.generadoEn}` : "Sin código"}
+            </strong>
+          </div>
+        </div>
+
+        <div className="registro-acciones-secundarias">
+          <button type="button" className="btn-limpiar" onClick={onVerDetalle}>
+            <ClipboardCheck size={16} />
+            <span>Detalle</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-limpiar btn-cerrar-pendientes"
+            disabled={!asistenciaHabilitada || !pendientes}
+            onClick={onCerrarPendientes}
+          >
+            <XCircle size={16} />
+            <span>Cerrar pendientes</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-guardar"
+            disabled={!asistenciaHabilitada}
+            onClick={onGuardar}
+          >
+            <Save size={16} />
+            <span>Guardar</span>
+          </button>
         </div>
       </article>
 
-      <article className="biometria-resumen">
+      <article className="resumen-sesion-card">
         <div className="biometria-card-header">
-          <span className="tabla-eyebrow">Novedades</span>
-          <strong>{porcentaje}% presente</strong>
+          <span className="tabla-eyebrow">Resumen de la sesión</span>
+          <strong>{total} aprendices</strong>
         </div>
 
-        <div className={`inasistencia-aviso ${pendientes ? "alerta" : "ok"}`}>
-          {pendientes ? (
-            <>
-              <XCircle size={22} />
-              <div>
-                <strong>
-                  {pendientes} aprendiz{pendientes === 1 ? "" : "ces"} no
-                  asistieron
-                </strong>
-
-                <span>
-                  Registra observación, alerta o soporte de justificación.
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={22} />
-
-              <div>
-                <strong>Sin pendientes</strong>
-                <span>Todos los aprendices tienen registro.</span>
-              </div>
-            </>
-          )}
+        <div
+          className="resumen-donut"
+          style={{ "--asistencia-valor": `${porcentaje}%` }}
+        >
+          <div>
+            <strong>{porcentaje}%</strong>
+            <span>Asistencia</span>
+          </div>
         </div>
 
-        <div className="biometria-resumen-acciones">
-          <button
-            type="button"
-            className="btn-marcar-todos"
-            onClick={onVerDetalle}
-          >
-            <ClipboardCheck size={17} />
-            <span>Ver detalle</span>
-          </button>
+        <div className="resumen-sesion-stats">
+          <div className="presente">
+            <UserCheck size={18} />
+            <span>Presentes</span>
+            <strong>{presentes}</strong>
+          </div>
 
-          <button
-            type="button"
-            className="btn-marcar-todos btn-ver-registrados"
-            onClick={onVerRegistrados}
-          >
-            <UsersRound size={17} />
-            <span>Ver registrados</span>
-          </button>
+          <div className="ausente">
+            <XCircle size={18} />
+            <span>Ausentes</span>
+            <strong>{ausentes}</strong>
+          </div>
 
-          <button
-            type="button"
-            className="btn-observacion btn-observacion-primaria"
-            disabled={!asistenciaHabilitada || !proximoAprendizBiometria}
-            onClick={onRegistrarObservacion}
-          >
-            <PencilLine size={17} />
-            <span>Registrar observación</span>
-          </button>
+          <div className="tarde">
+            <Clock3 size={18} />
+            <span>Tardanzas</span>
+            <strong>{tarde}</strong>
+          </div>
+
+          <div className="justificada">
+            <ShieldAlert size={18} />
+            <span>Justificados</span>
+            <strong>{justificadas}</strong>
+          </div>
         </div>
+
+        <div className="resumen-metodos">
+          <span>Huella {registrosBiometricos}</span>
+          <span>QR {registrosQr}</span>
+          <span>Manual {ajustesManuales}</span>
+        </div>
+
+        <button
+          type="button"
+          className="btn-observacion btn-observacion-primaria"
+          disabled={!asistenciaHabilitada || !proximoAprendizBiometria}
+          onClick={onRegistrarObservacion}
+        >
+          <PencilLine size={17} />
+          <span>Observación</span>
+        </button>
       </article>
     </section>
   );
 }
 
-export function AccionesAsistencia({
-  asistenciaHabilitada,
-  pendientes,
-  presentes,
-  total,
-  onAsistenciaManual,
-  onLimpiar,
-  onCerrarPendientes,
-  onGuardar,
+export function SesionesAsistenciaPanel({
+  sesiones,
+  metricas,
+  alcanceSesiones,
+  onVerSesion,
 }) {
+  const tarjetasMetricas = [
+    {
+      titulo: "Sesiones",
+      valor: metricas.totalSesiones,
+      detalle: "Guardadas",
+      Icono: History,
+    },
+    {
+      titulo: "Promedio",
+      valor: `${metricas.promedio}%`,
+      detalle: "Asistencia",
+      Icono: TrendingUp,
+    },
+    {
+      titulo: "Huellas",
+      valor: metricas.huellas,
+      detalle: "Lecturas",
+      Icono: Fingerprint,
+    },
+    {
+      titulo: "QR",
+      valor: metricas.qr,
+      detalle: "Registros",
+      Icono: QrCode,
+    },
+  ];
+
   return (
-    <section className="asistencia-acciones-compactas">
-      <div>
-        <span className="tabla-eyebrow">Cierre de asistencia</span>
-        <strong>
-          {presentes} de {total} aprendices con registro
-        </strong>
-      </div>
+    <section className="sesiones-asistencia-grid">
+      <article className="sesiones-metricas-panel">
+        <div className="biometria-card-header">
+          <span className="tabla-eyebrow">Métricas</span>
+          <strong>
+            {metricas.presentes}/{metricas.totalAprendices}
+          </strong>
+        </div>
 
-      <div className="asistencia-acciones-compactas-botones">
-        <button
-          type="button"
-          className="btn-observacion btn-observacion-primaria"
-          disabled={!asistenciaHabilitada}
-          onClick={onAsistenciaManual}
-        >
-          <PencilLine size={17} />
-          <span>Asistencia manual</span>
-        </button>
+        <div className="sesiones-metricas-grid">
+          {tarjetasMetricas.map(({ titulo, valor, detalle, Icono }) => (
+            <div className="sesion-metrica-item" key={titulo}>
+              <Icono size={18} />
 
-        <button
-          type="button"
-          className="btn-limpiar"
-          disabled={!asistenciaHabilitada}
-          onClick={onLimpiar}
-        >
-          <Eraser size={17} />
-          <span>Limpiar</span>
-        </button>
+              <div>
+                <span>{titulo}</span>
+                <strong>{valor}</strong>
+                <small>{detalle}</small>
+              </div>
+            </div>
+          ))}
+        </div>
 
-        <button
-          type="button"
-          className="btn-limpiar btn-cerrar-pendientes"
-          disabled={!asistenciaHabilitada || !pendientes}
-          onClick={onCerrarPendientes}
-        >
-          <XCircle size={17} />
-          <span>Cerrar pendientes</span>
-        </button>
+        <div className="sesiones-alcance">{alcanceSesiones}</div>
+      </article>
 
-        <button
-          type="button"
-          className="btn-guardar"
-          disabled={!asistenciaHabilitada}
-          onClick={onGuardar}
-        >
-          <Save size={17} />
-          <span>Guardar asistencia</span>
-        </button>
-      </div>
+      <article className="sesiones-historial-panel">
+        <div className="biometria-card-header">
+          <span className="tabla-eyebrow">
+            <History size={16} />
+            Historial de sesiones
+          </span>
+
+          <strong>{sesiones.length}</strong>
+        </div>
+
+        {sesiones.length ? (
+          <div className="sesiones-tabla-wrapper">
+            <table className="sesiones-tabla">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Instructor</th>
+                  <th>Horario</th>
+                  <th>Estado</th>
+                  <th>Asistencia</th>
+                  <th></th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sesiones.map((sesion) => (
+                  <tr key={sesion.id}>
+                    <td>
+                      <strong>{sesion.fecha}</strong>
+                      <small>Ficha {sesion.ficha}</small>
+                    </td>
+                    <td>{sesion.instructor}</td>
+                    <td>{sesion.horarioTexto}</td>
+                    <td>
+                      <span
+                        className={`estado-sesion-badge ${sesion.estadoTecnico}`}
+                      >
+                        {sesion.estado}
+                      </span>
+                    </td>
+                    <td>
+                      {sesion.resumen?.presentes || 0}/
+                      {sesion.resumen?.total || 0} ·{" "}
+                      {sesion.resumen?.porcentaje || 0}%
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn-ver-sesion"
+                        onClick={() => onVerSesion(sesion)}
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="sesion-empty-state">
+            <ClipboardCheck size={20} />
+            <span>No hay sesiones guardadas para este alcance.</span>
+          </div>
+        )}
+      </article>
     </section>
   );
 }
