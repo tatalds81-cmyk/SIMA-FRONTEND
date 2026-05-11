@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 import ModalCrearAlerta from "../../../components/alertas/ModalCrearAlerta";
-import ModalObservacionCompartida from "../../../components/observaciones/ModalObservacion";
 
 import { severidades, tiposObservacion } from "./asistenciaForms";
 
@@ -455,20 +454,89 @@ export function ModalObservacion({
   onSubmit,
   onChangeForm,
 }) {
+  if (!aprendiz) return null;
+
+  function actualizarCampo(campo, valor) {
+    onChangeForm((actual) => ({
+      ...actual,
+      [campo]: valor,
+    }));
+  }
+
   return (
-    <ModalObservacionCompartida
-      isOpen={Boolean(aprendiz)}
-      aprendiz={aprendiz}
-      grupoActual={grupoActual}
-      form={observacionForm}
-      error={observacionError}
-      tipos={tiposObservacion}
-      severidades={severidades}
-      minLength={longitudMinimaDescripcion}
-      onClose={onClose}
-      onSubmit={onSubmit}
-      onChange={onChangeForm}
-    />
+    <div className="asistencia-modal-backdrop">
+      <section className="asistencia-modal asistencia-modal-manual">
+        <div className="asistencia-modal-header">
+          <div>
+            <span className="tabla-eyebrow">Nuevo registro</span>
+            <h2>Registrar observacion</h2>
+            <p>
+              {aprendiz.nombre} · {aprendiz.documento} · Ficha{" "}
+              {grupoActual?.ficha || "sin ficha"}
+            </p>
+          </div>
+
+          <button type="button" className="modal-cerrar" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <form className="asistencia-modal-form" onSubmit={onSubmit}>
+          <label className="campo">
+            <span>Tipo</span>
+            <select
+              value={observacionForm.tipo}
+              onChange={(e) => actualizarCampo("tipo", e.target.value)}
+              required
+            >
+              {tiposObservacion.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="campo">
+            <span>Severidad</span>
+            <select
+              value={observacionForm.severidad}
+              onChange={(e) => actualizarCampo("severidad", e.target.value)}
+              required
+            >
+              {severidades.map((severidad) => (
+                <option key={severidad} value={severidad}>
+                  {severidad}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="campo">
+            <span>Descripcion</span>
+            <textarea
+              value={observacionForm.descripcion}
+              minLength={longitudMinimaDescripcion}
+              placeholder="Describe la observacion..."
+              onChange={(e) => actualizarCampo("descripcion", e.target.value)}
+              required
+            />
+          </label>
+
+          {observacionError && <div className="modal-error">{observacionError}</div>}
+
+          <div className="asistencia-modal-actions">
+            <button type="button" className="btn-limpiar" onClick={onClose}>
+              Cancelar
+            </button>
+
+            <button type="submit" className="btn-guardar">
+              Guardar observacion
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   );
 }
 
