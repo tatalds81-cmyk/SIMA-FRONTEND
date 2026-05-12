@@ -24,14 +24,14 @@
   content: "";
   position: absolute;
   left: 0;
-  top: 68px;
+  top: 0;
   bottom: 112px;
   z-index: 0;
   width: 106px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 34%),
     linear-gradient(180deg, var(--sima-navy) 0%, var(--sima-navy-deep) 100%);
-  border-radius: 0 62px 62px 0;
+  border-radius: 0 0 62px 0;
   box-shadow: 10px 0 22px rgba(5, 45, 79, 0.12);
   pointer-events: none;
 }
@@ -135,10 +135,10 @@
 
 @media (max-height: 760px) {
   .sima-sidebar-main::before {
-    top: 54px;
+    top: 0;
     bottom: 88px;
     width: 102px;
-    border-radius: 0 54px 54px 0;
+    border-radius: 0 0 54px 0;
   }
 
   .sima-sidebar-shell {
@@ -178,10 +178,10 @@
   }
 
   .sima-sidebar-main::before {
-    top: 56px;
+    top: 0;
     bottom: 88px;
     width: 84px;
-    border-radius: 0 48px 48px 0;
+    border-radius: 0 0 48px 0;
   }
 
   .sima-sidebar-shell {
