@@ -324,6 +324,7 @@ export default function PanelInstructor() {
           </div>
         </article>
       </section>
+      </section>
     </div>
   );
 }

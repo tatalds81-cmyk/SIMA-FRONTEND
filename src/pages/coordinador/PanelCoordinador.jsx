@@ -336,6 +336,7 @@ export default function PanelCoordinador() {
           </button>
         </article>
       </section>
+      </section>
     </div>
   );
 }
