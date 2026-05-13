@@ -1845,7 +1845,431 @@
   padding-top: 4px;
 }
 
+.asistencia-workspace {
+  gap: 12px;
+}
+
+.sesiones-instructor-header,
+.grupo-detalle-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  align-items: end;
+  gap: 14px;
+}
+
+.grupo-detalle-header {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.sesiones-instructor-header h1,
+.grupo-detalle-header h1 {
+  margin: 5px 0 5px;
+  color: var(--sima-text);
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.sesiones-instructor-header p,
+.grupo-detalle-header p {
+  margin: 0;
+  color: var(--sima-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sesiones-fecha-control {
+  padding: 12px;
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sesiones-resumen-grid,
+.grupo-resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.sesiones-resumen-card,
+.grupo-resumen-card,
+.sesiones-instructor-panel,
+.grupo-context-card,
+.aprendices-grupo-panel {
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(9, 36, 68, 0.05);
+}
+
+.sesiones-resumen-card,
+.grupo-resumen-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+}
+
+.sesiones-resumen-card svg,
+.grupo-resumen-card svg {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #edf9e7;
+  color: var(--sima-green-dark);
+}
+
+.sesiones-resumen-card span,
+.sesiones-resumen-card small,
+.grupo-resumen-card span,
+.grupo-resumen-card small {
+  display: block;
+  color: var(--sima-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.sesiones-resumen-card strong,
+.grupo-resumen-card strong {
+  display: block;
+  margin: 1px 0;
+  color: var(--sima-text);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.sesiones-instructor-panel,
+.aprendices-grupo-panel {
+  padding: 14px;
+}
+
+.sesiones-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sesiones-panel-header > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.sesiones-panel-header strong {
+  min-width: 32px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: var(--sima-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.sesiones-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.sesion-resumen-card {
+  position: relative;
+  min-width: 0;
+  min-height: 178px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid #dfe8f1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease,
+    transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sesion-resumen-card:hover {
+  border-color: var(--sima-green);
+  background: #fbfef9;
+  box-shadow: 0 12px 24px rgba(9, 36, 68, 0.08);
+  transform: translateY(-1px);
+}
+
+.sesion-resumen-card.sin-programacion {
+  background: #fbfcfe;
+}
+
+.sesion-resumen-card strong {
+  padding-right: 24px;
+  color: var(--sima-text);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.sesion-resumen-card small {
+  min-height: 34px;
+  color: var(--sima-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.sesion-card-arrow {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  color: #8aa0b5;
+}
+
+.sesion-card-meta {
+  width: 100%;
+  display: grid;
+  gap: 7px;
+  margin-top: auto;
+}
+
+.sesion-card-meta span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #38506b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sesion-card-meta svg {
+  flex: 0 0 auto;
+  color: var(--sima-green-dark);
+}
+
+.btn-volver-sesiones {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #dbe5ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--sima-navy);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.btn-volver-sesiones:hover {
+  border-color: var(--sima-green);
+  background: #f7fbf4;
+  color: var(--sima-green-dark);
+}
+
+.grupo-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.grupo-tabs button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #42566b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.grupo-tabs button:hover,
+.grupo-tabs button.activo {
+  border-color: #bfe5b4;
+  background: #edf9e7;
+  color: var(--sima-green-dark);
+}
+
+.grupo-tab-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grupo-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 12px;
+}
+
+.grupo-context-card {
+  min-width: 0;
+  padding: 14px;
+}
+
+.grupo-context-card > strong {
+  display: block;
+  margin-top: 9px;
+  color: var(--sima-text);
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.grupo-context-card > p {
+  margin: 5px 0 12px;
+  color: var(--sima-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.grupo-context-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.grupo-context-list div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e5edf5;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.grupo-context-list span {
+  display: block;
+  color: var(--sima-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.grupo-context-list strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--sima-text);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.grupo-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.grupo-status-item {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e5edf5;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.grupo-status-item strong {
+  display: block;
+  margin-top: 9px;
+  color: var(--sima-text);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.grupo-progress-line {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: #e8eef5;
+}
+
+.grupo-progress-line span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--sima-green), var(--sima-cyan));
+}
+
+.aprendices-grupo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.aprendiz-grupo-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(230px, 1.2fr) minmax(110px, 0.5fr) minmax(120px, 0.5fr) minmax(130px, 0.55fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e5edf5;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.aprendiz-formativo {
+  color: #38506b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.aprendiz-grupo-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
 @media (max-width: 1280px) {
+  .sesiones-card-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .sesiones-resumen-grid,
+  .grupo-resumen-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .grupo-overview-grid,
+  .aprendiz-grupo-row {
+    grid-template-columns: 1fr;
+  }
+
+  .aprendiz-grupo-actions {
+    justify-content: flex-start;
+  }
+
   .sesion-operacion-panel {
     grid-template-columns: 1fr;
   }
@@ -1884,6 +2308,33 @@
 @media (max-width: 820px) {
   .asistencia-page {
     padding: 0;
+  }
+
+  .sesiones-instructor-header,
+  .grupo-detalle-header,
+  .sesiones-resumen-grid,
+  .grupo-resumen-grid,
+  .sesiones-card-grid,
+  .grupo-context-list,
+  .grupo-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grupo-detalle-header {
+    align-items: start;
+  }
+
+  .grupo-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .grupo-tabs button {
+    flex: 0 0 auto;
+  }
+
+  .aprendiz-grupo-actions {
+    flex-direction: column;
   }
 
   .asistencia-hero {
