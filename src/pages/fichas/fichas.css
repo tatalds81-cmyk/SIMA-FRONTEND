@@ -582,7 +582,7 @@
   display: grid;
   grid-template-columns: 32px 1fr;
   gap: 8px;
-  height: 180px;
+  height: 130px;
 }
 .gd-sev-scale {
   display: flex;

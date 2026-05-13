@@ -1,7 +1,7 @@
 import api from './api';
 
 // 💡 INTERRUPTOR DE MODO (true = datos quemados, false = backend real)
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 /**
  * Retorna el rol del usuario actual.
@@ -29,6 +29,19 @@ function limpiarParams(filtros = {}) {
     }
   });
   return p;
+}
+
+function mapBackendAlerta(alerta) {
+  if (!alerta) return alerta;
+  return {
+    ...alerta,
+    id: alerta.id_alerta || alerta.id,
+    fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion,
+    tipoAlerta: alerta.tipo_alerta || alerta.tipoAlerta,
+    grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo,
+    responsableNombre: alerta.creada_por ? `ID Usuario ${alerta.creada_por}` : 'Sistema',
+    aprendizNombre: alerta.aprendiz?.id_aprendiz ? `Aprendiz #${alerta.aprendiz.id_aprendiz}` : '—',
+  };
 }
 
 // ─── MOCKS DE PRUEBA ─────────────────────────────────────────────────────────
@@ -106,8 +119,14 @@ export async function crearAlertaManual(payload) {
   }
 
   try {
-    const { data } = await api.post('/api/alertas/manual', payload);
-    return { data, error: null };
+    const backendPayload = {
+      id_aprendiz: payload.aprendizId,
+      id_grupo: payload.grupoId,
+      severidad: payload.severidad,
+      descripcion: payload.descripcion
+    };
+    const { data } = await api.post('/api/alerts/manual', backendPayload);
+    return { data: mapBackendAlerta(data.data || data), error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -137,8 +156,12 @@ export async function obtenerAlertas(filtros = {}) {
 
   try {
     const params = limpiarParams(filtros);
-    const { data } = await api.get('/api/alertas', { params });
-    return { data, error: null };
+    const { data } = await api.get('/api/alerts', { params });
+    let arr = data.data || data;
+    if (Array.isArray(arr)) {
+      arr = arr.map(mapBackendAlerta);
+    }
+    return { data: { data: arr, total: data.total || arr.length }, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -151,8 +174,9 @@ export async function obtenerAlertaPorId(id) {
   }
 
   try {
-    const { data } = await api.get(`/api/alertas/${id}`);
-    return { data, error: null };
+    const { data } = await api.get(`/api/alerts/${id}`);
+    const alerta = data.data || data;
+    return { data: mapBackendAlerta(alerta), error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -176,10 +200,11 @@ export async function cerrarAlerta(id, justificacion, estadoFinal = 'CERRADA') {
       }, 1000);
     });
   }
-  // Cuando haya backend real: PATCH /api/alertas/:id/cerrar
   try {
-    const { data } = await api.patch(`/api/alertas/${id}/cerrar`, { justificacion, estadoFinal });
-    return { data, error: null };
+    // El backend espera: PATCH /api/alerts/:id/status con { estado }
+    const { data } = await api.patch(`/api/alerts/${id}/status`, { estado: estadoFinal });
+    const alerta = data.data || data;
+    return { data: mapBackendAlerta(alerta), error: null };
   } catch (error) {
     return { data: null, error: error.response?.status || mensajeError(error), fullError: error };
   }
@@ -188,8 +213,10 @@ export async function cerrarAlerta(id, justificacion, estadoFinal = 'CERRADA') {
 export async function obtenerAlertasPorAprendiz(aprendizId) {
   if (USE_MOCK) return { data: MOCK_ALERTAS, error: null };
   try {
-    const { data } = await api.get(`/api/alertas/aprendiz/${aprendizId}`);
-    return { data, error: null };
+    const { data } = await api.get('/api/alerts', { params: { id_aprendiz: aprendizId } });
+    let arr = data.data || data;
+    if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
+    return { data: arr, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -223,8 +250,42 @@ export async function obtenerGruposAlertasCoordinador() {
   }
 
   try {
-    const { data } = await api.get('/api/alertas/coordinador/grupos');
-    return { data, error: null };
+    const { data } = await api.get('/api/alerts');
+    let arr = data.data || data;
+    if (!Array.isArray(arr)) arr = [];
+
+    // Mapear y agrupar por grupo (el backend devuelve lista plana)
+    const alertasMapeadas = arr.map(mapBackendAlerta);
+    const resumen = {};
+
+    alertasMapeadas.forEach(alerta => {
+      if (alerta.estado === 'CERRADA' || alerta.estado === 'RESUELTA') return;
+
+      // Usamos el id_grupo del backend como clave
+      const idGrupo = alerta.id_grupo;
+      if (!idGrupo) return;
+
+      if (!resumen[idGrupo]) {
+        resumen[idGrupo] = {
+          idGrupo: idGrupo,
+          grupoCodigo: alerta.grupoCodigo || String(idGrupo),
+          instructorLider: alerta.responsableNombre || 'Sistema',
+          totalAlertas: 0,
+          leves: 0, moderadas: 0, graves: 0,
+          ultimaAlerta: alerta.fechaCreacion
+        };
+      }
+
+      resumen[idGrupo].totalAlertas++;
+      if (alerta.severidad === 'LEVE') resumen[idGrupo].leves++;
+      if (alerta.severidad === 'MODERADA') resumen[idGrupo].moderadas++;
+      if (alerta.severidad === 'GRAVE') resumen[idGrupo].graves++;
+      if (new Date(alerta.fechaCreacion) > new Date(resumen[idGrupo].ultimaAlerta)) {
+        resumen[idGrupo].ultimaAlerta = alerta.fechaCreacion;
+      }
+    });
+
+    return { data: Object.values(resumen), error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -237,31 +298,52 @@ export async function obtenerAlertasPorGrupo(grupoCodigo) {
   }
 
   try {
-    const { data } = await api.get(`/api/alertas/grupo/${encodeURIComponent(grupoCodigo)}`);
-    return { data, error: null };
+    const { data } = await api.get('/api/alerts', { params: { id_grupo: grupoCodigo } });
+    let arr = data.data || data;
+    if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
+    return { data: arr, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
+  }
+}
+
+export async function obtenerGrupos() {
+  if (USE_MOCK) {
+    return { data: [{ id: 1, numero_ficha: '3064975', programa_formacion: { nombre_programa: 'ADSO' } }], error: null };
+  }
+  try {
+    const { data } = await api.get('/api/groups');
+    // Mapear respuesta según lo que devuelve el backend
+    const lista = data.data?.grupos || data.data || data;
+    return { data: Array.isArray(lista) ? lista : [], error: null };
+  } catch (error) {
+    return { data: [], error: mensajeError(error) };
   }
 }
 
 export async function buscarAprendices(query) {
   if (USE_MOCK) {
     const db = [
-      { id: 101, nombre: 'Juan Pablo Duarte', documento: '1020304050' },
-      { id: 102, nombre: 'Maria Fernanda Lopez', documento: '1098765432' },
-      { id: 103, nombre: 'Carlos Alberto Perez', documento: '1122334455' },
-      { id: 104, nombre: 'Ana Maria Restrepo', documento: '1000222333' }
+      { id: 1, nombre: 'Juan Pablo Duarte', documento: '1020304050' },
+      { id: 2, nombre: 'Maria Fernanda Lopez', documento: '1098765432' },
+      { id: 3, nombre: 'Carlos Alberto Perez', documento: '1122334455' }
     ];
-    const filtrados = db.filter(a => 
-      a.nombre.toLowerCase().includes(query.toLowerCase()) || 
-      a.documento.includes(query)
-    );
+    const filtrados = db.filter(a => a.nombre.toLowerCase().includes(query.toLowerCase()) || a.documento.includes(query));
     return new Promise(resolve => setTimeout(() => resolve({ data: filtrados, error: null }), 400));
   }
 
   try {
-    const { data } = await api.get('/api/aprendices/buscar', { params: { q: query } });
-    return { data, error: null };
+    const { data } = await api.get('/api/apprentices/listado', { params: { nombre: query } });
+    const lista = data.data?.aprendices || data.data || [];
+    
+    // Mapear para el modal: { id, nombre, documento }
+    const mapeados = lista.map(a => ({
+      id: a.id_aprendiz,
+      nombre: `${a.usuario?.persona?.nombres || ''} ${a.usuario?.persona?.apellidos || ''}`.trim() || `ID ${a.id_aprendiz}`,
+      documento: a.usuario?.persona?.numero_documento || '—'
+    }));
+
+    return { data: mapeados, error: null };
   } catch (error) {
     return { data: [], error: mensajeError(error) };
   }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Edit3, Save, Users, AlertTriangle, ClipboardList, CalendarX, UserX } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../../services/api";
 import "./fichas.css";
 
 /* ── helpers ─────────────────────────────── */
@@ -87,6 +88,35 @@ export default function GrupoDetalle() {
         if (activo) setError(e?.message || e?.error || "Error al cargar la ficha");
       } finally {
         if (activo) setCargando(false);
+      }
+
+      // Cargar alertas del grupo desde el backend real
+      try {
+        const { data: respAlertas } = await api.get('/api/alerts', { params: { id_grupo: id } });
+        const listaAlertas = respAlertas?.data || respAlertas?.results || (Array.isArray(respAlertas) ? respAlertas : []);
+        if (activo && listaAlertas.length >= 0) {
+          const porSeveridad = { leves: 0, moderadas: 0, graves: 0 };
+          listaAlertas.forEach(a => {
+            const sev = (a.severidad || '').toUpperCase();
+            if (sev === 'LEVE') porSeveridad.leves++;
+            else if (sev === 'MODERADA') porSeveridad.moderadas++;
+            else if (sev === 'GRAVE') porSeveridad.graves++;
+          });
+          setAlertas({
+            total: listaAlertas.length,
+            observaciones: listaAlertas.filter(a => a.tipo_alerta === 'OBSERVACIONES_RECURRENTES').length,
+            porSeveridad,
+            lista: listaAlertas.map(a => ({
+              aprendiz: a.aprendiz?.nombre || a.aprendizNombre || 'Aprendiz',
+              detalle: a.descripcion || '-',
+              severidad: a.severidad ? a.severidad.charAt(0).toUpperCase() + a.severidad.slice(1).toLowerCase() : '-',
+              fuente: a.tipo_alerta === 'MANUAL' ? 'Manual' : 'Sistema',
+              fecha: a.fecha_creacion ? new Date(a.fecha_creacion).toLocaleDateString('es-CO') : '-',
+            })),
+          });
+        }
+      } catch (_) {
+        // Si el endpoint de alertas falla, dejamos alertas en null (sin endpoint)
       }
     }
     cargar();
@@ -204,55 +234,32 @@ export default function GrupoDetalle() {
             )}
           </div>
         </div>
-        <div className="gd-info-grid">
+        <div style={{ width: '100%' }}>
           {/* columna izquierda */}
-          <div className="gd-info-col">
-            <p className="gd-info-section-label">Información General</p>
-            <div className="gd-info-rows">
-              <div className="gd-info-row"><span>Instructor líder</span><strong className="gd-green">{detalle.instructor}</strong></div>
-              <div className="gd-info-row"><span>Área</span><strong>{detalle.area}</strong></div>
-              <div className="gd-info-row"><span>Fecha inicio</span>
-                {modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.fechaInicio}</strong>}
+          <div className="gd-info-col" style={{ flex: 1 }}>
+            <p className="gd-info-section-label" style={{ textAlign: 'center', fontSize: '13px', marginBottom: '24px' }}>Información General</p>
+            <div className="gd-info-rows" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px 16px' }}>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Instructor líder</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.instructor}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Área</span><strong style={{ textAlign: 'center', fontSize: '15px' }}>{detalle.area}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha inicio</span>
+                {modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaInicio}</strong>}
               </div>
-              <div className="gd-info-row"><span>Fecha fin</span><strong>{detalle.fechaFin}</strong></div>
-              <div className="gd-info-row"><span>Inicio etapa productiva</span><strong>{detalle.inicioProductiva}</strong></div>
-              <div className="gd-info-row"><span>Duración total</span>
-                {modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong>{detalle.trimestres} trimestres</strong>}
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha fin</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaFin}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Etapa productiva</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.inicioProductiva}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Duración</span>
+                {modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.trimestres} trimestres</strong>}
               </div>
-              <div className="gd-info-row"><span>Jornada</span>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Jornada</span>
                 {modoEdicion ? (
                   <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
                     <option value="Manana">Mañana</option>
                     <option value="Tarde">Tarde</option>
                     <option value="Noche">Noche</option>
                   </select>
-                ) : <strong>{detalle.jornada}</strong>}
+                ) : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.jornada}</strong>}
               </div>
-              <div className="gd-info-row"><span>Trimestre actual</span><strong>{metricas?.trimestreActual ?? "-"}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Trimestre actual</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{metricas?.trimestreActual ?? "-"}</strong></div>
             </div>
-          </div>
-          {/* columna derecha */}
-          <div className="gd-info-col">
-            <p className="gd-info-section-label">Aprendices y Métricas</p>
-            <div className="gd-metrics-grid">
-              <div className="gd-metric-box">
-                <span>Total aprendices</span>
-                <strong>{metricas?.totalAprendices ?? detalle.aprendices ?? "-"}</strong>
-              </div>
-              <div className="gd-metric-box gd-metric-green">
-                <span>Activos</span>
-                <strong>{metricas?.activos ?? "-"}</strong>
-              </div>
-              <div className="gd-metric-box">
-                <span>Condicionados</span>
-                <strong>{metricas?.condicionados ?? "-"}</strong>
-              </div>
-              <div className="gd-metric-box gd-metric-red">
-                <span>Inactivos</span>
-                <strong>{metricas?.inactivos ?? "-"}</strong>
-              </div>
-            </div>
-
           </div>
         </div>
       </article>

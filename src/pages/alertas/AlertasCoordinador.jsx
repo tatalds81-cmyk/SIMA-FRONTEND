@@ -37,7 +37,7 @@ export default function AlertasCoordinador() {
     setGrupoSeleccionado(grupo);
     setVistaActual('APRENDICES');
     setLoading(true);
-    const { data, error } = await obtenerAlertasPorGrupo(grupo.grupoCodigo);
+    const { data, error } = await obtenerAlertasPorGrupo(grupo.idGrupo ?? grupo.grupoCodigo);
     if (data) setAprendices(data);
     setLoading(false);
   };
