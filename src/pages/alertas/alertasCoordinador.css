@@ -1,0 +1,236 @@
+/* ═══════════════════════════════════════════════════════════════
+   alertasCoordinador.css (Rediseño Premium - Drill Down)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ac-page {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ac-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.ac-page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0b2442;
+  letter-spacing: -0.02em;
+}
+
+.ac-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.ac-bread-sep {
+  color: #cbd5e1;
+}
+
+.ac-bread-link {
+  cursor: pointer;
+  color: #2563eb;
+  transition: color 0.2s;
+}
+
+.ac-bread-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.ac-bread-active {
+  color: #0b2442;
+  font-weight: 700;
+}
+
+/* ── Panel General ── */
+.ac-panel {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(11, 36, 66, 0.05);
+  border: 1px solid #e1e8f0;
+  overflow: hidden;
+}
+
+.ac-panel-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #eef2f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.ac-panel-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0b2442;
+}
+
+/* ── Tabla de Grupos & Aprendices ── */
+.ac-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ac-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.ac-table th {
+  background: #f8fafc;
+  padding: 14px 24px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.ac-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #eef2f6;
+  font-size: 14px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.ac-tr-clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ac-tr-clickable:hover {
+  background: #f0f7ff;
+}
+
+/* ── Elementos internos de la tabla ── */
+.ac-grupo-info strong {
+  display: block;
+  font-size: 15px;
+  color: #0b2442;
+  font-weight: 800;
+}
+
+.ac-grupo-info span {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ac-badge-total {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.ac-severidad-dots {
+  display: flex;
+  gap: 12px;
+}
+
+.ac-sev-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.ac-sev-dot i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ac-sev-dot i.leve { background: #22c55e; }
+.ac-sev-dot i.moderada { background: #f59e0b; }
+.ac-sev-dot i.grave { background: #ef4444; }
+
+.ac-action-btn {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ac-action-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0b2442;
+}
+
+.ac-action-btn-primary {
+  background: #e0e7ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ac-action-btn-primary:hover {
+  background: #c7d2fe;
+  color: #312e81;
+}
+
+/* ── Empty State ── */
+.ac-empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.ac-empty-state svg {
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+.ac-empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #0b2442;
+}
+
+.ac-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
