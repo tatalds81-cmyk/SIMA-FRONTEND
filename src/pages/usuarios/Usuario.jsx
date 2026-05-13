@@ -29,6 +29,7 @@ export default function Usuario() {
   const [tipoDocumento, setTipoDocumento] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [correo, setCorreo] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [rol, setRol] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [errorUsuarios, setErrorUsuarios] = useState("");
@@ -197,7 +198,7 @@ export default function Usuario() {
       numero_documento: numeroDocumento.trim(),
       nombres: nombres.trim(),
       apellidos: apellidos.trim(),
-      telefono: ""
+      telefono: telefono.trim()
     };
 
     try {
@@ -357,7 +358,12 @@ export default function Usuario() {
     setTipoDocumento("");
     setNumeroDocumento("");
     setCorreo("");
+    setTelefono("");
     setRol("");
+  }
+
+  function limitarNumero10Digitos(valor) {
+    return valor.replace(/\D/g, "").slice(0, 10);
   }
 
   function obtenerNombreRol(item) {
@@ -663,7 +669,18 @@ export default function Usuario() {
                 </label>
                 <label>
                   <span>Numero de documento</span>
-                  <input type="text" placeholder="Documento" value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} required />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    minLength={10}
+                    pattern="[0-9]{10}"
+                    placeholder="Numero de cedula"
+                    title="Ingrese 10 digitos numericos"
+                    value={numeroDocumento}
+                    onChange={(e) => setNumeroDocumento(limitarNumero10Digitos(e.target.value))}
+                    required
+                  />
                 </label>
               </div>
 
@@ -672,6 +689,24 @@ export default function Usuario() {
                   <span>Correo institucional</span>
                   <input type="email" placeholder="usuario@misena.edu.co" value={correo} onChange={(e) => setCorreo(e.target.value)} required />
                 </label>
+                <label>
+                  <span>Celular</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    minLength={10}
+                    pattern="[0-9]{10}"
+                    placeholder="Numero de celular"
+                    title="Ingrese 10 digitos numericos"
+                    value={telefono}
+                    onChange={(e) => setTelefono(limitarNumero10Digitos(e.target.value))}
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="usuarios-form-grid usuarios-form-grid-single">
                 <label>
                   <span>Rol</span>
                   <select value={rol} onChange={(e) => setRol(e.target.value)} required>
