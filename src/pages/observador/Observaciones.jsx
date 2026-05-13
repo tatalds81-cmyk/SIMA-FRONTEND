@@ -1,23 +1,46 @@
 import { useState } from "react";
+import ModalObservacion from "../../components/observaciones/ModalObservacion";
 import "./Observaciones.css";
+
+const OBSERVACION_INICIAL = {
+  aprendizId: "",
+  tipo: "Académica",
+  severidad: "Leve",
+  descripcion: "",
+};
+
+const aprendicesDemo = [
+  { id: "jose-munoz", nombre: "Jose Muñoz", documento: "1.001.234.567" },
+];
 
 export default function Observaciones() {
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [observacionForm, setObservacionForm] = useState(OBSERVACION_INICIAL);
+
+  function cerrarModal() {
+    setMostrarModal(false);
+    setObservacionForm(OBSERVACION_INICIAL);
+  }
+
+  function guardarObservacion(e) {
+    e.preventDefault();
+    cerrarModal();
+  }
 
   return (
     <div className="coordinador-panel obs-page">
-
-      {/* HEADER */}
       <div className="coordinador-card">
         <div className="coordinador-card-header obs-header">
           <div>
             <h2>Consultar observaciones</h2>
             <p>
-              Visualiza las observaciones registradas por grupo. No se pueden editar ni eliminar.
+              Visualiza las observaciones registradas por grupo. No se pueden
+              editar ni eliminar.
             </p>
           </div>
 
           <button
+            type="button"
             className="obs-btn-primary"
             onClick={() => setMostrarModal(true)}
           >
@@ -25,20 +48,13 @@ export default function Observaciones() {
           </button>
         </div>
 
-        {/* FILTROS */}
         <div className="obs-filters">
           <input placeholder="Buscar por aprendiz" />
 
-          {/* nuevo filtro */}
-
           <select>
-
             <option value="">Mis fichas</option>
-            <option >3064975</option>
-            <option >2003490</option>
-
-
-
+            <option>3064975</option>
+            <option>2003490</option>
           </select>
 
           <select>
@@ -49,13 +65,12 @@ export default function Observaciones() {
 
           <input type="date" />
 
-          <button className="obs-btn-secondary">
+          <button type="button" className="obs-btn-secondary">
             Limpiar
           </button>
         </div>
       </div>
 
-      {/* TABLA */}
       <div className="coordinador-card">
         <h2>Observaciones registradas</h2>
 
@@ -75,7 +90,9 @@ export default function Observaciones() {
               <tr>
                 <td>Jose Muñoz</td>
                 <td>Académica</td>
-                <td><span className="badge leve">Leve</span></td>
+                <td>
+                  <span className="badge leve">Leve</span>
+                </td>
                 <td>2026-05-06</td>
                 <td>Franco Reina</td>
               </tr>
@@ -84,61 +101,14 @@ export default function Observaciones() {
         </div>
       </div>
 
-      {/* MODAL */}
-      {mostrarModal && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-
-            <span className="modal-tag">NUEVO REGISTRO</span>
-            <h2>Registrar observación</h2>
-
-            <div className="modal-grid">
-
-              <div>
-                <label>Aprendiz</label>
-                <select>
-                  <option>Seleccione</option>
-                </select>
-              </div>
-
-              <div>
-                <label>Tipo</label>
-                <select>
-                  <option>Académica</option>
-                  <option>Convivencial</option>
-                </select>
-              </div>
-
-              <div>
-                <label>Severidad</label>
-                <select>
-                  <option>Leve</option>
-                  <option>Moderada</option>
-                  <option>Grave</option>
-                </select>
-              </div>
-
-            </div>
-
-            <div className="modal-full">
-              <label>Descripción</label>
-              <textarea placeholder="Describe la observación..." />
-            </div>
-
-            <div className="modal-actions">
-              <button onClick={() => setMostrarModal(false)}>
-                Cancelar
-              </button>
-
-              <button className="obs-btn-primary">
-                Guardar observación
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
+      <ModalObservacion
+        isOpen={mostrarModal}
+        aprendices={aprendicesDemo}
+        form={observacionForm}
+        onChange={setObservacionForm}
+        onClose={cerrarModal}
+        onSubmit={guardarObservacion}
+      />
     </div>
   );
 }

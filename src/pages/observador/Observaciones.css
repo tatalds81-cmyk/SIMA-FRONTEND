@@ -259,6 +259,40 @@
   font-weight: 900;
 }
 
+.obs-modal-aprendiz {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid var(--sima-border);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.obs-modal-aprendiz strong {
+  color: var(--sima-text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.obs-modal-aprendiz span {
+  color: var(--sima-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.obs-modal-error {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: var(--sima-red);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 /* FORM GRID */
 
 .modal-grid {

@@ -14,7 +14,7 @@ import senaLogo from "../../assets/logoSena.png";
 const menuByRole = {
   instructor: [
     { icon: LayoutDashboard, label: "Inicio", path: "/instructor/dashboard", id: "inicio" },
-    { icon: Users, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
+    { icon: CalendarDays, label: "Sesiones", path: "/instructor/asistencia", id: "asistencia" },
     { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
     { icon: Users, label: "Aprendices", path: "/instructor/aprendices", id: "aprendices" },
     { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "consultar-alertas" }
