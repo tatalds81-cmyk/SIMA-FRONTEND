@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
-  CalendarDays,
   LayoutDashboard,
   Users,
   UsersRound,
@@ -41,7 +40,11 @@ export default function Sidebar() {
         <nav className="sima-sidebar-nav">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path ||
+              (item.id === "grupos" &&
+                (location.pathname.startsWith(`${item.path}/`) ||
+                  location.pathname.startsWith("/fichas/")));
 
             return (
               <button

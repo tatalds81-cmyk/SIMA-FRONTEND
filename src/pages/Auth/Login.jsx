@@ -93,7 +93,7 @@ export default function Login({ onLogin }) {
       setMensaje("Inicio de sesion correcto");
 
       const rolNormalizado = String(rol || "").toLowerCase();
-      const rutaInicio = rolNormalizado === "instructor" ? "/instructor/dashboard" : "/dashboard";
+      const rutaInicio = rolNormalizado === "instructor" ? "/instructor/grupos" : "/dashboard";
 
       if (onLogin) {
         onLogin();
