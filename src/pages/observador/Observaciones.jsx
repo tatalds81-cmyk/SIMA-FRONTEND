@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "./Observaciones.css";
 
 export default function Observaciones() {
   const API_URL = "/api";
 
-
+  // ─── Auth helpers ───────────────────────────────────────────────────────────
   function safeParse(key) {
     try {
       return JSON.parse(localStorage.getItem(key)) || null;
@@ -13,10 +13,7 @@ export default function Observaciones() {
     }
   }
 
-  const usuario =
-    safeParse("user_data") ||
-    safeParse("usuario") ||
-    {};
+  const usuario = safeParse("user_data") || safeParse("usuario") || {};
 
   const rol = (
     localStorage.getItem("rol") ||
@@ -25,191 +22,149 @@ export default function Observaciones() {
     ""
   ).toLowerCase();
 
-  const ID_GRUPO =
-    usuario?.id_grupo ||
-    usuario?.grupo?.id_grupo ||
-    1;
+  const esInstructor = rol === "instructor";
 
+  function getHeaders() {
+    const token =
+      localStorage.getItem("access") || localStorage.getItem("token");
+    const headers = { "Content-Type": "application/json" };
+    if (token && token !== "undefined") {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  }
 
-  const puedeRegistrar =
-    rol === "instructor";
+  // ─── Fecha de hoy para max en inputs (evita fechas futuras) ─────────────────
+  const hoy = new Date().toISOString().split("T")[0];
 
+  // ─── Formatea ISO a dd/mm/aaaa hh:mm ────────────────────────────────────────
+  function formatFecha(iso) {
+    if (!iso) return "Sin fecha";
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
-  const [mostrarModal, setMostrarModal] =
-    useState(false);
+  // ─── State principal ─────────────────────────────────────────────────────────
+  const [fichas, setFichas] = useState([]);
+  // Recupera la última ficha seleccionada de sessionStorage
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState(
+    () => sessionStorage.getItem("obs_grupo_seleccionado") || ""
+  );
 
-  const [observaciones, setObservaciones] =
-    useState([]);
+  const [observaciones, setObservaciones] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [observacionesAbiertas, setObservacionesAbiertas] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const LIMIT = 10;
 
-  const [aprendices, setAprendices] =
-    useState([]);
+  const [filtros, setFiltros] = useState({
+    id_aprendiz: "",
+    tipo: "",
+    severidad: "",
+    estado: "",
+    fecha_desde: "",
+    fecha_hasta: "",
+  });
 
-  const [historial, setHistorial] =
-    useState([]);
+  const [aprendices, setAprendices] = useState([]);
 
-  const [
-    mostrarHistorial,
-    setMostrarHistorial,
-  ] = useState(false);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [pagina, setPagina] =
-    useState(1);
-
-  const [total, setTotal] =
-    useState(0);
-
-
-  const [fichas, setFichas] =
-    useState([
-      {
-        id: 1,
-        codigo: "2874057",
-      },
-      {
-        id: 2,
-        codigo: "2874058",
-      },
-      {
-        id: 3,
-        codigo: "2874059",
-      },
-    ]);
-
-
-  const [
-    mostrarAprendices,
-    setMostrarAprendices,
-  ] = useState(false);
-
-  const [
-    busquedaAprendiz,
-    setBusquedaAprendiz,
-  ] = useState("");
-
-
-
-  const [filtros, setFiltros] =
-    useState({
-      busqueda: "",
-      tipo: "",
-      severidad: "",
-      estado: "",
-      ficha: "",
-      fecha_desde: "",
-    });
-
-
-  const [editando, setEditando] =
-    useState(null);
-
-
+  // Modal de registro/edición
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [form, setForm] = useState({
     id_aprendiz: "",
     tipo_observacion: "ACADEMICA",
     severidad: "LEVE",
     descripcion: "",
+    notificar_lider: false,
   });
+  const [mostrarDropdownModal, setMostrarDropdownModal] = useState(false);
+  const [busquedaModal, setBusquedaModal] = useState("");
 
+  // Modal de historial
+  const [historial, setHistorial] = useState([]);
+  const [totalHistorial, setTotalHistorial] = useState(0);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [aprendizHistorial, setAprendizHistorial] = useState(null);
 
-  function getHeaders() {
-    const token =
-      localStorage.getItem("access") ||
-      localStorage.getItem("token");
-
-    const headers = {
-      "Content-Type": "application/json",
-    };
-
-    if (
-      token &&
-      token !== "undefined"
-    ) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    return headers;
-  }
-
-
+  // ─── Carga inicial de fichas ─────────────────────────────────────────────────
   useEffect(() => {
-    fetchObservaciones();
-  }, [pagina, filtros]);
-
-  useEffect(() => {
-    fetchAprendices();
+    fetchFichas();
   }, []);
 
- 
+  // ─── Cuando cambia grupo, página o filtros → recarga ─────────────────────────
+  useEffect(() => {
+    if (!grupoSeleccionado) return;
+    // Persiste la ficha seleccionada para que sobreviva cambios de pestaña
+    sessionStorage.setItem("obs_grupo_seleccionado", grupoSeleccionado);
+    fetchObservaciones();
+    fetchAprendices();
+  }, [grupoSeleccionado, pagina, filtros]);
+
+  // ─── API calls ───────────────────────────────────────────────────────────────
+  async function fetchFichas() {
+    try {
+      const res = await fetch(`${API_URL}/apprentices/grupos-activos`, {
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error("No se pudieron cargar las fichas");
+      const data = await res.json();
+      const lista = data?.data || [];
+      setFichas(Array.isArray(lista) ? lista : []);
+
+      // Solo establece el primer grupo si no hay uno guardado en sessionStorage
+      if (Array.isArray(lista) && lista.length > 0 && !grupoSeleccionado) {
+        setGrupoSeleccionado(String(lista[0].id_grupo));
+      }
+    } catch (error) {
+      console.error(error);
+      setFichas([]);
+    }
+  }
+
+  async function fetchAprendices() {
+    try {
+      const res = await fetch(
+        `${API_URL}/apprentices/grupo/${grupoSeleccionado}`,
+        { headers: getHeaders() }
+      );
+      if (!res.ok) throw new Error("No se pudieron cargar aprendices");
+      const data = await res.json();
+      const lista = data?.data?.aprendices || [];
+      setAprendices(Array.isArray(lista) ? lista : []);
+    } catch (error) {
+      console.error(error);
+      setAprendices([]);
+    }
+  }
+
   async function fetchObservaciones() {
     try {
       setLoading(true);
-
-      const params =
-        new URLSearchParams();
-
+      const params = new URLSearchParams();
       params.append("page", pagina);
-      params.append("limit", 10);
+      params.append("limit", LIMIT);
 
-      if (filtros.tipo)
-        params.append(
-          "tipo_observacion",
-          filtros.tipo
-        );
-
-      if (filtros.severidad)
-        params.append(
-          "severidad",
-          filtros.severidad
-        );
-
-      if (filtros.estado)
-        params.append(
-          "estado",
-          filtros.estado
-        );
-
-      if (filtros.fecha_desde)
-        params.append(
-          "fecha_desde",
-          filtros.fecha_desde
-        );
-
-      // FILTRO FICHA
-      if (filtros.ficha)
-        params.append(
-          "ficha",
-          filtros.ficha
-        );
+      if (filtros.id_aprendiz) params.append("id_aprendiz", filtros.id_aprendiz);
+      if (filtros.tipo) params.append("tipo_observacion", filtros.tipo);
+      if (filtros.severidad) params.append("severidad", filtros.severidad);
+      if (filtros.estado) params.append("estado", filtros.estado);
+      if (filtros.fecha_desde) params.append("fecha_desde", filtros.fecha_desde);
+      if (filtros.fecha_hasta) params.append("fecha_hasta", filtros.fecha_hasta);
 
       const res = await fetch(
-        `${API_URL}/observations/group/${ID_GRUPO}?${params}`,
-        {
-          headers: getHeaders(),
-        }
+        `${API_URL}/observations/group/${grupoSeleccionado}?${params}`,
+        { headers: getHeaders() }
       );
-
-      if (!res.ok)
-        throw new Error(
-          "Error cargando observaciones"
-        );
-
+      if (!res.ok) throw new Error("Error cargando observaciones");
       const data = await res.json();
 
-      const lista =
-        data?.data?.observaciones || [];
-
-      setObservaciones(
-        Array.isArray(lista)
-          ? lista
-          : []
-      );
-
-      setTotal(
-        data?.data?.total || 0
-      );
+      setObservaciones(data?.data?.observaciones || []);
+      setTotal(data?.data?.total || 0);
+      setObservacionesAbiertas(data?.data?.observaciones_abiertas ?? 0);
     } catch (error) {
       console.error(error);
       setObservaciones([]);
@@ -218,60 +173,20 @@ export default function Observaciones() {
     }
   }
 
-
-  async function fetchAprendices() {
+  async function fetchHistorial(idAprendiz, nombreAprendiz) {
     try {
+      const params = new URLSearchParams();
+      params.append("id_grupo", grupoSeleccionado);
       const res = await fetch(
-        `${API_URL}/apprentices/grupo/${ID_GRUPO}`,
-        {
-          headers: getHeaders(),
-        }
+        `${API_URL}/observations/apprentice/${idAprendiz}?${params}`,
+        { headers: getHeaders() }
       );
-
-      if (!res.ok)
-        throw new Error(
-          "No se pudieron cargar aprendices"
-        );
-
+      if (!res.ok) throw new Error("No se pudo cargar el historial");
       const data = await res.json();
-
-      const lista =
-        data?.data?.aprendices || [];
-
-      setAprendices(
-        Array.isArray(lista)
-          ? lista
-          : []
-      );
-    } catch (error) {
-      console.error(error);
-      setAprendices([]);
-    }
-  }
-
-
-  async function fetchHistorial(
-    idAprendiz
-  ) {
-    try {
-      const res = await fetch(
-        `${API_URL}/observations/apprentice/${idAprendiz}`,
-        {
-          headers: getHeaders(),
-        }
-      );
-
-      if (!res.ok)
-        throw new Error(
-          "No se pudo cargar historial"
-        );
-
-      const data = await res.json();
-
-      const lista =
-        data?.data?.observaciones || [];
-
+      const lista = data?.data?.observaciones || [];
       setHistorial(lista);
+      setTotalHistorial(data?.data?.total || 0);
+      setAprendizHistorial(nombreAprendiz);
       setMostrarHistorial(true);
     } catch (error) {
       console.error(error);
@@ -279,90 +194,57 @@ export default function Observaciones() {
     }
   }
 
-
-
   async function handleSubmit() {
+    if (!grupoSeleccionado) {
+      alert("Debes seleccionar una ficha");
+      return;
+    }
+    if (!form.id_aprendiz) {
+      alert("Selecciona un aprendiz");
+      return;
+    }
+    if (form.descripcion.trim().length < 20) {
+      alert("La descripción debe tener mínimo 20 caracteres");
+      return;
+    }
+
     try {
-      if (!form.id_aprendiz) {
-        alert(
-          "Selecciona un aprendiz"
-        );
-        return;
-      }
-
-      if (
-        form.descripcion.trim()
-          .length < 20
-      ) {
-        alert(
-          "La descripcion debe tener minimo 20 caracteres"
-        );
-        return;
-      }
-
       const payload = editando
         ? {
-            tipo_observacion:
-              form.tipo_observacion,
-            severidad:
-              form.severidad,
-            descripcion:
-              form.descripcion.trim(),
+            tipo_observacion: form.tipo_observacion,
+            severidad: form.severidad,
+            descripcion: form.descripcion.trim(),
           }
         : {
-            id_aprendiz:
-              Number(
-                form.id_aprendiz
-              ),
-            id_grupo: ID_GRUPO,
-            tipo_observacion:
-              form.tipo_observacion,
-            severidad:
-              form.severidad,
-            descripcion:
-              form.descripcion.trim(),
+            id_aprendiz: Number(form.id_aprendiz),
+            id_grupo: Number(grupoSeleccionado),
+            tipo_observacion: form.tipo_observacion,
+            severidad: form.severidad,
+            descripcion: form.descripcion.trim(),
+            notificar_lider: form.notificar_lider,
           };
 
       const url = editando
         ? `${API_URL}/observations/${editando}`
         : `${API_URL}/observations`;
 
-      const method = editando
-        ? "PATCH"
-        : "POST";
+      const method = editando ? "PATCH" : "POST";
 
       const res = await fetch(url, {
         method,
         headers: getHeaders(),
-        body: JSON.stringify(
-          payload
-        ),
+        body: JSON.stringify(payload),
       });
 
-      const data = await res
-        .json()
-        .catch(() => null);
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
         throw new Error(
-          data?.message ||
-            data?.error ||
-            "Error guardando observacion"
+          data?.message || data?.error || "Error guardando observación"
         );
       }
 
-      setMostrarModal(false);
-
-      setEditando(null);
-
-      setForm({
-        id_aprendiz: "",
-        tipo_observacion:
-          "ACADEMICA",
-        severidad: "LEVE",
-        descripcion: "",
-      });
-
+      cerrarModal();
       fetchObservaciones();
     } catch (error) {
       console.error(error);
@@ -370,284 +252,197 @@ export default function Observaciones() {
     }
   }
 
+  // ─── Helpers UI ──────────────────────────────────────────────────────────────
   function handleEditar(obs) {
-    if (
-      obs.estado &&
-      obs.estado !== "ABIERTA"
-    ) {
-      alert(
-        "Solo se pueden editar observaciones ABIERTAS"
-      );
-      return;
-    }
-
-    setEditando(
-      obs.id_observacion ||
-        obs.id
-    );
-
+    setEditando(obs.id_observacion || obs.id);
     setForm({
-      id_aprendiz:
-        obs.id_aprendiz,
-      tipo_observacion:
-        obs.tipo_observacion,
-      severidad:
-        obs.severidad,
-      descripcion:
-        obs.descripcion,
+      id_aprendiz: obs.id_aprendiz,
+      tipo_observacion: obs.tipo_observacion,
+      severidad: obs.severidad,
+      descripcion: obs.descripcion,
+      notificar_lider: false,
     });
-
     setMostrarModal(true);
   }
 
+  function cerrarModal() {
+    setMostrarModal(false);
+    setEditando(null);
+    setMostrarDropdownModal(false);
+    setBusquedaModal("");
+    setForm({
+      id_aprendiz: "",
+      tipo_observacion: "ACADEMICA",
+      severidad: "LEVE",
+      descripcion: "",
+      notificar_lider: false,
+    });
+  }
 
+  function limpiarFiltros() {
+    setFiltros({
+      id_aprendiz: "",
+      tipo: "",
+      severidad: "",
+      estado: "",
+      fecha_desde: "",
+      fecha_hasta: "",
+    });
+    setPagina(1);
+  }
 
-  const observacionesFiltradas =
-    useMemo(() => {
-      return observaciones.filter(
-        (obs) => {
-          const nombre = (
-            obs.aprendiz_nombre ||
-            obs.nombre_aprendiz ||
-            obs.aprendiz
-              ?.nombre_completo ||
-            ""
-          ).toLowerCase();
+  function getNombreAprendiz(obs) {
+    const p = obs.aprendiz?.usuario?.persona;
+    return p ? `${p.nombres} ${p.apellidos}` : "Sin nombre";
+  }
 
-          return nombre.includes(
-            filtros.busqueda.toLowerCase()
-          );
-        }
-      );
-    }, [
-      observaciones,
-      filtros.busqueda,
-    ]);
+  function getNombreInstructor(obs) {
+    const p = obs.instructor?.usuario?.persona;
+    return p ? `${p.nombres} ${p.apellidos}` : "Instructor";
+  }
 
+  const totalPaginas = Math.ceil(total / LIMIT);
 
+  const aprendizSeleccionadoModal = aprendices.find(
+    (a) => Number(a.id_aprendiz) === Number(form.id_aprendiz)
+  );
 
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="coordinador-panel obs-page">
 
-      {/* HEADER */}
-
+      {/* ── Encabezado + filtros ── */}
       <div className="coordinador-card">
         <div className="coordinador-card-header obs-header">
-
           <div>
-            <h2>
-              Consultar observaciones
-            </h2>
-
-            <p>
-              Visualiza y administra
-              observaciones del
-              grupo.
-            </p>
+            <h2>Consultar observaciones</h2>
+            <p>Visualiza y administra observaciones del grupo.</p>
           </div>
 
-          {puedeRegistrar && (
+          {esInstructor && (
             <button
               className="obs-btn-primary"
               onClick={() => {
-                setEditando(null);
-
-                setForm({
-                  id_aprendiz: "",
-                  tipo_observacion:
-                    "ACADEMICA",
-                  severidad:
-                    "LEVE",
-                  descripcion: "",
-                });
-
-                setMostrarModal(
-                  true
-                );
+                cerrarModal();
+                setMostrarModal(true);
               }}
             >
-              + Registrar observacion
+              + Registrar observación
             </button>
           )}
         </div>
 
-        {/* FILTROS */}
+        {/* Stats rápidas */}
+        {grupoSeleccionado && (
+          <div className="obs-stats">
+            <span className="badge leve">Total: {total}</span>
+            <span className="badge abierta">Abiertas: {observacionesAbiertas}</span>
+          </div>
+        )}
 
+        {/* Fila 1 de filtros */}
         <div className="obs-filters">
-
-          {/* BUSQUEDA */}
-
-          <input
-            placeholder="Buscar aprendiz"
-            value={
-              filtros.busqueda
-            }
-            onChange={(e) =>
-              setFiltros({
-                ...filtros,
-                busqueda:
-                  e.target.value,
-              })
-            }
-          />
-
-          {/* TIPO */}
-
           <select
-            value={filtros.tipo}
-            onChange={(e) =>
-              setFiltros({
-                ...filtros,
-                tipo:
-                  e.target.value,
-              })
-            }
+            value={grupoSeleccionado}
+            onChange={(e) => {
+              setGrupoSeleccionado(e.target.value);
+              setPagina(1);
+              setFiltros((f) => ({ ...f, id_aprendiz: "" }));
+            }}
           >
-            <option value="">
-              Tipo
-            </option>
-
-            <option value="ACADEMICA">
-              ACADEMICA
-            </option>
-
-            <option value="CONVIVENCIAL">
-              CONVIVENCIAL
-            </option>
-          </select>
-
-          {/* SEVERIDAD */}
-
-          <select
-            value={
-              filtros.severidad
-            }
-            onChange={(e) =>
-              setFiltros({
-                ...filtros,
-                severidad:
-                  e.target.value,
-              })
-            }
-          >
-            <option value="">
-              Severidad
-            </option>
-
-            <option value="LEVE">
-              LEVE
-            </option>
-
-            <option value="MODERADA">
-              MODERADA
-            </option>
-
-            <option value="GRAVE">
-              GRAVE
-            </option>
-          </select>
-
-          {/* ESTADO */}
-
-          <select
-            value={
-              filtros.estado
-            }
-            onChange={(e) =>
-              setFiltros({
-                ...filtros,
-                estado:
-                  e.target.value,
-              })
-            }
-          >
-            <option value="">
-              Estado
-            </option>
-
-            <option value="ABIERTA">
-              ABIERTA
-            </option>
-
-            <option value="CERRADA">
-              CERRADA
-            </option>
-          </select>
-
-          {/* NUEVO FILTRO MIS FICHAS */}
-
-          <select
-            value={
-              filtros.ficha
-            }
-            onChange={(e) =>
-              setFiltros({
-                ...filtros,
-                ficha:
-                  e.target.value,
-              })
-            }
-          >
-            <option value="">
-              Mis fichas
-            </option>
-
-            {fichas.map((ficha) => (
-              <option
-                key={ficha.id}
-                value={ficha.codigo}
-              >
-                Ficha {ficha.codigo}
+            <option value="">Seleccione ficha</option>
+            {fichas.map((grupo) => (
+              <option key={grupo.id_grupo} value={grupo.id_grupo}>
+                Ficha {grupo.numero_ficha}
               </option>
             ))}
           </select>
 
-          {/* FECHA */}
+          <select
+            value={filtros.id_aprendiz}
+            onChange={(e) => {
+              setFiltros({ ...filtros, id_aprendiz: e.target.value });
+              setPagina(1);
+            }}
+          >
+            <option value="">Todos los aprendices</option>
+            {aprendices.map((a) => (
+              <option key={a.id_aprendiz} value={a.id_aprendiz}>
+                {a.nombre_completo}
+              </option>
+            ))}
+          </select>
 
+          <select
+            value={filtros.tipo}
+            onChange={(e) => {
+              setFiltros({ ...filtros, tipo: e.target.value });
+              setPagina(1);
+            }}
+          >
+            <option value="">Tipo</option>
+            <option value="ACADEMICA">ACADEMICA</option>
+            <option value="CONVIVENCIAL">CONVIVENCIAL</option>
+          </select>
+
+          <select
+            value={filtros.severidad}
+            onChange={(e) => {
+              setFiltros({ ...filtros, severidad: e.target.value });
+              setPagina(1);
+            }}
+          >
+            <option value="">Severidad</option>
+            <option value="LEVE">LEVE</option>
+            <option value="MODERADA">MODERADA</option>
+            <option value="GRAVE">GRAVE</option>
+          </select>
+
+          <select
+            value={filtros.estado}
+            onChange={(e) => {
+              setFiltros({ ...filtros, estado: e.target.value });
+              setPagina(1);
+            }}
+          >
+            <option value="">Estado</option>
+            <option value="ABIERTA">ABIERTA</option>
+            <option value="CERRADA">CERRADA</option>
+          </select>
+        </div>
+
+        {/* Fila 2: fechas separadas para no repetir la columna en tabla */}
+        <div className="obs-filters-dates">
           <input
             type="date"
-            value={
-              filtros.fecha_desde
-            }
-            onChange={(e) =>
-              setFiltros({
-                ...filtros,
-                fecha_desde:
-                  e.target.value,
-              })
-            }
+            value={filtros.fecha_desde}
+            max={hoy}
+            onChange={(e) => {
+              setFiltros({ ...filtros, fecha_desde: e.target.value });
+              setPagina(1);
+            }}
           />
-
-          {/* LIMPIAR */}
-
-          <button
-            className="obs-btn-secondary"
-            onClick={() =>
-              setFiltros({
-                busqueda: "",
-                tipo: "",
-                severidad: "",
-                estado: "",
-                ficha: "",
-                fecha_desde: "",
-              })
-            }
-          >
+          <input
+            type="date"
+            value={filtros.fecha_hasta}
+            max={hoy}
+            onChange={(e) => {
+              setFiltros({ ...filtros, fecha_hasta: e.target.value });
+              setPagina(1);
+            }}
+          />
+          <button className="obs-btn-secondary" onClick={limpiarFiltros}>
             Limpiar
           </button>
         </div>
       </div>
 
-      {/* TABLA */}
-
+      {/* ── Tabla de observaciones ── */}
       <div className="coordinador-card">
-
-        <h2>
-          Observaciones registradas
-        </h2>
+        <h2>Observaciones registradas</h2>
 
         {loading ? (
-          <p>Cargando...</p>
+          <p style={{ color: "var(--sima-muted)", fontSize: 13 }}>Cargando...</p>
         ) : (
           <>
             <div className="obs-table">
@@ -658,145 +453,68 @@ export default function Observaciones() {
                     <th>Tipo</th>
                     <th>Severidad</th>
                     <th>Estado</th>
-                    <th>
-                      Descripcion
-                    </th>
+                    <th>Descripción</th>
                     <th>Fecha</th>
                     <th>Autor</th>
-                    <th>
-                      Acciones
-                    </th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {observacionesFiltradas.length >
-                  0 ? (
-                    observacionesFiltradas.map(
-                      (obs) => {
-
-                        const nombreAprendiz =
-                          obs
-                            .aprendiz
-                            ?.usuario
-                            ?.persona
-                            ? `${obs.aprendiz.usuario.persona.nombres} ${obs.aprendiz.usuario.persona.apellidos}`
-                            : "Sin nombre";
-
-                        const nombreInstructor =
-                          obs
-                            .instructor
-                            ?.usuario
-                            ?.persona
-                            ? `${obs.instructor.usuario.persona.nombres} ${obs.instructor.usuario.persona.apellidos}`
-                            : "Instructor";
-
-                        return (
-                          <tr
-                            key={
-                              obs.id_observacion ||
-                              obs.id
-                            }
-                          >
-                            <td>
-                              {
-                                nombreAprendiz
+                  {observaciones.length > 0 ? (
+                    observaciones.map((obs) => (
+                      <tr key={obs.id_observacion}>
+                        <td>{getNombreAprendiz(obs)}</td>
+                        <td>
+                          <span className={`badge ${(obs.tipo_observacion || "").toLowerCase()}`}>
+                            {obs.tipo_observacion}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${(obs.severidad || "").toLowerCase()}`}>
+                            {obs.severidad}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${(obs.estado || "").toLowerCase()}`}>
+                            {obs.estado}
+                          </span>
+                        </td>
+                        <td>
+                          {obs.descripcion?.length > 80
+                            ? obs.descripcion.slice(0, 80) + "..."
+                            : obs.descripcion}
+                        </td>
+                        {/* Fecha formateada — sin duplicado */}
+                        <td>{formatFecha(obs.fecha_observacion)}</td>
+                        <td>{getNombreInstructor(obs)}</td>
+                        <td>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() =>
+                                fetchHistorial(
+                                  obs.id_aprendiz,
+                                  getNombreAprendiz(obs)
+                                )
                               }
-                            </td>
+                            >
+                              Historial
+                            </button>
 
-                            <td>
-                              {
-                                obs.tipo_observacion
-                              }
-                            </td>
-
-                            <td>
-                              <span
-                                className={`badge ${(obs.severidad || "").toLowerCase()}`}
-                              >
-                                {
-                                  obs.severidad
-                                }
-                              </span>
-                            </td>
-
-                            <td>
-                              <span
-                                className={`badge ${(obs.estado || "").toLowerCase()}`}
-                              >
-                                {
-                                  obs.estado
-                                }
-                              </span>
-                            </td>
-
-                            <td>
-                              {obs
-                                .descripcion
-                                ?.length >
-                              80
-                                ? obs.descripcion.slice(
-                                    0,
-                                    80
-                                  ) +
-                                  "..."
-                                : obs.descripcion}
-                            </td>
-
-                            <td>
-                              {obs.fecha_observacion ||
-                                obs.fecha ||
-                                "Sin fecha"}
-                            </td>
-
-                            <td>
-                              {
-                                nombreInstructor
-                              }
-                            </td>
-
-                            <td>
-                              <div
-                                style={{
-                                  display:
-                                    "flex",
-                                  gap: 8,
-                                }}
-                              >
-                                <button
-                                  onClick={() =>
-                                    fetchHistorial(
-                                      obs.id_aprendiz
-                                    )
-                                  }
-                                >
-                                  Historial
-                                </button>
-
-                                {obs.estado ===
-                                  "ABIERTA" && (
-                                  <button
-                                    onClick={() =>
-                                      handleEditar(
-                                        obs
-                                      )
-                                    }
-                                  >
-                                    Editar
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      }
-                    )
+                            {esInstructor && obs.estado === "ABIERTA" && (
+                              <button onClick={() => handleEditar(obs)}>
+                                Editar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   ) : (
                     <tr>
-                      <td colSpan="8">
-                        No hay
-                        observaciones
-                        registradas
+                      <td colSpan="8" className="obs-empty">
+                        {grupoSeleccionado
+                          ? "No hay observaciones registradas para este grupo"
+                          : "Selecciona una ficha para ver observaciones"}
                       </td>
                     </tr>
                   )}
@@ -804,452 +522,218 @@ export default function Observaciones() {
               </table>
             </div>
 
-            {/* PAGINACION */}
-
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                marginTop: 20,
-              }}
-            >
-              <button
-                disabled={
-                  pagina === 1
-                }
-                onClick={() =>
-                  setPagina(
-                    pagina - 1
-                  )
-                }
-              >
-                Anterior
-              </button>
-
-              <span>
-                Página {pagina}
-              </span>
-
-              <button
-                disabled={
-                  observaciones.length <
-                  10
-                }
-                onClick={() =>
-                  setPagina(
-                    pagina + 1
-                  )
-                }
-              >
-                Siguiente
-              </button>
-
-              <span>
-                Total registros:{" "}
-                {total}
-              </span>
+            {/* Paginación */}
+            <div className="obs-pagination">
+              <span>Total registros: {total}</span>
+              <div className="obs-pagination-btns">
+                <button
+                  disabled={pagina === 1}
+                  onClick={() => setPagina(pagina - 1)}
+                >
+                  Anterior
+                </button>
+                <span>
+                  Página {pagina}{totalPaginas > 0 ? ` de ${totalPaginas}` : ""}
+                </span>
+                <button
+                  disabled={pagina >= totalPaginas}
+                  onClick={() => setPagina(pagina + 1)}
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           </>
         )}
       </div>
 
-      {/* MODAL */}
-
+      {/* ── Modal registro / edición ── */}
       {mostrarModal && (
         <div className="modal-overlay">
           <div className="modal-card">
-
             <span className="modal-tag">
-              {editando
-                ? "EDITANDO"
-                : "NUEVO REGISTRO"}
+              {editando ? "EDITANDO" : "NUEVO REGISTRO"}
             </span>
 
-            <h2>
-              {editando
-                ? "Editar observacion"
-                : "Registrar observacion"}
-            </h2>
+            <h2>{editando ? "Editar observación" : "Registrar observación"}</h2>
 
             <div className="modal-grid">
-
-              {/* APRENDIZ */}
-
               <div>
-                <label>
-                  Aprendiz
-                </label>
-
+                <label>Aprendiz</label>
                 <div className="multi-select">
-
                   <button
                     type="button"
                     className="multi-select-trigger"
-                    disabled={
-                      !!editando
-                    }
+                    disabled={!!editando}
                     onClick={() =>
-                      setMostrarAprendices(
-                        !mostrarAprendices
-                      )
+                      !editando && setMostrarDropdownModal(!mostrarDropdownModal)
                     }
                   >
-                    {form.id_aprendiz
-                      ? (() => {
-
-                          const aprendizSeleccionado =
-                            aprendices.find(
-                              (
-                                a
-                              ) =>
-                                a.id_aprendiz ===
-                                form.id_aprendiz
-                            );
-
-                          return (
-                            aprendizSeleccionado?.nombre_completo ||
-                            `${aprendizSeleccionado?.nombres || ""} ${
-                              aprendizSeleccionado?.apellidos || ""
-                            }`.trim() ||
-                            "1 aprendiz seleccionado"
-                          );
-                        })()
-                      : "Seleccione"}
+                    {aprendizSeleccionadoModal?.nombre_completo ||
+                      (form.id_aprendiz ? "Aprendiz seleccionado" : "Seleccione")}
                   </button>
 
-                  {mostrarAprendices &&
-                    !editando && (
-                      <div className="multi-select-dropdown">
-
-                        <input
-                          type="text"
-                          placeholder="Buscar aprendiz..."
-                          value={
-                            busquedaAprendiz
-                          }
-                          onChange={(
-                            e
-                          ) =>
-                            setBusquedaAprendiz(
-                              e.target
-                                .value
-                            )
-                          }
-                          className="multi-select-search"
-                        />
-
-                        <div className="multi-select-options">
-
-                          {aprendices
-                            .filter(
-                              (
-                                aprendiz
-                              ) => {
-
-                                const nombre =
-                                  aprendiz.nombre_completo ||
-                                  `${aprendiz.nombres || ""} ${aprendiz.apellidos || ""}`.trim();
-
-                                if (
-                                  !busquedaAprendiz.trim()
-                                )
-                                  return true;
-
-                                return nombre
-                                  .toLowerCase()
-                                  .includes(
-                                    busquedaAprendiz.toLowerCase()
-                                  );
-                              }
-                            )
-                            .map(
-                              (
-                                aprendiz
-                              ) => {
-
-                                const nombre =
-                                  aprendiz.nombre_completo ||
-                                  `${aprendiz.nombres || ""} ${aprendiz.apellidos || ""}`.trim() ||
-                                  `Aprendiz ${aprendiz.id_aprendiz}`;
-
-                                return (
-                                  <label
-                                    key={
-                                      aprendiz.id_aprendiz
-                                    }
-                                    className="multi-select-option"
-                                  >
-                                    <input
-                                      type="radio"
-                                      name="aprendiz"
-                                      checked={
-                                        form.id_aprendiz ===
-                                        aprendiz.id_aprendiz
-                                      }
-                                      onChange={() => {
-
-                                        setForm(
-                                          {
-                                            ...form,
-                                            id_aprendiz:
-                                              aprendiz.id_aprendiz,
-                                          }
-                                        );
-
-                                        setMostrarAprendices(
-                                          false
-                                        );
-                                      }}
-                                    />
-
-                                    <span>
-                                      {
-                                        nombre
-                                      }
-                                    </span>
-                                  </label>
-                                );
-                              }
-                            )}
-                        </div>
+                  {mostrarDropdownModal && !editando && (
+                    <div className="multi-select-dropdown">
+                      <input
+                        type="text"
+                        placeholder="Buscar aprendiz..."
+                        value={busquedaModal}
+                        onChange={(e) => setBusquedaModal(e.target.value)}
+                        className="multi-select-search"
+                      />
+                      <div className="multi-select-options">
+                        {aprendices
+                          .filter((a) =>
+                            (a.nombre_completo || "")
+                              .toLowerCase()
+                              .includes(busquedaModal.toLowerCase())
+                          )
+                          .map((a) => (
+                            <label
+                              key={a.id_aprendiz}
+                              className="multi-select-option"
+                            >
+                              <input
+                                type="radio"
+                                name="aprendiz"
+                                checked={
+                                  Number(form.id_aprendiz) ===
+                                  Number(a.id_aprendiz)
+                                }
+                                onChange={() => {
+                                  setForm({ ...form, id_aprendiz: a.id_aprendiz });
+                                  setMostrarDropdownModal(false);
+                                  setBusquedaModal("");
+                                }}
+                              />
+                              <span>{a.nombre_completo}</span>
+                            </label>
+                          ))}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* TIPO */}
-
               <div>
                 <label>Tipo</label>
-
                 <select
-                  value={
-                    form.tipo_observacion
-                  }
+                  value={form.tipo_observacion}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      tipo_observacion:
-                        e.target
-                          .value,
-                    })
+                    setForm({ ...form, tipo_observacion: e.target.value })
                   }
                 >
-                  <option value="ACADEMICA">
-                    Academica
-                  </option>
-
-                  <option value="CONVIVENCIAL">
-                    Convivencial
-                  </option>
+                  <option value="ACADEMICA">Académica</option>
+                  <option value="CONVIVENCIAL">Convivencial</option>
                 </select>
               </div>
-
-              {/* SEVERIDAD */}
 
               <div>
-                <label>
-                  Severidad
-                </label>
-
+                <label>Severidad</label>
                 <select
-                  value={
-                    form.severidad
-                  }
+                  value={form.severidad}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      severidad:
-                        e.target
-                          .value,
-                    })
+                    setForm({ ...form, severidad: e.target.value })
                   }
                 >
-                  <option value="LEVE">
-                    Leve
-                  </option>
-
-                  <option value="MODERADA">
-                    Moderada
-                  </option>
-
-                  <option value="GRAVE">
-                    Grave
-                  </option>
+                  <option value="LEVE">Leve</option>
+                  <option value="MODERADA">Moderada</option>
+                  <option value="GRAVE">Grave</option>
                 </select>
               </div>
             </div>
 
-            {/* DESCRIPCION */}
-
             <div className="modal-full">
-
-              <label>
-                Descripcion
-              </label>
-
+              <label>Descripción</label>
               <textarea
-                placeholder="Describe la observacion..."
-                value={
-                  form.descripcion
-                }
+                placeholder="Describe la observación (mínimo 20 caracteres)..."
+                value={form.descripcion}
                 onChange={(e) =>
-                  setForm({
-                    ...form,
-                    descripcion:
-                      e.target
-                        .value,
-                  })
+                  setForm({ ...form, descripcion: e.target.value })
                 }
               />
+              <small style={{ color: form.descripcion.trim().length < 20 ? "var(--sima-red)" : "var(--sima-green-dark)" }}>
+                {form.descripcion.trim().length} / 20 caracteres mínimo
+              </small>
             </div>
 
-            {/* BOTONES */}
+            {!editando && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+                  <input
+                    type="checkbox"
+                    checked={form.notificar_lider}
+                    onChange={(e) =>
+                      setForm({ ...form, notificar_lider: e.target.checked })
+                    }
+                  />
+                  Notificar al instructor líder
+                </label>
+              </div>
+            )}
 
             <div className="modal-actions">
-
-              <button
-                onClick={() => {
-
-                  setMostrarModal(
-                    false
-                  );
-
-                  setEditando(
-                    null
-                  );
-                }}
-              >
-                Cancelar
-              </button>
-
-              <button
-                className="obs-btn-primary"
-                onClick={
-                  handleSubmit
-                }
-              >
-                {editando
-                  ? "Actualizar"
-                  : "Guardar observacion"}
+              <button onClick={cerrarModal}>Cancelar</button>
+              <button className="obs-btn-primary" onClick={handleSubmit}>
+                {editando ? "Actualizar" : "Guardar observación"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* HISTORIAL */}
-
+      {/* ── Modal historial ── */}
       {mostrarHistorial && (
         <div className="modal-overlay">
           <div className="modal-card">
-
             <h2>
-              Historial del
-              aprendiz
+              Historial de observaciones
+              {aprendizHistorial && (
+                <span style={{ fontWeight: 400, fontSize: "0.82em", marginLeft: 8, color: "var(--sima-muted)" }}>
+                  — {aprendizHistorial}
+                </span>
+              )}
             </h2>
 
-            <div
-              style={{
-                maxHeight: 400,
-                overflow: "auto",
-              }}
-            >
-              {historial.length >
-              0 ? (
-                historial.map(
-                  (item) => (
-                    <div
-                      key={
-                        item.id_observacion ||
-                        item.id
-                      }
-                      style={{
-                        border:
-                          "1px solid #ccc",
-                        padding: 12,
-                        marginBottom: 10,
-                        borderRadius: 8,
-                      }}
-                    >
-                      <p>
-                        <strong>
-                          Tipo:
-                        </strong>{" "}
-                        {
-                          item.tipo_observacion
-                        }
-                      </p>
+            <p style={{ marginBottom: 16, marginTop: 6, color: "var(--sima-muted)", fontSize: 13, fontWeight: 700 }}>
+              {totalHistorial} observación{totalHistorial !== 1 ? "es" : ""} registrada{totalHistorial !== 1 ? "s" : ""}
+            </p>
 
-                      <p>
-                        <strong>
-                          Severidad:
-                        </strong>{" "}
-                        {
-                          item.severidad
-                        }
-                      </p>
-
-                      <p>
-                        <strong>
-                          Estado:
-                        </strong>{" "}
-                        {
-                          item.estado
-                        }
-                      </p>
-
-                      <p>
-                        <strong>
-                          Fecha:
-                        </strong>{" "}
-                        {
-                          item.fecha_observacion
-                        }
-                      </p>
-
-                      <p>
-                        <strong>
-                          Descripcion:
-                        </strong>{" "}
-                        {
-                          item.descripcion
-                        }
-                      </p>
-
-                      <p>
-                        <strong>
-                          Instructor:
-                        </strong>{" "}
-                        {item
-                          .instructor
-                          ?.usuario
-                          ?.persona
-                          ? `${item.instructor.usuario.persona.nombres} ${item.instructor.usuario.persona.apellidos}`
-                          : "Sin datos"}
-                      </p>
+            <div style={{ maxHeight: 420, overflowY: "auto" }}>
+              {historial.length > 0 ? (
+                historial.map((item) => (
+                  <div key={item.id_observacion} className="historial-item">
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                      <span className={`badge ${(item.tipo_observacion || "").toLowerCase()}`}>
+                        {item.tipo_observacion}
+                      </span>
+                      <span className={`badge ${(item.severidad || "").toLowerCase()}`}>
+                        {item.severidad}
+                      </span>
+                      <span className={`badge ${(item.estado || "").toLowerCase()}`}>
+                        {item.estado}
+                      </span>
                     </div>
-                  )
-                )
+                    <p><strong>Fecha:</strong> {formatFecha(item.fecha_observacion)}</p>
+                    <p><strong>Descripción:</strong> {item.descripcion}</p>
+                    <p className="historial-meta">
+                      <strong>Instructor:</strong>{" "}
+                      {item.instructor?.usuario?.persona
+                        ? `${item.instructor.usuario.persona.nombres} ${item.instructor.usuario.persona.apellidos}`
+                        : "Sin datos"}
+                    </p>
+                  </div>
+                ))
               ) : (
-                <p>
-                  No hay historial
-                  disponible
+                <p style={{ color: "var(--sima-muted)", fontSize: 13 }}>
+                  No hay observaciones disponibles para este aprendiz.
                 </p>
               )}
             </div>
 
             <div className="modal-actions">
-
-              <button
-                onClick={() =>
-                  setMostrarHistorial(
-                    false
-                  )
-                }
-              >
-                Cerrar
-              </button>
+              <button onClick={() => setMostrarHistorial(false)}>Cerrar</button>
             </div>
           </div>
         </div>
