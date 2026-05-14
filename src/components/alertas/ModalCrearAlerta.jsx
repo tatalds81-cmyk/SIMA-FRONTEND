@@ -7,7 +7,7 @@ import './modal.css';
 
 const FORM_INICIAL = {
   aprendizId: '', aprendizNombre: '',
-  grupoId: '', tipoAlerta: '', severidad: '', descripcion: '',
+  grupoId: '', tipoAlerta: 'MANUAL', severidad: '', descripcion: '',
   notificarCoordinador: true,
   notificarInstructorLider: true
 };
@@ -81,10 +81,9 @@ export default function ModalCrearAlerta({ isOpen, onClose, onAlertaCreada }) {
     const e = {};
     if (!form.aprendizId) e.aprendizId = 'Selecciona un aprendiz';
     if (!form.grupoId) e.grupoId = 'Selecciona un grupo';
-    if (!form.tipoAlerta) e.tipoAlerta = 'Selecciona el tipo';
     if (!form.severidad) e.severidad = 'Selecciona la severidad';
     if (!form.descripcion.trim()) e.descripcion = 'La descripción es obligatoria';
-    else if (form.descripcion.trim().length < 20) e.descripcion = 'Mínimo 20 caracteres';
+    else if (form.descripcion.trim().length < 10) e.descripcion = 'Mínimo 10 caracteres';
     setErrores(e);
     return Object.keys(e).length === 0;
   }
@@ -191,12 +190,9 @@ export default function ModalCrearAlerta({ isOpen, onClose, onAlertaCreada }) {
           <div className="mcal-row">
             <div className="mcal-field">
               <label className="mcal-label">Tipo de alerta <span className="mcal-req">*</span></label>
-              <select className={`mcal-select ${errores.tipoAlerta ? 'error' : ''}`} value={form.tipoAlerta} onChange={e => setForm({...form, tipoAlerta: e.target.value})}>
-                <option value="">Seleccione el tipo de alerta</option>
-                <option value="ACADEMICA">Académica</option>
-                <option value="CONVIVENCIAL">Convivencial</option>
+              <select className="mcal-select" value="MANUAL" disabled>
+                <option value="MANUAL">Manual</option>
               </select>
-              {errores.tipoAlerta && <span className="mcal-error-msg">{errores.tipoAlerta}</span>}
             </div>
             <div className="mcal-field">
               <label className="mcal-label">Severidad <span className="mcal-req">*</span></label>

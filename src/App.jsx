@@ -38,7 +38,7 @@ function App() {
 
   const esInstructor = rol === "instructor";
   const rutaInicio = esInstructor
-    ? "/instructor/dashboard"
+    ? "/instructor/grupos"
     : "/dashboard";
 
   return (
@@ -83,6 +83,15 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <MisGrupos />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/grupos/:id"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <GrupoDetalle />
                 </Dashboard>
               }
             />

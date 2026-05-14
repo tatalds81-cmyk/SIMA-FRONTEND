@@ -31,16 +31,49 @@ function limpiarParams(filtros = {}) {
   return p;
 }
 
+function extraerListaAlertas(data) {
+  const payload = data?.data ?? data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.alertas)) return payload.alertas;
+  if (Array.isArray(payload?.results)) return payload.results;
+  return [];
+}
+
+function mapFiltrosBackend(filtros = {}) {
+  return limpiarParams({
+    estado: filtros.estado,
+    severidad: filtros.severidad,
+    tipo_alerta: filtros.tipo_alerta || filtros.tipoAlerta,
+    id_grupo: filtros.id_grupo || filtros.grupoId,
+    id_aprendiz: filtros.id_aprendiz || filtros.aprendizId,
+    fecha_desde: filtros.fecha_desde || filtros.fechaInicio,
+    fecha_hasta: filtros.fecha_hasta || filtros.fechaFin,
+  });
+}
+
 function mapBackendAlerta(alerta) {
   if (!alerta) return alerta;
+  const persona = alerta.aprendiz?.usuario?.persona || alerta.persona || {};
+  const aprendizNombre = `${persona.nombres || ''} ${persona.apellidos || ''}`.trim();
+  const observacionesVinculadas = alerta.alerta_observaciones?.map((item) => ({
+    id: item.id_observacion || item.observacion?.id_observacion,
+    fecha: item.fecha_asociacion || item.observacion?.fecha_observacion,
+    descripcion: item.observacion?.descripcion || 'Observacion vinculada'
+  })) || [];
   return {
     ...alerta,
     id: alerta.id_alerta || alerta.id,
-    fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion,
+    alertaId: alerta.id_alerta || alerta.id,
+    fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion || alerta.created_at,
     tipoAlerta: alerta.tipo_alerta || alerta.tipoAlerta,
-    grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo,
+    grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo || alerta.id_grupo,
+    grupoId: alerta.id_grupo || alerta.grupo?.id_grupo,
+    aprendizDocumento: persona.numero_documento || alerta.aprendizDocumento || '',
+    observacionesVinculadas,
     responsableNombre: alerta.creada_por ? `ID Usuario ${alerta.creada_por}` : 'Sistema',
     aprendizNombre: alerta.aprendiz?.id_aprendiz ? `Aprendiz #${alerta.aprendiz.id_aprendiz}` : '—',
+    aprendizNombre: aprendizNombre || alerta.aprendizNombre || (alerta.id_aprendiz ? `Aprendiz #${alerta.id_aprendiz}` : 'Aprendiz'),
   };
 }
 
@@ -155,12 +188,17 @@ export async function obtenerAlertas(filtros = {}) {
   }
 
   try {
-    const params = limpiarParams(filtros);
+    const params = mapFiltrosBackend(filtros);
     const { data } = await api.get('/api/alerts', { params });
-    let arr = data.data || data;
-    if (Array.isArray(arr)) {
-      arr = arr.map(mapBackendAlerta);
+    let arr = extraerListaAlertas(data).map(mapBackendAlerta);
+
+    if (filtros.aprendizBusqueda) {
+      const texto = filtros.aprendizBusqueda.toLowerCase();
+      arr = arr.filter((alerta) => (
+        `${alerta.aprendizNombre || ''} ${alerta.aprendizDocumento || ''}`.toLowerCase().includes(texto)
+      ));
     }
+
     return { data: { data: arr, total: data.total || arr.length }, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -214,8 +252,7 @@ export async function obtenerAlertasPorAprendiz(aprendizId) {
   if (USE_MOCK) return { data: MOCK_ALERTAS, error: null };
   try {
     const { data } = await api.get('/api/alerts', { params: { id_aprendiz: aprendizId } });
-    let arr = data.data || data;
-    if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
+    const arr = extraerListaAlertas(data).map(mapBackendAlerta);
     return { data: arr, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -251,8 +288,7 @@ export async function obtenerGruposAlertasCoordinador() {
 
   try {
     const { data } = await api.get('/api/alerts');
-    let arr = data.data || data;
-    if (!Array.isArray(arr)) arr = [];
+    const arr = extraerListaAlertas(data);
 
     // Mapear y agrupar por grupo (el backend devuelve lista plana)
     const alertasMapeadas = arr.map(mapBackendAlerta);
@@ -299,8 +335,7 @@ export async function obtenerAlertasPorGrupo(grupoCodigo) {
 
   try {
     const { data } = await api.get('/api/alerts', { params: { id_grupo: grupoCodigo } });
-    let arr = data.data || data;
-    if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
+    const arr = extraerListaAlertas(data).map(mapBackendAlerta);
     return { data: arr, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -345,7 +380,35 @@ export async function buscarAprendices(query) {
 
     return { data: mapeados, error: null };
   } catch (error) {
-    return { data: [], error: mensajeError(error) };
+    try {
+      const { data: gruposResp } = await api.get('/api/groups');
+      const grupos = gruposResp.data?.grupos || gruposResp.data || gruposResp.results || [];
+      const respuestas = await Promise.allSettled(
+        (Array.isArray(grupos) ? grupos : []).map((grupo) =>
+          api.get(`/api/apprentices/grupo/${grupo.id_grupo || grupo.id}`, { params: { limit: 1000 } })
+        )
+      );
+
+      const texto = query.toLowerCase();
+      const aprendices = respuestas.flatMap((resultado) => {
+        if (resultado.status !== 'fulfilled') return [];
+        const payload = resultado.value.data?.data ?? resultado.value.data;
+        return payload?.aprendices || payload?.items || (Array.isArray(payload) ? payload : []);
+      });
+
+      const mapeados = aprendices.map(a => ({
+        id: a.id_aprendiz,
+        nombre: `${a.usuario?.persona?.nombres || a.nombres || ''} ${a.usuario?.persona?.apellidos || a.apellidos || ''}`.trim() || `ID ${a.id_aprendiz}`,
+        documento: a.usuario?.persona?.numero_documento || a.numero_documento || 'â€”'
+      })).filter((a, index, arr) => (
+        `${a.nombre} ${a.documento}`.toLowerCase().includes(texto) &&
+        arr.findIndex((item) => String(item.id) === String(a.id)) === index
+      ));
+
+      return { data: mapeados, error: null };
+    } catch (_fallbackError) {
+      return { data: [], error: mensajeError(error) };
+    }
   }
 }
 

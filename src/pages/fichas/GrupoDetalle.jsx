@@ -1,20 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Edit3, Save, Users, AlertTriangle, ClipboardList, CalendarX, UserX } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { AlertTriangle, ArrowLeft, BarChart3, Edit3, Eye, Save, Users, X } from "lucide-react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../../services/api";
 import "./fichas.css";
 
 /* ── helpers ─────────────────────────────── */
-function RiesgoBadge({ nivel }) {
-  const map = {
-    Alto:  { cls: "gd-badge-alto",  label: "Alto"  },
-    Medio: { cls: "gd-badge-medio", label: "Medio" },
-    Bajo:  { cls: "gd-badge-bajo",  label: "Bajo"  },
-  };
-  const entry = map[nivel] || map.Bajo;
-  return <span className={`gd-badge ${entry.cls}`}>{entry.label}</span>;
-}
-
 function SeveridadLabel({ valor }) {
   const map = {
     Critica:  "gd-sev-critica",
@@ -38,11 +28,511 @@ const BARRAS_SEVERIDAD = [
   { clave: "graves",    label: "Graves",    color: "#ef4444" },
 ];
 
+const TABS_DETALLE = [
+  { id: "resumen", label: "General", Icono: BarChart3 },
+  { id: "aprendices", label: "Aprendices", Icono: Users },
+  { id: "alertas", label: "Alertas", Icono: AlertTriangle },
+];
+
+const APRENDIZ_FORM_VACIO = {
+  id_usuario: "",
+  nombres: "",
+  apellidos: "",
+  tipo_documento: "",
+  numero_documento: "",
+  email: "",
+  telefono: "",
+};
+
+const ESTADOS_ALERTA_CERRADA = new Set(["CERRADA", "CERRADO", "RESUELTA"]);
+const ESTADOS_APRENDIZ_INACTIVO = new Set(["INACTIVO", "RETIRADO", "CANCELADO", "APLAZADO", "SUSPENDIDO"]);
+
+function payload(resp) {
+  return resp?.data ?? resp;
+}
+
+function extraerLista(data, llavePrincipal = "") {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+  if (llavePrincipal && Array.isArray(data[llavePrincipal])) return data[llavePrincipal];
+  if (Array.isArray(data.aprendices)) return data.aprendices;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.data)) return data.data;
+  return [];
+}
+
+function textoPlano(valor) {
+  return `${valor ?? ""}`.trim().toUpperCase();
+}
+
+function normalizarTexto(valor) {
+  return `${valor ?? ""}`
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function numeroSeguro(valor) {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function obtenerIdAprendiz(item) {
+  return item?.id_aprendiz ?? item?.idAprendiz ?? item?.aprendiz?.id_aprendiz ?? item?.aprendiz?.id ?? item?.id;
+}
+
+function obtenerPersona(item) {
+  return item?.usuario?.persona || item?.persona || item?.aprendiz?.usuario?.persona || {};
+}
+
+function obtenerNombreAprendiz(item, fallback = "Aprendiz") {
+  const persona = obtenerPersona(item);
+  const nombre = `${persona.nombres || item?.nombres || ""} ${persona.apellidos || item?.apellidos || ""}`.trim();
+  return nombre || item?.aprendizNombre || item?.nombre || fallback;
+}
+
+function obtenerNombresAprendiz(item) {
+  const persona = obtenerPersona(item);
+  return persona.nombres || item?.nombres || "";
+}
+
+function obtenerApellidosAprendiz(item) {
+  const persona = obtenerPersona(item);
+  return persona.apellidos || item?.apellidos || "";
+}
+
+function obtenerDocumentoAprendiz(item) {
+  const persona = obtenerPersona(item);
+  return persona.numero_documento || item?.numero_documento || item?.documento || "-";
+}
+
+function obtenerIdUsuarioAprendiz(item) {
+  return item?.usuario?.id_usuario || item?.id_usuario || item?.aprendiz?.usuario?.id_usuario || "";
+}
+
+function obtenerTipoDocumentoAprendiz(item) {
+  const persona = obtenerPersona(item);
+  return persona.tipo_documento || item?.tipo_documento || "";
+}
+
+function obtenerEmailAprendiz(item) {
+  return item?.usuario?.email || item?.email || item?.correo || "";
+}
+
+function obtenerTelefonoAprendiz(item) {
+  const persona = obtenerPersona(item);
+  return persona.telefono || item?.telefono || "";
+}
+
+function obtenerEstadoFormativoAprendiz(item) {
+  return item?.estado_formativo || item?.estadoFormativo || item?.estado_formacion || "No registrado";
+}
+
+function obtenerEstadoUsuarioAprendiz(item) {
+  return item?.usuario?.estado || item?.estado_usuario || item?.estado || "No registrado";
+}
+
+function obtenerGrupoActualAprendiz(item) {
+  const grupoActivo = item?.aprendiz_grupos?.find((relacion) => relacion?.estado === "ACTIVO") ||
+    item?.aprendiz_grupos?.[0];
+  return grupoActivo?.grupo || item?.grupo || {};
+}
+
+function aprendizInactivo(item) {
+  const estado = textoPlano(item?.estado || item?.usuario?.estado);
+  const estadoFormativo = textoPlano(item?.estado_formativo);
+  return ESTADOS_APRENDIZ_INACTIVO.has(estado) || ESTADOS_APRENDIZ_INACTIVO.has(estadoFormativo);
+}
+
+function obtenerInasistenciasAprendiz(item) {
+  const posibles = [
+    item?.inasistencias_validas,
+    item?.total_inasistencias_validas,
+    item?.inasistencias,
+    item?.total_inasistencias,
+    item?.faltas,
+    item?.ausencias,
+  ];
+  const valor = posibles.map(numeroSeguro).find((numero) => numero !== null);
+  return valor ?? 0;
+}
+
+function alertaEstaAbierta(alerta) {
+  const estado = textoPlano(alerta?.estado);
+  return !estado || !ESTADOS_ALERTA_CERRADA.has(estado);
+}
+
+function alertaEstaActiva(alerta) {
+  return textoPlano(alerta?.estado || "ACTIVA") === "ACTIVA";
+}
+
+function alertaEsObservacion(alerta) {
+  return textoPlano(alerta?.tipo_alerta || alerta?.tipoAlerta) === "OBSERVACIONES_RECURRENTES" ||
+    textoPlano(alerta?.observacion?.estado) === "ABIERTA";
+}
+
+function alertaEsInasistencia(alerta) {
+  return textoPlano(alerta?.tipo_alerta || alerta?.tipoAlerta).includes("INASISTENCIA");
+}
+
+function formatearFecha(valor) {
+  if (!valor) return "-";
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return "-";
+  return fecha.toLocaleDateString("es-CO");
+}
+
+function normalizarFechaInput(valor) {
+  if (!valor) return "";
+  if (typeof valor === "string") return valor.split("T")[0];
+  const fecha = new Date(valor);
+  return Number.isNaN(fecha.getTime()) ? "" : fecha.toISOString().split("T")[0];
+}
+
+function calcularFechaFinLocal(fechaInicio, trimestres, fallback = "") {
+  const inicio = normalizarFechaInput(fechaInicio);
+  const totalTrimestres = Number.parseInt(trimestres, 10);
+  if (!inicio || !Number.isInteger(totalTrimestres)) return fallback;
+  const fecha = new Date(`${inicio}T00:00:00`);
+  if (Number.isNaN(fecha.getTime())) return fallback;
+  fecha.setMonth(fecha.getMonth() + totalTrimestres * 3);
+  return fecha.toISOString().split("T")[0];
+}
+
+function obtenerMensajeError(error, fallback = "No fue posible completar la accion.") {
+  const data = error?.response?.data || error;
+  const estado = error?.response?.status;
+  if (estado === 404) {
+    return "El backend no tiene habilitado el endpoint para editar grupos (PUT /api/groups/:id).";
+  }
+  return data?.message || data?.error || error?.message || fallback;
+}
+
+function etiquetaSeveridad(valor) {
+  const severidad = textoPlano(valor);
+  const map = { CRITICA: "Critica", GRAVE: "Grave", MODERADA: "Moderada", LEVE: "Leve" };
+  return map[severidad] || "-";
+}
+
+function calcularTrimestreActual(grupo) {
+  const totalTrimestres = Number(grupo?.trimestres) || 0;
+  if (!grupo?.fecha_inicio || !totalTrimestres) return "-";
+
+  const inicio = new Date(`${grupo.fecha_inicio}T00:00:00`);
+  if (Number.isNaN(inicio.getTime())) return "-";
+
+  const dias = Math.floor((Date.now() - inicio.getTime()) / 86400000);
+  if (dias < 0) return "Por iniciar";
+
+  const actual = Math.floor(dias / 90) + 1;
+  return Math.min(Math.max(actual, 1), totalTrimestres);
+}
+
+function formatearTotalTrimestres(valor) {
+  const total = Number.parseInt(valor, 10);
+  if (!Number.isInteger(total) || total < 1) return "Sin duracion";
+  return `${total} ${total === 1 ? "trimestre" : "trimestres"}`;
+}
+
+function normalizarAlertas(listaAlertas, aprendices) {
+  const aprendicesPorId = new Map();
+  aprendices.forEach((aprendiz) => {
+    const id = obtenerIdAprendiz(aprendiz);
+    if (id !== undefined && id !== null) aprendicesPorId.set(String(id), aprendiz);
+  });
+
+  const filtradas = listaAlertas.filter((alerta) => {
+    const idAprendiz = obtenerIdAprendiz(alerta);
+    return idAprendiz !== undefined && aprendicesPorId.has(String(idAprendiz));
+  });
+
+  const abiertas = filtradas.filter(alertaEstaAbierta);
+  const activas = abiertas.filter(alertaEstaActiva);
+  const porSeveridad = { leves: 0, moderadas: 0, graves: 0 };
+  const porAprendiz = {};
+
+  abiertas.forEach((alerta) => {
+    const severidad = textoPlano(alerta.severidad);
+    if (severidad === "LEVE") porSeveridad.leves += 1;
+    else if (severidad === "MODERADA") porSeveridad.moderadas += 1;
+    else if (severidad === "GRAVE" || severidad === "CRITICA") porSeveridad.graves += 1;
+
+    const idAprendiz = String(obtenerIdAprendiz(alerta));
+    if (!porAprendiz[idAprendiz]) {
+      porAprendiz[idAprendiz] = { total: 0, inasistencias: 0, graves: 0, moderadas: 0 };
+    }
+    porAprendiz[idAprendiz].total += 1;
+    if (alertaEsInasistencia(alerta)) porAprendiz[idAprendiz].inasistencias += 1;
+    if (severidad === "GRAVE" || severidad === "CRITICA") porAprendiz[idAprendiz].graves += 1;
+    if (severidad === "MODERADA") porAprendiz[idAprendiz].moderadas += 1;
+  });
+
+  return {
+    total: activas.length,
+    observaciones: abiertas.filter(alertaEsObservacion).length,
+    inasistencias: abiertas.filter(alertaEsInasistencia).length,
+    porSeveridad,
+    porAprendiz,
+    lista: abiertas.map((alerta) => {
+      const aprendiz = aprendicesPorId.get(String(obtenerIdAprendiz(alerta)));
+      return {
+        aprendiz: obtenerNombreAprendiz(aprendiz, `Aprendiz #${obtenerIdAprendiz(alerta) || ""}`.trim()),
+        detalle: alerta.descripcion || alerta.detalle || "-",
+        severidad: etiquetaSeveridad(alerta.severidad),
+        fuente: textoPlano(alerta.origen || alerta.fuente || alerta.tipo_alerta) === "MANUAL" ? "Manual" : "Sistema",
+        fecha: formatearFecha(alerta.fecha_alerta || alerta.fechaCreacion || alerta.fecha_creacion),
+      };
+    }),
+  };
+}
+
+function calcularMetricasGrupo(aprendices, alertasGrupo, grupo) {
+  const inactivos = aprendices.filter(aprendizInactivo).length;
+  const activos = Math.max(aprendices.length - inactivos, 0);
+  const inasistenciasDesdeAprendices = aprendices.reduce(
+    (total, aprendiz) => total + obtenerInasistenciasAprendiz(aprendiz),
+    0
+  );
+
+  return {
+    activos,
+    inactivos,
+    trimestreActual: calcularTrimestreActual(grupo),
+    inasistencias: inasistenciasDesdeAprendices || alertasGrupo.inasistencias || 0,
+  };
+}
+
+function porcentaje(valor, total) {
+  if (!total) return 0;
+  return Math.min(100, Math.max(0, Math.round((valor / total) * 100)));
+}
+
+function buscarNumero(objeto, claves) {
+  if (!objeto || typeof objeto !== "object") return null;
+
+  for (const clave of claves) {
+    const numero = numeroSeguro(objeto[clave]);
+    if (numero !== null) return numero;
+  }
+
+  return null;
+}
+
+function extraerDistribucionAsistencia(fuente) {
+  if (!fuente || typeof fuente !== "object") return null;
+
+  const valores = {
+    presente: buscarNumero(fuente, ["presente", "presentes", "asistio", "asistieron"]),
+    tarde: buscarNumero(fuente, ["tarde", "tardes", "llegadas_tarde", "retardos"]),
+    inasistente: buscarNumero(fuente, ["inasistente", "inasistentes", "ausente", "ausentes", "no_asistio", "no_asistieron"]),
+    justificada: buscarNumero(fuente, ["justificada", "justificadas", "inasistencia_justificada", "inasistencias_justificadas"]),
+  };
+
+  const tieneDatos = Object.values(valores).some((valor) => valor !== null);
+  if (!tieneDatos) return null;
+
+  const suma = Object.values(valores).reduce((total, valor) => total + (valor || 0), 0);
+  const total = buscarNumero(fuente, ["total", "total_registros", "total_aprendices", "registrados"]) || suma;
+  if (!total) return null;
+
+  return {
+    presente: porcentaje(valores.presente || 0, total),
+    tarde: porcentaje(valores.tarde || 0, total),
+    inasistente: porcentaje(valores.inasistente || 0, total),
+    justificada: porcentaje(valores.justificada || 0, total),
+  };
+}
+
+function extraerAsistenciaPeriodo(fuente, periodo) {
+  if (!fuente || typeof fuente !== "object") return null;
+
+  const periodoNormalizado = periodo.toLowerCase();
+  return (
+    extraerDistribucionAsistencia(fuente[periodoNormalizado]) ||
+    extraerDistribucionAsistencia(fuente[periodoNormalizado.toUpperCase()]) ||
+    extraerDistribucionAsistencia(fuente)
+  );
+}
+
+function agregarAsistenciaAprendices(aprendices, periodo) {
+  const acumulado = { presente: 0, tarde: 0, inasistente: 0, justificada: 0 };
+  let registros = 0;
+
+  aprendices.forEach((aprendiz) => {
+    const fuentes = [
+      aprendiz?.asistencia,
+      aprendiz?.asistencias,
+      aprendiz?.resumen_asistencia,
+      aprendiz?.attendance,
+      aprendiz,
+    ];
+
+    const resumen = fuentes.map((fuente) => extraerAsistenciaPeriodo(fuente, periodo)).find(Boolean);
+    if (!resumen) return;
+
+    registros += 1;
+    BARRA_ASISTENCIA.forEach(({ clave }) => {
+      acumulado[clave] += resumen[clave] || 0;
+    });
+  });
+
+  if (!registros) return null;
+
+  return Object.fromEntries(
+    Object.entries(acumulado).map(([clave, valor]) => [clave, porcentaje(valor, registros * 100)])
+  );
+}
+
+function construirAsistencia(metricasGrupo, aprendices, grupo = null) {
+  const fuentesGrupo = [
+    grupo?.asistencia,
+    grupo?.asistencias,
+    grupo?.resumen_asistencia,
+    grupo?.attendance,
+    grupo?.metricas_asistencia,
+  ];
+
+  const datos = {};
+  ["hoy", "semana", "mes"].forEach((periodo) => {
+    datos[periodo] =
+      fuentesGrupo.map((fuente) => extraerAsistenciaPeriodo(fuente, periodo)).find(Boolean) ||
+      agregarAsistenciaAprendices(aprendices, periodo);
+  });
+
+  const tieneDatos = Boolean(datos.hoy || datos.semana || datos.mes);
+
+  return {
+    tieneDatos,
+    inasistencias: metricasGrupo.inasistencias || 0,
+    hoy: datos.hoy,
+    semana: datos.semana,
+    mes: datos.mes,
+  };
+}
+
+function obtenerIdGrupoBackend(grupo, fallback) {
+  return grupo?.id_grupo || grupo?.id || grupo?.grupo?.id_grupo || fallback;
+}
+
+function obtenerCodigoGrupo(grupo) {
+  return grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo || grupo?.ficha || "";
+}
+
+function extraerGrupoRespuesta(dataGrupo, dataAprendices) {
+  if (dataGrupo?.grupo) return dataGrupo.grupo;
+  if (dataGrupo?.id_grupo || dataGrupo?.numero_ficha || dataGrupo?.jornada) return dataGrupo;
+  if (dataAprendices?.grupo) return dataAprendices.grupo;
+  return null;
+}
+
+function leerGrupoNavegacion(idGrupo, grupoState) {
+  if (grupoState) return grupoState;
+
+  try {
+    const guardado = sessionStorage.getItem(`sima_grupo_detalle_${idGrupo}`);
+    return guardado ? JSON.parse(guardado) : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolverGrupoSeleccionado(grupoBackend, grupoNavegacion) {
+  if (!grupoNavegacion) return grupoBackend;
+  if (!grupoBackend) return grupoNavegacion;
+
+  const fichaBackend = String(obtenerCodigoGrupo(grupoBackend));
+  const fichaNavegacion = String(obtenerCodigoGrupo(grupoNavegacion));
+
+  if (fichaBackend && fichaNavegacion && fichaBackend !== fichaNavegacion) {
+    return grupoNavegacion;
+  }
+
+  return { ...grupoNavegacion, ...grupoBackend };
+}
+
+async function consultarGrupoBase(idGrupo) {
+  const [grupoResp, aprendicesResp] = await Promise.allSettled([
+    api.get(`/api/groups/${idGrupo}`),
+    api.get(`/api/apprentices/grupo/${idGrupo}`, { params: { limit: 1000 } }),
+  ]);
+
+  const dataGrupo = grupoResp.status === "fulfilled" ? payload(grupoResp.value.data) : null;
+  const dataAprendices = aprendicesResp.status === "fulfilled" ? payload(aprendicesResp.value.data) : null;
+  const listaAprendices = extraerLista(dataAprendices, "aprendices");
+  const grupoBackend = extraerGrupoRespuesta(dataGrupo, dataAprendices);
+
+  if (!grupoBackend) {
+    const err = grupoResp.reason?.response?.data || aprendicesResp.reason?.response?.data;
+    throw new Error(err?.message || err?.error || "No fue posible cargar la ficha");
+  }
+
+  return { grupoBackend, listaAprendices };
+}
+
+function camposNoPersistidos(grupoBackend, cambios) {
+  const pendientes = [];
+  if (normalizarFechaInput(grupoBackend?.fecha_inicio) !== cambios.fecha_inicio) {
+    pendientes.push("fecha de inicio");
+  }
+  if (normalizarTexto(grupoBackend?.jornada) !== normalizarTexto(cambios.jornada)) {
+    pendientes.push("jornada");
+  }
+  if (Number.parseInt(grupoBackend?.trimestres, 10) !== cambios.trimestres) {
+    pendientes.push("duracion");
+  }
+  return pendientes;
+}
+
+function extraerAprendizRespuesta(data, fallback) {
+  if (!data || typeof data !== "object") return fallback;
+  return data.aprendiz || data.data?.aprendiz || data.data || data;
+}
+
+function construirPerfilAprendiz(aprendiz, detalleGrupo, resumenAlertas = {}) {
+  const grupoActual = obtenerGrupoActualAprendiz(aprendiz);
+  const nombres = obtenerNombresAprendiz(aprendiz);
+  const apellidos = obtenerApellidosAprendiz(aprendiz);
+
+  return {
+    id: obtenerIdAprendiz(aprendiz) || "-",
+    nombreCompleto: obtenerNombreAprendiz(aprendiz),
+    nombres: nombres || "No registrado",
+    apellidos: apellidos || "No registrado",
+    tipoDocumento: obtenerTipoDocumentoAprendiz(aprendiz) || "No registrado",
+    documento: obtenerDocumentoAprendiz(aprendiz),
+    correo: obtenerEmailAprendiz(aprendiz) || "No registrado",
+    telefono: obtenerTelefonoAprendiz(aprendiz) || "No registrado",
+    estadoUsuario: obtenerEstadoUsuarioAprendiz(aprendiz),
+    estadoFormativo: obtenerEstadoFormativoAprendiz(aprendiz),
+    ficha: grupoActual.numero_ficha || grupoActual.numero_grupo || detalleGrupo?.ficha || "No registrada",
+    programa: grupoActual.programa || grupoActual.programa_formacion?.nombre_programa || detalleGrupo?.programa || "No registrado",
+    jornada: grupoActual.jornada || detalleGrupo?.jornada || "No registrada",
+    fechaInicio: grupoActual.fecha_inicio || detalleGrupo?.fechaInicio || "No registrada",
+    fechaFin: grupoActual.fecha_fin || detalleGrupo?.fechaFin || "No registrada",
+    alertas: resumenAlertas.total ?? 0,
+    alertasGraves: resumenAlertas.graves ?? 0,
+    alertasModeradas: resumenAlertas.moderadas ?? 0,
+    inasistencias: obtenerInasistenciasAprendiz(aprendiz) || resumenAlertas.inasistencias || 0,
+  };
+}
+
 export default function GrupoDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const rol = (localStorage.getItem("rol") || "").toLowerCase();
   const esInstructor = rol === "instructor" || rol === "instructor_lider" || rol === "instructor_asignado";
+  const puedeEditarGrupo = rol === "coordinador";
+  const puedeVerAlertas = puedeEditarGrupo || esInstructor;
+  const puedeVerPerfilAprendiz = esInstructor;
+  const rutaRegreso = esInstructor ? "/instructor/grupos" : "/fichas";
+  const textoRegreso = esInstructor ? "Volver a Mis Grupos" : "Volver a Gestion de grupos";
+  const grupoNavegacion = useMemo(
+    () => leerGrupoNavegacion(id, location.state?.grupo),
+    [id, location.state]
+  );
 
   /* ── estado del grupo (ya existente) ── */
   const [grupo, setGrupo] = useState(null);
@@ -50,79 +540,87 @@ export default function GrupoDetalle() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [errorDetalle, setErrorDetalle] = useState("");
   const [modoEdicion, setModoEdicion] = useState(false);
   const [vistaDetalle, setVistaDetalle] = useState("resumen");
   const [detalleForm, setDetalleForm] = useState({ numero_ficha: "", jornada: "", trimestres: "", fecha_inicio: "" });
+  const [guardandoDetalle, setGuardandoDetalle] = useState(false);
 
-  /* ── estado para secciones pendientes de endpoint ── */
-  const [alertas, setAlertas] = useState(null);          // null = sin endpoint
-  const [asistencia, setAsistencia] = useState(null);    // null = sin endpoint
-  const [metricas, setMetricas] = useState(null);        // null = sin endpoint
+  /* ── estado para metricas del grupo ── */
+  const [alertas, setAlertas] = useState(null);
+  const [asistencia, setAsistencia] = useState(null);
+  const [metricas, setMetricas] = useState(null);
   const [periodoAsist, setPeriodoAsist] = useState("Hoy");
+  const [tabDetalle, setTabDetalle] = useState("resumen");
+  const [aprendizEditando, setAprendizEditando] = useState(null);
+  const [aprendizForm, setAprendizForm] = useState(APRENDIZ_FORM_VACIO);
+  const [guardandoAprendiz, setGuardandoAprendiz] = useState(false);
+  const [errorAprendiz, setErrorAprendiz] = useState("");
+  const [perfilAprendiz, setPerfilAprendiz] = useState(null);
+  const [cargandoPerfil, setCargandoPerfil] = useState(false);
+  const [errorPerfil, setErrorPerfil] = useState("");
 
   useEffect(() => {
     let activo = true;
     async function cargar() {
       try {
-        const token = localStorage.getItem("access") || localStorage.getItem("token");
-        const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-        const [gr, apr] = await Promise.all([
-          fetch(`/api/groups/${id}`, { headers: h }),
-          fetch(`/api/apprentices/grupo/${id}`, { headers: h }),
-        ]);
-        const gData = await gr.json().catch(() => null);
-        const aData = await apr.json().catch(() => null);
-        if (!gr.ok) throw gData;
+        setCargando(true);
+        setError("");
+
+        const { grupoBackend, listaAprendices } = await consultarGrupoBase(id);
+        const grupoSeleccionado = resolverGrupoSeleccionado(grupoBackend, grupoNavegacion);
+
+        let alertasNormalizadas = normalizarAlertas([], listaAprendices);
+        try {
+          const idGrupoAlertas = obtenerIdGrupoBackend(grupoSeleccionado, id);
+          const respAlertas = await api.get("/api/alerts", { params: { id_grupo: idGrupoAlertas } });
+          const listaAlertas = extraerLista(payload(respAlertas.data));
+          alertasNormalizadas = normalizarAlertas(listaAlertas, listaAprendices);
+        } catch (errAlertas) {
+          console.warn("No fue posible cargar alertas del grupo", errAlertas);
+        }
+
+        const metricasGrupo = calcularMetricasGrupo(listaAprendices, alertasNormalizadas, grupoSeleccionado);
+        const asistenciaGrupo = construirAsistencia(metricasGrupo, listaAprendices, grupoSeleccionado);
+
         if (activo) {
-          const g = gData?.data || null;
-          const lista = aData?.data?.aprendices || aData?.data?.items || aData?.data || [];
-          setGrupo(g);
-          setAprendicesGrupo(Array.isArray(lista) ? lista : []);
+          setGrupo(grupoSeleccionado);
+          setAprendicesGrupo(listaAprendices);
+          setAlertas(alertasNormalizadas);
+          setMetricas(metricasGrupo);
+          setAsistencia(asistenciaGrupo);
           setDetalleForm({
-            numero_ficha: g?.numero_ficha || "",
-            jornada: g?.jornada || "",
-            trimestres: g?.trimestres || "",
-            fecha_inicio: g?.fecha_inicio || "",
+            numero_ficha: grupoSeleccionado?.numero_ficha || "",
+            jornada: grupoSeleccionado?.jornada || "",
+            trimestres: grupoSeleccionado?.trimestres || "",
+            fecha_inicio: normalizarFechaInput(grupoSeleccionado?.fecha_inicio),
           });
         }
       } catch (e) {
-        if (activo) setError(e?.message || e?.error || "Error al cargar la ficha");
+        if (activo && grupoNavegacion) {
+          const alertasNormalizadas = normalizarAlertas([], []);
+          const metricasGrupo = calcularMetricasGrupo([], alertasNormalizadas, grupoNavegacion);
+          setGrupo(grupoNavegacion);
+          setAprendicesGrupo([]);
+          setAlertas(alertasNormalizadas);
+          setMetricas(metricasGrupo);
+          setAsistencia(construirAsistencia(metricasGrupo, [], grupoNavegacion));
+          setDetalleForm({
+            numero_ficha: grupoNavegacion?.numero_ficha || "",
+            jornada: grupoNavegacion?.jornada || "",
+            trimestres: grupoNavegacion?.trimestres || "",
+            fecha_inicio: normalizarFechaInput(grupoNavegacion?.fecha_inicio),
+          });
+        } else if (activo) {
+          setError(e?.message || e?.error || "Error al cargar la ficha");
+        }
       } finally {
         if (activo) setCargando(false);
-      }
-
-      // Cargar alertas del grupo desde el backend real
-      try {
-        const { data: respAlertas } = await api.get('/api/alerts', { params: { id_grupo: id } });
-        const listaAlertas = respAlertas?.data || respAlertas?.results || (Array.isArray(respAlertas) ? respAlertas : []);
-        if (activo && listaAlertas.length >= 0) {
-          const porSeveridad = { leves: 0, moderadas: 0, graves: 0 };
-          listaAlertas.forEach(a => {
-            const sev = (a.severidad || '').toUpperCase();
-            if (sev === 'LEVE') porSeveridad.leves++;
-            else if (sev === 'MODERADA') porSeveridad.moderadas++;
-            else if (sev === 'GRAVE') porSeveridad.graves++;
-          });
-          setAlertas({
-            total: listaAlertas.length,
-            observaciones: listaAlertas.filter(a => a.tipo_alerta === 'OBSERVACIONES_RECURRENTES').length,
-            porSeveridad,
-            lista: listaAlertas.map(a => ({
-              aprendiz: a.aprendiz?.nombre || a.aprendizNombre || 'Aprendiz',
-              detalle: a.descripcion || '-',
-              severidad: a.severidad ? a.severidad.charAt(0).toUpperCase() + a.severidad.slice(1).toLowerCase() : '-',
-              fuente: a.tipo_alerta === 'MANUAL' ? 'Manual' : 'Sistema',
-              fecha: a.fecha_creacion ? new Date(a.fecha_creacion).toLocaleDateString('es-CO') : '-',
-            })),
-          });
-        }
-      } catch (_) {
-        // Si el endpoint de alertas falla, dejamos alertas en null (sin endpoint)
       }
     }
     cargar();
     return () => { activo = false; };
-  }, [id]);
+  }, [id, grupoNavegacion]);
 
   const detalle = useMemo(() => {
     if (!grupo) return null;
@@ -130,13 +628,18 @@ export default function GrupoDetalle() {
     const estadoTexto = estado === "SUSPENDIDO" ? "En espera" : estado === "CERRADO" ? "Cerrada" : "Activo";
     const estadoClase = estado === "SUSPENDIDO" ? "suspendido" : estado === "CERRADO" ? "cerrado" : "activo";
     const persona = grupo.instructor_lider?.usuario?.persona;
-    const instructor = persona ? `${persona.nombres} ${persona.apellidos}` : "Sin asignar";
+    const instructor = persona
+      ? `${persona.nombres} ${persona.apellidos}`
+      : grupo.instructor || grupo.instructor_lider_nombre || "Sin asignar";
     const iniciales = persona ? `${persona.nombres[0]}${persona.apellidos[0]}` : "?";
+    const areaDirecta = grupo.area?.nombre_area || grupo.nombre_area || grupo.area;
+    const programaDirecto = grupo.programa?.nombre_programa || grupo.nombre_programa || grupo.programa;
+
     return {
-      ficha: grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || id,
+      ficha: obtenerCodigoGrupo(grupo) || id,
       estadoTexto, estadoClase,
-      area: grupo.programa_formacion?.area?.nombre_area || "No especificada",
-      programa: grupo.programa_formacion?.nombre_programa || "No especificado",
+      area: grupo.programa_formacion?.area?.nombre_area || (typeof areaDirecta === "string" ? areaDirecta : "") || "No especificada",
+      programa: grupo.programa_formacion?.nombre_programa || (typeof programaDirecto === "string" ? programaDirecto : "") || "No especificado",
       jornada: grupo.jornada || "No especificada",
       trimestres: grupo.trimestres || 0,
       fechaInicio: grupo.fecha_inicio || "No registrada",
@@ -152,48 +655,258 @@ export default function GrupoDetalle() {
   /* ── KPIs derivados de datos reales cuando lleguen ── */
   const kpis = useMemo(() => {
     const base = [
-      { icon: Users,        label: "Aprendices activos",     valor: detalle?.aprendices ?? "-",       sub: detalle?.aprendices ? "registrados" : "Sin registros", cls: "gd-kpi-green" },
-      { icon: CalendarX,    label: "Inasistencias válidas",  valor: asistencia?.inasistencias ?? "-", sub: asistencia ? "este mes" : "Sin endpoint",              cls: "gd-kpi-blue" },
-      { icon: UserX,        label: "Inactivos",              valor: metricas?.inactivos ?? "-",       sub: metricas ? "aprendices" : "Sin endpoint",              cls: "gd-kpi-gray" },
+      { label: "Aprendices activos",    valor: metricas?.activos ?? detalle?.aprendices ?? 0, sub: "vinculados al grupo", cls: "gd-kpi-green" },
+      { label: "Inasistencias válidas", valor: asistencia?.inasistencias ?? 0, sub: "registradas", cls: "gd-kpi-blue" },
+      { label: "Inactivos",             valor: metricas?.inactivos ?? 0, sub: "aprendices", cls: "gd-kpi-gray" },
     ];
     
-    if (esInstructor) {
+    if (puedeVerAlertas) {
       base.splice(1, 0, 
-        { icon: AlertTriangle,label: "Alertas activas",        valor: alertas?.total ?? "-",            sub: alertas ? "activas" : "Sin endpoint",                  cls: "gd-kpi-red"   },
-        { icon: ClipboardList,label: "Observaciones abiertas", valor: alertas?.observaciones ?? "-",    sub: alertas ? "abiertas" : "Sin endpoint",                 cls: "gd-kpi-yellow" }
+        { label: "Alertas activas",        valor: alertas?.total ?? 0,         sub: "activas", cls: "gd-kpi-red"   },
+        { label: "Observaciones abiertas", valor: alertas?.observaciones ?? 0, sub: "abiertas", cls: "gd-kpi-yellow" }
       );
     }
     return base;
-  }, [detalle, alertas, asistencia, metricas, esInstructor]);
+  }, [detalle, alertas, asistencia, metricas, puedeVerAlertas]);
+
+  const tabsDetalle = useMemo(
+    () => TABS_DETALLE.filter((tab) => tab.id !== "alertas" || puedeVerAlertas),
+    [puedeVerAlertas]
+  );
+
+  const conteoTab = {
+    aprendices: detalle?.aprendices ?? 0,
+    alertas: alertas?.total ?? 0,
+  };
 
   /* ── funciones de edición (existentes) ── */
-  function cambiarForm(e) { const { name, value } = e.target; setDetalleForm(p => ({ ...p, [name]: value })); }
-  function cancelar() { setModoEdicion(false); setDetalleForm({ numero_ficha: grupo?.numero_ficha || "", jornada: grupo?.jornada || "", trimestres: grupo?.trimestres || "", fecha_inicio: grupo?.fecha_inicio || "" }); }
+  function cambiarForm(e) {
+    const { name, value } = e.target;
+    setErrorDetalle("");
+    setDetalleForm(p => ({ ...p, [name]: value }));
+  }
+
+  function iniciarEdicionGrupo() {
+    if (!puedeEditarGrupo) return;
+    setMensaje("");
+    setErrorDetalle("");
+    setModoEdicion(true);
+  }
+
+  function cancelar() {
+    setModoEdicion(false);
+    setErrorDetalle("");
+    setDetalleForm({
+      numero_ficha: grupo?.numero_ficha || "",
+      jornada: grupo?.jornada || "",
+      trimestres: grupo?.trimestres || "",
+      fecha_inicio: normalizarFechaInput(grupo?.fecha_inicio),
+    });
+  }
+
+  function validarDetalleGrupo() {
+    const trimestres = Number.parseInt(detalleForm.trimestres, 10);
+    if (!detalleForm.fecha_inicio) return "La fecha de inicio es obligatoria.";
+    if (!detalleForm.jornada) return "La jornada es obligatoria.";
+    if (!Number.isInteger(trimestres) || trimestres < 1) return "La duracion debe ser un numero de trimestres mayor a 0.";
+    return "";
+  }
+
   async function guardar() {
+    if (!puedeEditarGrupo) return;
+
+    const errorValidacion = validarDetalleGrupo();
+    if (errorValidacion) {
+      setErrorDetalle(errorValidacion);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("access") || localStorage.getItem("token");
-      const res = await fetch(`/api/groups/${id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...detalleForm, trimestres: parseInt(detalleForm.trimestres, 10) }) });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw data;
-      setGrupo(data?.data || grupo);
+      setGuardandoDetalle(true);
+      setErrorDetalle("");
+      setMensaje("");
+
+      const payloadActualizar = {
+        ...detalleForm,
+        fecha_inicio: normalizarFechaInput(detalleForm.fecha_inicio),
+        trimestres: Number.parseInt(detalleForm.trimestres, 10),
+      };
+
+      const idGrupoGuardar = obtenerIdGrupoBackend(grupo, id);
+      await api.put(`/api/groups/${idGrupoGuardar}`, payloadActualizar);
+
+      const { grupoBackend: grupoConfirmado, listaAprendices } = await consultarGrupoBase(idGrupoGuardar);
+      const pendientes = camposNoPersistidos(grupoConfirmado, payloadActualizar);
+
+      if (pendientes.length) {
+        setGrupo(grupoConfirmado);
+        throw new Error(
+          `El backend recibio la solicitud, pero al consultar de nuevo no devolvio el cambio en: ${pendientes.join(", ")}.`
+        );
+      }
+
+      const alertasActuales = alertas || normalizarAlertas([], listaAprendices);
+      const metricasGrupo = calcularMetricasGrupo(listaAprendices, alertasActuales, grupoConfirmado);
+
+      setGrupo({
+        ...grupoConfirmado,
+        fecha_fin:
+          grupoConfirmado?.fecha_fin ||
+          calcularFechaFinLocal(payloadActualizar.fecha_inicio, payloadActualizar.trimestres, grupo?.fecha_fin),
+      });
+      setAprendicesGrupo(listaAprendices);
+      setMetricas(metricasGrupo);
+      setAsistencia(construirAsistencia(metricasGrupo, listaAprendices, grupoConfirmado));
+      setDetalleForm((actual) => ({
+        ...actual,
+        fecha_inicio: payloadActualizar.fecha_inicio,
+        jornada: payloadActualizar.jornada,
+        trimestres: payloadActualizar.trimestres,
+      }));
       setModoEdicion(false);
       setMensaje("Grupo actualizado correctamente.");
-    } catch (e) { setMensaje(e?.message || e?.error || "No fue posible actualizar."); }
+    } catch (e) {
+      setErrorDetalle(obtenerMensajeError(e, "No fue posible actualizar el grupo."));
+    } finally {
+      setGuardandoDetalle(false);
+    }
+  }
+
+  function abrirEdicionAprendiz(aprendiz) {
+    if (!puedeEditarGrupo) return;
+    setAprendizEditando(aprendiz);
+    setErrorAprendiz("");
+    setAprendizForm({
+      id_usuario: obtenerIdUsuarioAprendiz(aprendiz),
+      nombres: obtenerPersona(aprendiz).nombres || aprendiz?.nombres || "",
+      apellidos: obtenerPersona(aprendiz).apellidos || aprendiz?.apellidos || "",
+      tipo_documento: obtenerTipoDocumentoAprendiz(aprendiz),
+      numero_documento: obtenerDocumentoAprendiz(aprendiz) === "-" ? "" : obtenerDocumentoAprendiz(aprendiz),
+      email: obtenerEmailAprendiz(aprendiz),
+      telefono: obtenerTelefonoAprendiz(aprendiz),
+    });
+  }
+
+  async function abrirPerfilAprendiz(aprendiz) {
+    setPerfilAprendiz(aprendiz);
+    setErrorPerfil("");
+
+    const idAprendiz = obtenerIdAprendiz(aprendiz);
+    if (!idAprendiz) return;
+
+    try {
+      setCargandoPerfil(true);
+      const { data } = await api.get(`/api/apprentices/${idAprendiz}`);
+      setPerfilAprendiz(extraerAprendizRespuesta(payload(data), aprendiz));
+    } catch (e) {
+      setErrorPerfil(obtenerMensajeError(e, "No fue posible cargar el perfil completo del aprendiz."));
+    } finally {
+      setCargandoPerfil(false);
+    }
+  }
+
+  function cerrarPerfilAprendiz() {
+    setPerfilAprendiz(null);
+    setCargandoPerfil(false);
+    setErrorPerfil("");
+  }
+
+  function cerrarEdicionAprendiz() {
+    setAprendizEditando(null);
+    setAprendizForm(APRENDIZ_FORM_VACIO);
+    setGuardandoAprendiz(false);
+    setErrorAprendiz("");
+  }
+
+  function cambiarAprendizForm(e) {
+    const { name, value } = e.target;
+    setAprendizForm((actual) => ({ ...actual, [name]: value }));
+  }
+
+  function aplicarCambiosAprendiz(aprendiz, payloadEditar) {
+    const personaActual = obtenerPersona(aprendiz);
+    return {
+      ...aprendiz,
+      ...payloadEditar,
+      usuario: {
+        ...(aprendiz.usuario || {}),
+        email: payloadEditar.email,
+        persona: {
+          ...personaActual,
+          nombres: payloadEditar.nombres,
+          apellidos: payloadEditar.apellidos,
+          tipo_documento: payloadEditar.tipo_documento,
+          numero_documento: payloadEditar.numero_documento,
+          telefono: payloadEditar.telefono,
+        },
+      },
+    };
+  }
+
+  async function guardarEdicionAprendiz() {
+    if (!aprendizForm.id_usuario) {
+      setErrorAprendiz("No se encontro el usuario asociado al aprendiz.");
+      return;
+    }
+
+    try {
+      setGuardandoAprendiz(true);
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      const payloadEditar = {
+        email: aprendizForm.email.trim(),
+        tipo_documento: aprendizForm.tipo_documento,
+        numero_documento: aprendizForm.numero_documento.trim(),
+        nombres: aprendizForm.nombres.trim(),
+        apellidos: aprendizForm.apellidos.trim(),
+        telefono: aprendizForm.telefono.trim(),
+      };
+
+      const res = await fetch(`/api/users/${aprendizForm.id_usuario}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payloadEditar),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible actualizar el aprendiz");
+
+      const idEditado = String(obtenerIdAprendiz(aprendizEditando) ?? "");
+      setAprendicesGrupo((actuales) =>
+        actuales.map((item) =>
+          String(obtenerIdAprendiz(item) ?? "") === idEditado
+            ? aplicarCambiosAprendiz(item, payloadEditar)
+            : item
+        )
+      );
+      setMensaje("Aprendiz actualizado correctamente.");
+      cerrarEdicionAprendiz();
+    } catch (e) {
+      setErrorAprendiz(e?.message || "No fue posible actualizar el aprendiz.");
+      setGuardandoAprendiz(false);
+    }
   }
 
   if (cargando) return <div className="fichas-modulo fichas-detail-state"><p>Cargando información de la ficha...</p></div>;
   if (error || !detalle) return (
     <div className="fichas-modulo fichas-detail-state">
       <div className="fichas-alerta error">{error || "No se pudo cargar la información del grupo."}</div>
-      <button className="fichas-btn-cancelar" onClick={() => navigate("/fichas")}>Volver a Grupos</button>
+      <button className="fichas-btn-cancelar" onClick={() => navigate(rutaRegreso)}>Volver a Grupos</button>
     </div>
   );
 
   /* ── render ── */
+  const asistenciaPeriodo = asistencia?.[periodoAsist.toLowerCase()];
+  const hayDatosAsistencia = Boolean(asistencia?.tieneDatos && asistenciaPeriodo);
+  const idPerfilAprendiz = String(obtenerIdAprendiz(perfilAprendiz) ?? "");
+  const datosPerfilAprendiz = perfilAprendiz
+    ? construirPerfilAprendiz(perfilAprendiz, detalle, alertas?.porAprendiz?.[idPerfilAprendiz] || {})
+    : null;
+
   return (
     <div className="fichas-modulo fichas-detail-page fichas-detail-page-v2">
-      <button className="fichas-detail-back" onClick={() => navigate("/fichas")}><ArrowLeft size={16} /> Volver a Mis Grupos</button>
+      <button className="fichas-detail-back" onClick={() => navigate(rutaRegreso)}><ArrowLeft size={16} /> {textoRegreso}</button>
       {mensaje && <div className="grupos-alert info">{mensaje}</div>}
+      {errorDetalle && <div className="grupos-alert danger">{errorDetalle}</div>}
 
       {/* ── BANNER ── */}
       <section className="fichas-banner">
@@ -211,7 +924,7 @@ export default function GrupoDetalle() {
       
       {/* ── KPIs ── */}
       <section className="gd-kpi-grid">
-        {kpis.map(({ icon: Icon, label, valor, sub, cls }) => (
+        {kpis.map(({ label, valor, sub, cls }) => (
           <article key={label} className={`gd-kpi-card ${cls}`}>
             <span className="gd-kpi-label">{label}</span>
             <strong className="gd-kpi-valor">{valor}</strong>
@@ -220,21 +933,155 @@ export default function GrupoDetalle() {
         ))}
       </section>
 
+      <nav className="gd-tabs" aria-label="Secciones de la ficha">
+        {tabsDetalle.map(({ id: tabId, label, Icono }) => (
+          <button
+            key={tabId}
+            type="button"
+            className={tabDetalle === tabId ? "active" : ""}
+            onClick={() => setTabDetalle(tabId)}
+          >
+            <Icono size={16} />
+            <span>{label}</span>
+            {tabId !== "resumen" && <small>{conteoTab[tabId] ?? 0}</small>}
+          </button>
+        ))}
+      </nav>
+
+      {tabDetalle === "resumen" && (
+        <section className="gd-tab-panel gd-resumen-grid">
+          <article className="fichas-panel gd-chart-card gd-panel-priority">
+            <div className="gd-card-header">
+              <h2>Asistencia — {periodoAsist}</h2>
+              <div className="gd-period-btns">
+                {["Hoy", "Semana", "Mes"].map(p => (
+                  <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
+                ))}
+              </div>
+            </div>
+            {hayDatosAsistencia ? (
+              <div className="gd-bar-chart">
+                <div className="gd-bar-scale">
+                  {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
+                </div>
+                <div className="gd-bars-wrap">
+                  {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
+                    const pct = asistenciaPeriodo?.[clave] ?? 0;
+                    return (
+                      <div key={clave} className="gd-bar-item">
+                        <span>{pct}%</span>
+                        <div className="gd-bar-track">
+                          <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
+                        </div>
+                        <small>{label}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="gd-chart-empty">
+                No hay datos de asistencia registrados para este periodo.
+              </div>
+            )}
+          </article>
+
+          <article className="fichas-panel gd-summary-card">
+            <div className="gd-card-header">
+              <div>
+                <h2>Datos clave</h2>
+                <p className="gd-card-kicker">Ficha {detalle.ficha} · {detalle.programa}</p>
+              </div>
+              {puedeEditarGrupo && (
+              <div className="gd-header-actions">
+                {modoEdicion ? (
+                  <>
+                    <button type="button" className="grupos-secondary-btn" onClick={cancelar} disabled={guardandoDetalle}>Cancelar</button>
+                    <button type="button" className="grupos-primary-btn" onClick={guardar} disabled={guardandoDetalle}>
+                      <Save size={15} /> {guardandoDetalle ? "Guardando..." : "Guardar"}
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="grupos-secondary-btn" onClick={iniciarEdicionGrupo}><Edit3 size={15} /> Editar</button>
+                )}
+              </div>
+              )}
+            </div>
+
+            <div className="gd-summary-grid">
+              <div className="gd-summary-item">
+                <span>Instructor lider</span>
+                <strong>{detalle.instructor}</strong>
+              </div>
+              <div className="gd-summary-item">
+                <span>Area</span>
+                <strong>{detalle.area}</strong>
+              </div>
+              <div className="gd-summary-item">
+                <span>Fecha inicio</span>
+                {puedeEditarGrupo && modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.fechaInicio}</strong>}
+              </div>
+              <div className="gd-summary-item">
+                <span>Fecha fin</span>
+                <strong>{detalle.fechaFin}</strong>
+              </div>
+              <div className="gd-summary-item">
+                <span>Jornada</span>
+                {puedeEditarGrupo && modoEdicion ? (
+                  <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
+                    <option value="Manana">Manana</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noche">Noche</option>
+                  </select>
+                ) : <strong>{detalle.jornada}</strong>}
+              </div>
+              <div className="gd-summary-item">
+                <span>Duracion</span>
+                {puedeEditarGrupo && modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.trimestres} trimestres</strong>}
+              </div>
+            </div>
+
+            <div className="gd-summary-timeline">
+              <div className="gd-mini-timeline-head">
+                <span>Progreso de ficha</span>
+                <strong>{formatearTotalTrimestres(detalle.trimestres)}</strong>
+              </div>
+              <div className="gd-trimestre-track gd-trimestre-track-compact">
+                {Array.from({ length: detalle.trimestres || 6 }).map((_, i) => (
+                  <div key={i} className="gd-trimestre-step">
+                    <div className="gd-trimestre-dot">T{i + 1}</div>
+                    {i < (detalle.trimestres || 6) - 1 && <div className="gd-trimestre-line" />}
+                  </div>
+                ))}
+              </div>
+              <div className="gd-summary-foot">
+                <span>Etapa productiva</span>
+                <strong>{detalle.inicioProductiva}</strong>
+              </div>
+            </div>
+          </article>
+        </section>
+      )}
+
       {/* ── FICHA DETALLE / INFO GENERAL ── */}
-      <article className="fichas-panel">
+      <article className="fichas-panel gd-legacy-hidden">
         <div className="gd-card-header" style={{ marginBottom: 18 }}>
           <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>
+          {puedeEditarGrupo && (
           <div className="gd-header-actions">
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
             {modoEdicion ? (
               <>
-                <button type="button" className="grupos-secondary-btn" onClick={cancelar}>Cancelar</button>
-                <button type="button" className="grupos-primary-btn" onClick={guardar}><Save size={15} /> Guardar</button>
+                <button type="button" className="grupos-secondary-btn" onClick={cancelar} disabled={guardandoDetalle}>Cancelar</button>
+                <button type="button" className="grupos-primary-btn" onClick={guardar} disabled={guardandoDetalle}>
+                  <Save size={15} /> {guardandoDetalle ? "Guardando..." : "Guardar"}
+                </button>
               </>
             ) : (
-              <button type="button" className="grupos-secondary-btn" onClick={() => setModoEdicion(true)}><Edit3 size={15} /> Editar</button>
+              <button type="button" className="grupos-secondary-btn" onClick={iniciarEdicionGrupo}><Edit3 size={15} /> Editar</button>
             )}
           </div>
+          )}
         </div>
         <div style={{ width: '100%' }}>
           {/* columna izquierda */}
@@ -244,15 +1091,15 @@ export default function GrupoDetalle() {
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Instructor líder</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.instructor}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Área</span><strong style={{ textAlign: 'center', fontSize: '15px' }}>{detalle.area}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha inicio</span>
-                {modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaInicio}</strong>}
+                {puedeEditarGrupo && modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaInicio}</strong>}
               </div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha fin</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaFin}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Etapa productiva</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.inicioProductiva}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Duración</span>
-                {modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.trimestres} trimestres</strong>}
+                {puedeEditarGrupo && modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.trimestres} trimestres</strong>}
               </div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Jornada</span>
-                {modoEdicion ? (
+                {puedeEditarGrupo && modoEdicion ? (
                   <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
                     <option value="Manana">Mañana</option>
                     <option value="Tarde">Tarde</option>
@@ -267,7 +1114,7 @@ export default function GrupoDetalle() {
       </article>
 
       {/* ── FILA PRINCIPAL: asistencia + línea de tiempo ── */}
-      <section className="gd-main-grid">
+      <section className="gd-main-grid gd-legacy-hidden">
         {/* Asistencia */}
         <article className="fichas-panel gd-chart-card">
           <div className="gd-card-header">
@@ -278,25 +1125,31 @@ export default function GrupoDetalle() {
               ))}
             </div>
           </div>
-          <div className="gd-bar-chart">
-            <div className="gd-bar-scale">
-              {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
-            </div>
-            <div className="gd-bars-wrap">
-              {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
-                const pct = asistencia?.[periodoAsist.toLowerCase()]?.[clave] ?? 0;
-                return (
-                  <div key={clave} className="gd-bar-item">
-                    <span>{pct}%</span>
-                    <div className="gd-bar-track">
-                      <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
+          {hayDatosAsistencia ? (
+            <div className="gd-bar-chart">
+              <div className="gd-bar-scale">
+                {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
+              </div>
+              <div className="gd-bars-wrap">
+                {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
+                  const pct = asistenciaPeriodo?.[clave] ?? 0;
+                  return (
+                    <div key={clave} className="gd-bar-item">
+                      <span>{pct}%</span>
+                      <div className="gd-bar-track">
+                        <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
+                      </div>
+                      <small>{label}</small>
                     </div>
-                    <small>{label}</small>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="gd-chart-empty">
+              No hay datos de asistencia registrados para este periodo.
+            </div>
+          )}
         </article>
 
         {/* Línea de tiempo */}
@@ -323,7 +1176,8 @@ export default function GrupoDetalle() {
       </section>
 
       {/* ── TABLA APRENDICES ── */}
-      <article className="fichas-panel">
+      {tabDetalle === "aprendices" && (
+      <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
           <h2>Aprendices de la Ficha {detalle.ficha}</h2>
           <span className="gd-count-chip">{detalle.aprendices} registrados</span>
@@ -337,18 +1191,19 @@ export default function GrupoDetalle() {
                 <th>Estado Formativo</th>
                 <th>Alertas</th>
                 <th>Inasistencias</th>
-                <th>Riesgo</th>
+                {(puedeEditarGrupo || puedeVerPerfilAprendiz) && <th>Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {aprendicesGrupo.length > 0 ? aprendicesGrupo.map((item) => {
-                const p = item.usuario?.persona || item.persona || {};
-                const nombre = `${p.nombres || item.nombres || ""} ${p.apellidos || item.apellidos || ""}`.trim() || "Aprendiz";
-                const doc = p.numero_documento || item.numero_documento || "-";
-                const estado = item.estado_formativo || item.usuario?.estado || item.estado || "En formación";
-                const alertasCnt = item.alertas ?? "-";
-                const inasis = item.inasistencias ?? "-";
-                const riesgo = item.nivel_riesgo || "Bajo";
+                const idAprendiz = String(obtenerIdAprendiz(item) ?? "");
+                const resumenAlertas = alertas?.porAprendiz?.[idAprendiz] || {};
+                const nombre = obtenerNombreAprendiz(item);
+                const doc = obtenerDocumentoAprendiz(item);
+                const estado = obtenerEstadoFormativoAprendiz(item);
+                const alertasCnt = resumenAlertas.total ?? numeroSeguro(item.alertas) ?? 0;
+                const inasis = obtenerInasistenciasAprendiz(item) || resumenAlertas.inasistencias || 0;
+                const puedeEditar = puedeEditarGrupo && Boolean(obtenerIdUsuarioAprendiz(item));
                 return (
                   <tr key={item.id_aprendiz || item.id || doc}>
                     <td><strong>{nombre}</strong></td>
@@ -356,20 +1211,46 @@ export default function GrupoDetalle() {
                     <td>{estado}</td>
                     <td className={alertasCnt > 0 ? "gd-num-alerta" : ""}>{alertasCnt}</td>
                     <td className={inasis > 0 ? "gd-num-inasis" : ""}>{inasis}</td>
-                    <td><RiesgoBadge nivel={riesgo} /></td>
+                    {(puedeEditarGrupo || puedeVerPerfilAprendiz) && (
+                    <td>
+                      {puedeVerPerfilAprendiz ? (
+                        <button
+                          type="button"
+                          className="gd-action-btn gd-action-btn-icon"
+                          onClick={() => abrirPerfilAprendiz(item)}
+                          title="Ver perfil"
+                          aria-label={`Ver perfil de ${nombre}`}
+                        >
+                          <Eye size={15} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="gd-action-btn"
+                          onClick={() => abrirEdicionAprendiz(item)}
+                          disabled={!puedeEditar}
+                          title={puedeEditar ? "Editar aprendiz" : "Sin usuario asociado"}
+                        >
+                          <Edit3 size={14} />
+                          Editar
+                        </button>
+                      )}
+                    </td>
+                    )}
                   </tr>
                 );
               }) : (
-                <tr><td colSpan={6} className="gd-empty">No hay aprendices registrados en esta ficha o el endpoint aún no está disponible.</td></tr>
+                <tr><td colSpan={(puedeEditarGrupo || puedeVerPerfilAprendiz) ? 6 : 5} className="gd-empty">No hay aprendices registrados en esta ficha.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </article>
+      )}
 
       {/* ── TABLA ALERTAS (Solo Instructor) ── */}
-      {esInstructor && (
-        <article className="fichas-panel">
+      {puedeVerAlertas && tabDetalle === "alertas" && (
+        <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
           <h2>Alertas de la Ficha {detalle.ficha}</h2>
         </div>
@@ -398,7 +1279,7 @@ export default function GrupoDetalle() {
                   </tr>
                 );
               }) : (
-                <tr><td colSpan={5} className="gd-empty">Sin datos — endpoint pendiente.</td></tr>
+                <tr><td colSpan={5} className="gd-empty">No hay alertas abiertas para esta ficha.</td></tr>
               )}
             </tbody>
           </table>
@@ -407,8 +1288,8 @@ export default function GrupoDetalle() {
       )}
 
       {/* ── GRÁFICAS: severidad (Solo Instructor) ── */}
-      {esInstructor && (
-        <section>
+      {puedeVerAlertas && tabDetalle === "alertas" && (
+        <section className="gd-tab-panel">
         {/* Alertas por Severidad */}
         <article className="fichas-panel gd-sev-chart-card">
           <div className="gd-card-header"><h2>Alertas por Severidad</h2></div>
@@ -435,6 +1316,139 @@ export default function GrupoDetalle() {
         </article>
 
         </section>
+      )}
+
+      {datosPerfilAprendiz && (
+        <div className="grupos-modal-backdrop" role="presentation" onClick={cerrarPerfilAprendiz}>
+          <section
+            className="grupos-modal gd-profile-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="perfil-aprendiz-title"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <div className="grupos-modal-header">
+              <div>
+                <span className="grupos-eyebrow">Perfil del aprendiz</span>
+                <h2 id="perfil-aprendiz-title">{datosPerfilAprendiz.nombreCompleto}</h2>
+                <p>Ficha {datosPerfilAprendiz.ficha} · {datosPerfilAprendiz.programa}</p>
+              </div>
+              <button type="button" className="grupos-close-btn" onClick={cerrarPerfilAprendiz} aria-label="Cerrar ventana">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="gd-profile-body">
+              <aside className="gd-profile-card">
+                <div className="gd-profile-avatar">
+                  {(datosPerfilAprendiz.nombres[0] || "A")}{(datosPerfilAprendiz.apellidos[0] || "")}
+                </div>
+                <span>{datosPerfilAprendiz.estadoFormativo}</span>
+                <strong>{datosPerfilAprendiz.nombreCompleto}</strong>
+                <small>{datosPerfilAprendiz.correo}</small>
+              </aside>
+
+              <div className="gd-profile-grid">
+                <div><span>ID aprendiz</span><strong>{datosPerfilAprendiz.id}</strong></div>
+                <div><span>Estado usuario</span><strong>{datosPerfilAprendiz.estadoUsuario}</strong></div>
+                <div><span>Nombres</span><strong>{datosPerfilAprendiz.nombres}</strong></div>
+                <div><span>Apellidos</span><strong>{datosPerfilAprendiz.apellidos}</strong></div>
+                <div><span>Tipo documento</span><strong>{datosPerfilAprendiz.tipoDocumento}</strong></div>
+                <div><span>Documento</span><strong>{datosPerfilAprendiz.documento}</strong></div>
+                <div><span>Correo</span><strong>{datosPerfilAprendiz.correo}</strong></div>
+                <div><span>Telefono</span><strong>{datosPerfilAprendiz.telefono}</strong></div>
+                <div><span>Ficha</span><strong>{datosPerfilAprendiz.ficha}</strong></div>
+                <div><span>Jornada</span><strong>{datosPerfilAprendiz.jornada}</strong></div>
+                <div className="gd-profile-wide"><span>Programa</span><strong>{datosPerfilAprendiz.programa}</strong></div>
+                <div><span>Fecha inicio</span><strong>{datosPerfilAprendiz.fechaInicio}</strong></div>
+                <div><span>Fecha fin</span><strong>{datosPerfilAprendiz.fechaFin}</strong></div>
+                <div><span>Alertas</span><strong>{datosPerfilAprendiz.alertas}</strong></div>
+                <div><span>Alertas graves</span><strong>{datosPerfilAprendiz.alertasGraves}</strong></div>
+                <div><span>Alertas moderadas</span><strong>{datosPerfilAprendiz.alertasModeradas}</strong></div>
+                <div><span>Inasistencias</span><strong>{datosPerfilAprendiz.inasistencias}</strong></div>
+              </div>
+            </div>
+
+            {cargandoPerfil && <div className="gd-profile-status">Cargando perfil completo...</div>}
+            {errorPerfil && <div className="gd-edit-error">{errorPerfil}</div>}
+
+            <div className="gd-edit-actions">
+              <button type="button" className="grupos-primary-btn" onClick={cerrarPerfilAprendiz}>Cerrar</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {aprendizEditando && (
+        <div className="grupos-modal-backdrop" role="presentation" onClick={cerrarEdicionAprendiz}>
+          <section
+            className="grupos-modal gd-edit-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="editar-aprendiz-title"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <div className="grupos-modal-header">
+              <div>
+                <span className="grupos-eyebrow">Editar aprendiz</span>
+                <h2 id="editar-aprendiz-title">{`${aprendizForm.nombres} ${aprendizForm.apellidos}`.trim() || "Aprendiz"}</h2>
+                <p>Ficha {detalle.ficha}</p>
+              </div>
+              <button type="button" className="grupos-close-btn" onClick={cerrarEdicionAprendiz} aria-label="Cerrar ventana">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="gd-edit-form">
+              <label>
+                <span>Nombres</span>
+                <input name="nombres" value={aprendizForm.nombres} onChange={cambiarAprendizForm} />
+              </label>
+              <label>
+                <span>Apellidos</span>
+                <input name="apellidos" value={aprendizForm.apellidos} onChange={cambiarAprendizForm} />
+              </label>
+              <label>
+                <span>Tipo documento</span>
+                <select name="tipo_documento" value={aprendizForm.tipo_documento} onChange={cambiarAprendizForm}>
+                  <option value="">Seleccione</option>
+                  <option value="CC">CC</option>
+                  <option value="TI">TI</option>
+                  <option value="CE">CE</option>
+                  <option value="PEP">PEP</option>
+                </select>
+              </label>
+              <label>
+                <span>Documento</span>
+                <input name="numero_documento" value={aprendizForm.numero_documento} onChange={cambiarAprendizForm} />
+              </label>
+              <label>
+                <span>Correo</span>
+                <input name="email" type="email" value={aprendizForm.email} onChange={cambiarAprendizForm} />
+              </label>
+              <label>
+                <span>Telefono</span>
+                <input name="telefono" value={aprendizForm.telefono} onChange={cambiarAprendizForm} />
+              </label>
+            </div>
+
+            {errorAprendiz && (
+              <div className="gd-edit-error">
+                {errorAprendiz}
+              </div>
+            )}
+
+            <div className="gd-edit-actions">
+              <button type="button" className="grupos-secondary-btn" onClick={cerrarEdicionAprendiz}>
+                Cancelar
+              </button>
+              <button type="button" className="grupos-primary-btn" onClick={guardarEdicionAprendiz} disabled={guardandoAprendiz}>
+                <Save size={15} />
+                {guardandoAprendiz ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
     </div>
