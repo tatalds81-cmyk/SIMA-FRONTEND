@@ -1,7 +1,6 @@
 import {
   AlertTriangle,
   ArrowRight,
-  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -12,6 +11,7 @@ import {
   UserRoundCheck,
   UsersRound
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import "../coordinador/coordinador.css";
 import "./instructor.css";
 
@@ -110,6 +110,7 @@ const agenda = [
 ];
 
 export default function PanelInstructor() {
+  const navigate = useNavigate();
   const maximoResumen = Math.max(
     ...resumenCards
       .filter((card) => !card.valor?.toString().includes("%"))
@@ -247,10 +248,10 @@ export default function PanelInstructor() {
                   <td>{item.rol}</td>
                   <td>
                     <div className="instructor-table-actions">
-                      <button type="button" aria-label="Ver grupo">
+                      <button type="button" aria-label="Ver grupo" onClick={() => navigate("/instructor/grupos")}>
                         <Eye size={15} />
                       </button>
-                      <button type="button" aria-label="Ver observaciones">
+                      <button type="button" aria-label="Ver observaciones" onClick={() => navigate("/instructor/observaciones")}>
                         <MessageSquareWarning size={15} />
                       </button>
                     </div>
@@ -260,7 +261,7 @@ export default function PanelInstructor() {
             </tbody>
           </table>
 
-          <button className="coordinador-link-btn" type="button">
+          <button className="coordinador-link-btn" type="button" onClick={() => navigate("/instructor/grupos")}>
             Ver todos mis grupos <ArrowRight size={17} />
           </button>
         </article>

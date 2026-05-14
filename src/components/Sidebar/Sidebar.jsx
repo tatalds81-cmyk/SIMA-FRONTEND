@@ -1,7 +1,6 @@
-﻿import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
-  CalendarDays,
   LayoutDashboard,
   Users,
   UsersRound,
@@ -14,6 +13,7 @@ import senaLogo from "../../assets/logoSena.png";
 const menuByRole = {
   instructor: [
     { icon: LayoutDashboard, label: "Inicio", path: "/instructor/dashboard", id: "inicio" },
+    { icon: UsersRound, label: "Grupos", path: "/instructor/grupos", id: "grupos" },
     { icon: Users, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
     { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
     { icon: Users, label: "Aprendices", path: "/instructor/aprendices", id: "aprendices" },
@@ -40,7 +40,11 @@ export default function Sidebar() {
         <nav className="sima-sidebar-nav">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path ||
+              (item.id === "grupos" &&
+                (location.pathname.startsWith(`${item.path}/`) ||
+                  location.pathname.startsWith("/fichas/")));
 
             return (
               <button

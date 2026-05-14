@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Bell, 
-  CheckCheck, 
-  Trash2, 
-  AlertTriangle, 
-  Bot, 
-  Info, 
-  ChevronLeft,
-  RefreshCw,
-  Loader2
+  Bell, CheckCheck, Trash2, AlertTriangle, Bot, Info, 
+  ChevronLeft, RefreshCw, Loader2, ArrowLeft
 } from 'lucide-react';
 import { 
   obtenerNotificaciones, 
@@ -69,14 +62,11 @@ export default function NotificacionesPage() {
     <div className="nt-page">
       {/* Header / Breadcrumb */}
       <div className="nt-header-wrap">
-        <nav className="nt-breadcrumb">
-          <span onClick={() => navigate('/')}>Inicio</span>
-          <span className="nt-sep">›</span>
-          <span className="nt-active">Notificaciones</span>
-        </nav>
-        
         <div className="nt-title-row">
           <div className="nt-title-group">
+            <button className="nt-btn-back" onClick={() => navigate(-1)} title="Volver">
+              <ArrowLeft size={20} />
+            </button>
             <div className="nt-bell-bg">
               <Bell size={24} />
             </div>

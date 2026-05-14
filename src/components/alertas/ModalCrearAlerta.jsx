@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Info, Search, Loader2, X, AlertTriangle, Bell } from 'lucide-react';
 import AvatarAprendiz from './AvatarAprendiz';
-import { crearAlertaManual, buscarAprendices } from '../../services/alertasService';
+import { crearAlertaManual, buscarAprendices, obtenerGrupos } from '../../services/alertasService';
 import Toast from '../common/Toast';
 import './modal.css';
 
 const FORM_INICIAL = {
   aprendizId: '', aprendizNombre: '',
   grupoId: '', tipoAlerta: '', severidad: '', descripcion: '',
-  notificarLider: true // Nuevo campo para H27
+  notificarCoordinador: true,
+  notificarInstructorLider: true
 };
 const MAX_DESC = 500;
 
@@ -26,15 +27,20 @@ export default function ModalCrearAlerta({ isOpen, onClose, onAlertaCreada }) {
   const debRef = useRef(null);
   const dropRef = useRef(null);
 
-  const MOCK_GRUPOS = [
-    { id: 1, codigo: '3064975 (ADSO)' },
-    { id: 2, codigo: '2850312 (IoT)' },
-    { id: 3, codigo: '2901234 (MULTIMEDIA)' }
-  ];
-
   useEffect(() => {
+    async function cargar() {
+      const { data } = await obtenerGrupos();
+      if (data) {
+        // Mapear para que el select muestre algo legible
+        const mapeados = data.map(g => ({
+          id: g.id_grupo || g.id,
+          codigo: `${g.numero_ficha} (${g.programa_formacion?.nombre_programa || 'Sin programa'})`
+        }));
+        setGrupos(mapeados);
+      }
+    }
     if (isOpen) {
-      setGrupos(MOCK_GRUPOS);
+      cargar();
     }
   }, [isOpen]);
 
@@ -209,20 +215,37 @@ export default function ModalCrearAlerta({ isOpen, onClose, onAlertaCreada }) {
             </div>
           </div>
 
-          {/* Notificar Lider (H27) */}
-          <div className="mcal-notif-check">
-            <label className="mcal-checkbox-container">
-              <input 
-                type="checkbox" 
-                checked={form.notificarLider} 
-                onChange={e => setForm({...form, notificarLider: e.target.checked})} 
-              />
-              <span className="mcal-checkmark"></span>
-              <div className="mcal-check-text">
-                <strong>Notificar al Instructor Líder</strong>
-                <span>Se enviará un correo y notificación automática (H27).</span>
-              </div>
-            </label>
+          {/* Notificaciones */}
+          <div className="mcal-notif-group">
+            <div className="mcal-notif-check">
+              <label className="mcal-checkbox-container">
+                <input 
+                  type="checkbox" 
+                  checked={form.notificarCoordinador} 
+                  onChange={e => setForm({...form, notificarCoordinador: e.target.checked})} 
+                />
+                <span className="mcal-checkmark"></span>
+                <div className="mcal-check-text">
+                  <strong>Notificar al Coordinador</strong>
+                  <span>Se enviará un correo y notificación automática.</span>
+                </div>
+              </label>
+            </div>
+
+            <div className="mcal-notif-check">
+              <label className="mcal-checkbox-container">
+                <input 
+                  type="checkbox" 
+                  checked={form.notificarInstructorLider} 
+                  onChange={e => setForm({...form, notificarInstructorLider: e.target.checked})} 
+                />
+                <span className="mcal-checkmark"></span>
+                <div className="mcal-check-text">
+                  <strong>Notificar al Instructor Líder</strong>
+                  <span>Informa directamente al responsable del grupo.</span>
+                </div>
+              </label>
+            </div>
           </div>
 
           {/* Descripción */}

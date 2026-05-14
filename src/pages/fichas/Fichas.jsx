@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Layers, Plus, Search, Trash2, Upload } from "lucide-react";
 import "./fichas.css";
@@ -9,6 +9,8 @@ export default function GruposFormativos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("");
+  const [filtroJornada, setFiltroJornada] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
 
   const [grupos, setGrupos] = useState([]);
@@ -32,6 +34,16 @@ export default function GruposFormativos() {
   const URL_INSTRUCTORES = `${URL_GRUPOS}/instructores-disponibles`;
   const GRUPOS_POR_PAGINA = 10;
 
+  function extraerLista(data, llavePrincipal = "") {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== "object") return [];
+    if (llavePrincipal && Array.isArray(data?.data?.[llavePrincipal])) return data.data[llavePrincipal];
+    if (llavePrincipal && Array.isArray(data[llavePrincipal])) return data[llavePrincipal];
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.results)) return data.results;
+    return [];
+  }
+
   function getHeaders() {
     const token = localStorage.getItem("access") || localStorage.getItem("token");
     const headers = { "Content-Type": "application/json" };
@@ -42,20 +54,22 @@ export default function GruposFormativos() {
   async function cargarGrupos() {
     try {
       const res = await fetch(URL_GRUPOS, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        const gruposExtraidos =
-          data?.data?.grupos ||
-          data?.data?.fichas ||
-          data?.data ||
-          data?.results ||
-          (Array.isArray(data) ? data : []);
+      const data = await res.json().catch(() => null);
 
-        setGrupos(Array.isArray(gruposExtraidos) ? gruposExtraidos : []);
-        setPaginaActual(1);
+      if (!res.ok) {
+        throw new Error(data?.message || data?.error || "No fue posible cargar los grupos.");
       }
+
+      const gruposExtraidos = extraerLista(data, "grupos");
+      const gruposBackend = gruposExtraidos.length ? gruposExtraidos : extraerLista(data, "fichas");
+
+      setGrupos(gruposBackend);
+      setPaginaActual(1);
+      cargarConteoAprendices(gruposBackend);
     } catch (error) {
       console.error("Error cargando grupos:", error);
+      setMensajeError(true);
+      setMensaje(error.message || "No fue posible cargar los grupos desde el backend.");
     }
   }
 
@@ -89,7 +103,7 @@ export default function GruposFormativos() {
             const lista = data?.data?.aprendices || data?.data || [];
             const total = Array.isArray(lista) ? lista.length : 0;
             return [idGrupo, total];
-          } catch (_error) {
+          } catch {
             return [idGrupo, null];
           }
         })
@@ -135,24 +149,34 @@ export default function GruposFormativos() {
   }
 
   useEffect(() => {
-    cargarGrupos();
-    cargarAreas();
-    cargarInstructores();
+    let activo = true;
+    Promise.resolve().then(() => {
+      if (!activo) return;
+      cargarGrupos();
+      cargarAreas();
+      cargarInstructores();
+    });
+    return () => { activo = false; };
   }, []);
 
   useEffect(() => {
-    if (areaFormacion) {
-      cargarProgramas(areaFormacion);
-    } else {
-      setProgramas([]);
-      setProgramaFormacion("");
-    }
+    let activo = true;
+    Promise.resolve().then(() => {
+      if (!activo) return;
+      if (areaFormacion) {
+        cargarProgramas(areaFormacion);
+      } else {
+        setProgramas([]);
+        setProgramaFormacion("");
+      }
+    });
+    return () => { activo = false; };
   }, [areaFormacion]);
 
   useEffect(() => {
     if (!numeroGrupo.trim()) {
-      setEstadoNumero(null);
-      return;
+      const timer = setTimeout(() => setEstadoNumero(null), 0);
+      return () => clearTimeout(timer);
     }
 
     const timer = setTimeout(async () => {
@@ -178,16 +202,28 @@ export default function GruposFormativos() {
   }, [numeroGrupo]);
 
   const gruposFiltrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
-    if (!texto) return grupos;
+    let filtrados = grupos;
 
-    return grupos.filter((grupo) => {
-      const codigo = grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "";
-      const programa = grupo.programa_formacion?.nombre_programa || grupo.programa || "";
-      const jornadaGrupo = grupo.jornada || "";
-      return `${codigo} ${programa} ${jornadaGrupo}`.toLowerCase().includes(texto);
-    });
-  }, [busqueda, grupos]);
+    if (busqueda.trim()) {
+      const texto = busqueda.trim().toLowerCase();
+      filtrados = filtrados.filter((grupo) => {
+        const codigo = grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "";
+        const programa = grupo.programa_formacion?.nombre_programa || grupo.programa || "";
+        const jornadaGrupo = grupo.jornada || "";
+        return `${codigo} ${programa} ${jornadaGrupo}`.toLowerCase().includes(texto);
+      });
+    }
+
+    if (filtroEstado) {
+      filtrados = filtrados.filter(grupo => (grupo.estado || "ACTIVO") === filtroEstado);
+    }
+
+    if (filtroJornada) {
+      filtrados = filtrados.filter(grupo => (grupo.jornada || "") === filtroJornada);
+    }
+
+    return filtrados;
+  }, [busqueda, filtroEstado, filtroJornada, grupos]);
 
   const totalPaginas = Math.max(1, Math.ceil(gruposFiltrados.length / GRUPOS_POR_PAGINA));
   const inicioPagina = (paginaActual - 1) * GRUPOS_POR_PAGINA;
@@ -264,7 +300,7 @@ export default function GruposFormativos() {
       setMensaje(`Grupo ${numeroGrupo.trim()} creado correctamente.`);
       setModalCrearAbierto(false);
       limpiarFormulario();
-      cargarGrupos();
+      await cargarGrupos();
     } catch (error) {
       console.error("Error guardando grupo:", error);
       setMensajeError(true);
@@ -293,7 +329,7 @@ export default function GruposFormativos() {
 
       setMensajeError(false);
       setMensaje(`Grupo ${obtenerCodigo(grupo)} eliminado correctamente.`);
-      cargarGrupos();
+      await cargarGrupos();
     } catch (error) {
       console.error("Error eliminando grupo:", error);
       setMensajeError(true);
@@ -302,11 +338,11 @@ export default function GruposFormativos() {
   }
 
   function obtenerPrograma(grupo) {
-    return grupo.programa_formacion?.nombre_programa || grupo.programa || "Analisis y Desarrollo de Software";
+    return grupo.programa_formacion?.nombre_programa || grupo.programa || grupo.nombre_programa || "No especificado";
   }
 
   function obtenerCodigo(grupo) {
-    return grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "2847621";
+    return grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "-";
   }
 
   function obtenerEstadoClase(estado) {
@@ -316,10 +352,21 @@ export default function GruposFormativos() {
   }
 
   function obtenerNombreInstructor(instructor) {
-    const nombres = instructor.usuario?.persona?.nombres || "";
-    const apellidos = instructor.usuario?.persona?.apellidos || "";
+    if (!instructor) return "Sin asignar";
+    const nombres = instructor.usuario?.persona?.nombres || instructor.nombres || "";
+    const apellidos = instructor.usuario?.persona?.apellidos || instructor.apellidos || "";
     const nombreCompleto = `${nombres} ${apellidos}`.trim();
-    return nombreCompleto || instructor.usuario?.email || `Instructor ${instructor.id_instructor}`;
+    return nombreCompleto || instructor.usuario?.email || `Instructor ${instructor.id_instructor || ''}`;
+  }
+
+  function abrirDetalleGrupo(grupo, index = 0) {
+    const idGrupo = grupo.id_grupo || grupo.id || index;
+    try {
+      sessionStorage.setItem(`sima_grupo_detalle_${idGrupo}`, JSON.stringify(grupo));
+    } catch {
+      // Si el navegador bloquea sessionStorage, el detalle igual consultara el backend.
+    }
+    navigate(`/fichas/${idGrupo}`, { state: { grupo } });
   }
 
   return (
@@ -361,11 +408,36 @@ export default function GruposFormativos() {
             placeholder="Buscar por codigo, programa o jornada"
           />
         </div>
+        
+        <select 
+          className="grupos-select-filtro" 
+          value={filtroJornada} 
+          onChange={(e) => { setFiltroJornada(e.target.value); setPaginaActual(1); }}
+        >
+          <option value="">Todas las jornadas</option>
+          <option value="Manana">Manana</option>
+          <option value="Tarde">Tarde</option>
+          <option value="Noche">Noche</option>
+        </select>
+
+        <select 
+          className="grupos-select-filtro" 
+          value={filtroEstado} 
+          onChange={(e) => { setFiltroEstado(e.target.value); setPaginaActual(1); }}
+        >
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="CERRADO">Cerrado</option>
+          <option value="SUSPENDIDO">Suspendido</option>
+        </select>
+
         <button
           type="button"
           className="ghost"
           onClick={() => {
             setBusqueda("");
+            setFiltroEstado("");
+            setFiltroJornada("");
             setPaginaActual(1);
           }}
         >
@@ -391,6 +463,7 @@ export default function GruposFormativos() {
                 <th>Aprendices</th>
                 <th>Trimestres</th>
                 <th>Estado</th>
+                <th>Lider</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -400,17 +473,18 @@ export default function GruposFormativos() {
                   <tr key={grupo.id_grupo || grupo.id || index}>
                     <td className="grupos-highlight">{obtenerCodigo(grupo)}</td>
                     <td>{obtenerPrograma(grupo)}</td>
-                    <td>{grupo.jornada || "Manana"}</td>
+                    <td>{grupo.jornada || "No registrada"}</td>
                     <td>{aprendicesPorGrupo[grupo.id_grupo || grupo.id] ?? grupo.aprendices ?? "-"}</td>
-                    <td>{grupo.trimestres || 6}</td>
+                    <td>{grupo.trimestres ?? "-"}</td>
                     <td>
                       <span className={`grupos-status ${obtenerEstadoClase(grupo.estado)}`}>
                         {grupo.estado || "ACTIVO"}
                       </span>
                     </td>
+                    <td>{obtenerNombreInstructor(grupo.instructor_lider)}</td>
                     <td>
                       <div className="grupos-actions">
-                        <button type="button" className="grupos-icon-btn" onClick={() => navigate(`/fichas/${grupo.id_grupo || grupo.id || index}`)} title="Ver detalle">
+                        <button type="button" className="grupos-icon-btn" onClick={() => abrirDetalleGrupo(grupo, inicioPagina + index)} title="Ver detalle">
                           <Eye size={16} />
                         </button>
                         <button type="button" className="grupos-icon-btn danger" onClick={() => eliminarGrupo(grupo)} title="Eliminar">
@@ -422,7 +496,7 @@ export default function GruposFormativos() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="grupos-empty">No hay grupos para mostrar</td>
+                  <td colSpan="8" className="grupos-empty">No hay grupos para mostrar</td>
                 </tr>
               )}
             </tbody>

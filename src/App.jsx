@@ -7,12 +7,14 @@ import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
 import RegistroAprendices from "./pages/instructor/RegistroAprendices";
 import PanelInstructor from "./pages/instructor/PanelInstructor";
 import InstructorSeccion from "./pages/instructor/InstructorSeccion";
+import MisGrupos from "./pages/instructor/MisGrupos";
 import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 import Perfil from "./pages/perfil/Perfil";
 import Usuario from "./pages/usuarios/Usuario";
 import Observaciones from "./pages/observador/Observaciones";
 import ConsultarAlertas from "./pages/alertas/ConsultarAlertas";
+import AlertasCoordinador from "./pages/alertas/AlertasCoordinador";
 import DetalleAlerta from "./pages/alertas/DetalleAlerta";
 import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
 
@@ -36,7 +38,7 @@ function App() {
 
   const esInstructor = rol === "instructor";
   const rutaInicio = esInstructor
-    ? "/instructor/dashboard"
+    ? "/instructor/grupos"
     : "/dashboard";
 
   return (
@@ -72,6 +74,24 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <RegistroAprendices />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/grupos"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <MisGrupos />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/grupos/:id"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <GrupoDetalle />
                 </Dashboard>
               }
             />
@@ -188,7 +208,7 @@ function App() {
               path="/alertas/consultar"
               element={
                 <Dashboard onLogout={manejarLogout}>
-                  <ConsultarAlertas />
+                  {rol === 'coordinador' ? <AlertasCoordinador /> : <ConsultarAlertas />}
                 </Dashboard>
               }
             />
