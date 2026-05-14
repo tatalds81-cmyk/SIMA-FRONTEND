@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Download, Plus, Search, Eye, RefreshCw,
   ChevronLeft, ChevronRight, ChevronsUpDown
@@ -9,6 +8,7 @@ import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
 import BadgeEstado from '../../components/alertas/BadgeEstado';
 import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
 import ModalCrearAlerta from '../../components/alertas/ModalCrearAlerta';
+import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
 import './consultarAlertas.css';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -107,8 +107,8 @@ function Paginacion({ paginaActual, total, limite, onCambiarPagina, onCambiarLim
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function ConsultarAlertas() {
-  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
+  const [detalleAlertaId, setDetalleAlertaId] = useState(null);
 
   const {
     alertas, loading, error, total,
@@ -145,20 +145,10 @@ export default function ConsultarAlertas() {
       {/* ── Header ── */}
       <div className="ca-page-header">
         <div>
-          <nav className="ca-breadcrumb" aria-label="Ruta de navegación">
-            <span>Inicio</span>
-            <span className="ca-bread-sep">›</span>
-            <span>Alertas</span>
-            <span className="ca-bread-sep">›</span>
-            <span className="ca-bread-active">Consultar</span>
-          </nav>
           <h1 className="ca-page-title">Consultar alertas</h1>
         </div>
 
         <div className="ca-header-acciones">
-          <button type="button" className="ca-btn-outline" onClick={handleExportar}>
-            <Download size={15} /> Exportar
-          </button>
           {puedeCrearAlerta() && (
             <button type="button" className="ca-btn-primary" onClick={() => setModalOpen(true)}>
               <Plus size={15} /> Nueva alerta manual
@@ -364,7 +354,7 @@ export default function ConsultarAlertas() {
                       <button
                         type="button"
                         className="ca-btn-accion"
-                        onClick={() => navigate(`/alertas/${alerta.id ?? alerta.alertaId}`)}
+                        onClick={() => setDetalleAlertaId(alerta.id ?? alerta.alertaId)}
                         aria-label="Ver detalle"
                       >
                         <Eye size={15} />
@@ -389,11 +379,18 @@ export default function ConsultarAlertas() {
         />
       )}
 
-      {/* Modal */}
+      {/* Modal crear alerta */}
       <ModalCrearAlerta
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onAlertaCreada={cargarAlertas}
+      />
+
+      {/* Modal detalle alerta */}
+      <ModalDetalleAlerta
+        isOpen={!!detalleAlertaId}
+        onClose={() => setDetalleAlertaId(null)}
+        alertaId={detalleAlertaId}
       />
     </div>
   );
