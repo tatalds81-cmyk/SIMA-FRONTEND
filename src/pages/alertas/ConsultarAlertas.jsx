@@ -181,6 +181,7 @@ export default function ConsultarAlertas() {
             <label className="ca-filtro-label">Estado</label>
             <select className="ca-select" value={filtrosLocales.estado} onChange={e => handleFiltroLocal('estado', e.target.value)}>
               <option value="">Todos</option>
+              <option value="ABIERTA">Abierta</option>
               <option value="ACTIVA">Activa</option>
               <option value="EN_SEGUIMIENTO">En seguimiento</option>
               <option value="CERRADA">Cerrada</option>
@@ -203,9 +204,11 @@ export default function ConsultarAlertas() {
             <label className="ca-filtro-label">Tipo de alerta</label>
             <select className="ca-select" value={filtrosLocales.tipoAlerta} onChange={e => handleFiltroLocal('tipoAlerta', e.target.value)}>
               <option value="">Todos</option>
-              <option value="INASISTENCIA">Inasistencia</option>
-              <option value="OBSERVACIONES_RECURRENTES">Observaciones recurrentes</option>
-              <option value="MANUAL">Manual</option>
+              <option value="ACADEMICA">Académica</option>
+              <option value="CONVIVENCIAL">Convivencial</option>
+              <option value="INASISTENCIA_CONSECUTIVA">Inasistencia consecutiva</option>
+              <option value="INASISTENCIA_ACUMULADA">Inasistencia acumulada</option>
+              <option value="RECURRENCIA_OBSERVACIONES">Recurrencia observaciones</option>
             </select>
           </div>
 

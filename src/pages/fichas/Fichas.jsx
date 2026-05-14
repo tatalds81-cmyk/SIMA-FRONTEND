@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Layers, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, Layers, Plus, Search, Trash2, Upload } from "lucide-react";
 import "./fichas.css";
 
 export default function GruposFormativos() {
@@ -379,6 +379,14 @@ export default function GruposFormativos() {
         </div>
 
         <div className="grupos-header-actions">
+          <button
+            type="button"
+            className="grupos-secondary-btn"
+            onClick={() => setMensaje("La carga masiva de grupos aun no tiene endpoint disponible en el backend.")}
+          >
+            <Upload size={18} />
+            Carga masiva
+          </button>
           <button type="button" className="grupos-primary-btn" onClick={() => setModalCrearAbierto(true)}>
             <Plus size={19} />
             Crear grupo

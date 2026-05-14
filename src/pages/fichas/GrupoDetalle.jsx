@@ -542,7 +542,6 @@ export default function GrupoDetalle() {
   const [mensaje, setMensaje] = useState("");
   const [errorDetalle, setErrorDetalle] = useState("");
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [vistaDetalle, setVistaDetalle] = useState("resumen");
   const [detalleForm, setDetalleForm] = useState({ numero_ficha: "", jornada: "", trimestres: "", fecha_inicio: "" });
   const [guardandoDetalle, setGuardandoDetalle] = useState(false);
 
@@ -572,8 +571,7 @@ export default function GrupoDetalle() {
 
         let alertasNormalizadas = normalizarAlertas([], listaAprendices);
         try {
-          const idGrupoAlertas = obtenerIdGrupoBackend(grupoSeleccionado, id);
-          const respAlertas = await api.get("/api/alerts", { params: { id_grupo: idGrupoAlertas } });
+          const respAlertas = await api.get("/api/alerts");
           const listaAlertas = extraerLista(payload(respAlertas.data));
           alertasNormalizadas = normalizarAlertas(listaAlertas, listaAprendices);
         } catch (errAlertas) {
@@ -921,7 +919,6 @@ export default function GrupoDetalle() {
         </div>
       </section>
 
-      
       {/* ── KPIs ── */}
       <section className="gd-kpi-grid">
         {kpis.map(({ label, valor, sub, cls }) => (

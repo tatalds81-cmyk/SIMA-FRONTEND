@@ -31,121 +31,17 @@ function limpiarParams(filtros = {}) {
   return p;
 }
 
-function extraerListaAlertas(data) {
-  const payload = data?.data ?? data;
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.alertas)) return payload.alertas;
-  if (Array.isArray(payload?.results)) return payload.results;
-  return [];
-}
-
-function extraerPayload(data) {
-  return data?.data?.data ?? data?.data ?? data;
-}
-
-function mapFiltrosBackend(filtros = {}) {
-  return limpiarParams({
-    estado: filtros.estado,
-    severidad: filtros.severidad,
-    tipo_alerta: filtros.tipo_alerta || filtros.tipoAlerta,
-    id_grupo: filtros.id_grupo || filtros.grupoId,
-    id_aprendiz: filtros.id_aprendiz || filtros.aprendizId,
-    fecha_desde: filtros.fecha_desde || filtros.fechaInicio,
-    fecha_hasta: filtros.fecha_hasta || filtros.fechaFin,
-  });
-}
-
-const cacheUsuarios = new Map();
-
-function nombrePersona(persona = {}) {
-  return `${persona.nombres || ''} ${persona.apellidos || ''}`.trim();
-}
-
-function obtenerUsuarioLocal() {
-  try {
-    return JSON.parse(localStorage.getItem('user_data') || '{}');
-  } catch {
-    return {};
-  }
-}
-
-function mapUsuarioBasico(usuario) {
-  if (!usuario) return null;
-  const id = usuario.id_usuario || usuario.id;
-  return {
-    id,
-    nombre: nombrePersona(usuario.persona) || usuario.nombre || usuario.email || `ID Usuario ${id}`,
-  };
-}
-
-async function obtenerUsuarioBasico(idUsuario) {
-  if (!idUsuario) return null;
-  const key = String(idUsuario);
-  if (cacheUsuarios.has(key)) return cacheUsuarios.get(key);
-
-  const usuarioLocal = obtenerUsuarioLocal();
-  if (String(usuarioLocal?.id_usuario || '') === key) {
-    const usuario = {
-      id: idUsuario,
-      nombre: localStorage.getItem('usuario') || localStorage.getItem('username') || `ID Usuario ${idUsuario}`,
-    };
-    cacheUsuarios.set(key, usuario);
-    return usuario;
-  }
-
-  try {
-    const { data } = await api.get(`/api/users/${idUsuario}`);
-    const usuario = mapUsuarioBasico(extraerPayload(data));
-    if (usuario) cacheUsuarios.set(key, usuario);
-    return usuario;
-  } catch {
-    return null;
-  }
-}
-
 function mapBackendAlerta(alerta) {
   if (!alerta) return alerta;
-  const persona = alerta.aprendiz?.usuario?.persona || alerta.persona || {};
-  const aprendizNombre = nombrePersona(persona);
-  const responsableId = alerta.creada_por || alerta.responsable?.id_usuario || alerta.responsableId;
-  const responsablePersona = alerta.usuario_creador?.persona || alerta.responsable?.persona || {};
-  const responsableNombre = nombrePersona(responsablePersona);
-  const observacionesVinculadas = alerta.alerta_observaciones?.map((item) => ({
-    id: item.id_observacion || item.observacion?.id_observacion,
-    fecha: item.fecha_asociacion || item.observacion?.fecha_observacion,
-    descripcion: item.observacion?.descripcion || 'Observacion vinculada'
-  })) || [];
   return {
     ...alerta,
     id: alerta.id_alerta || alerta.id,
-    alertaId: alerta.id_alerta || alerta.id,
-    fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion || alerta.created_at,
+    fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion,
     tipoAlerta: alerta.tipo_alerta || alerta.tipoAlerta,
-    grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo || alerta.id_grupo,
-    grupoId: alerta.id_grupo || alerta.grupo?.id_grupo,
-    aprendizDocumento: persona.numero_documento || alerta.aprendizDocumento || '',
-    observacionesVinculadas,
-    responsableId,
-    responsableNombre: responsableNombre || alerta.usuario_creador?.email || alerta.responsable?.nombre || alerta.responsableNombre || (responsableId ? `ID Usuario ${responsableId}` : 'Sistema'),
-    aprendizNombre: aprendizNombre || alerta.aprendizNombre || (alerta.id_aprendiz ? `Aprendiz #${alerta.id_aprendiz}` : 'Aprendiz'),
+    grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo,
+    responsableNombre: alerta.creada_por ? `ID Usuario ${alerta.creada_por}` : 'Sistema',
+    aprendizNombre: alerta.aprendiz?.id_aprendiz ? `Aprendiz #${alerta.aprendiz.id_aprendiz}` : '—',
   };
-}
-
-async function hidratarAutoresAlertas(alertas = []) {
-  const alertasMapeadas = alertas.map(mapBackendAlerta);
-  const idsUsuarios = [...new Set(alertasMapeadas.map(a => a.responsableId).filter(Boolean).map(String))];
-
-  await Promise.all(idsUsuarios.map(obtenerUsuarioBasico));
-
-  return alertasMapeadas.map((alerta) => {
-    const autor = alerta.responsableId ? cacheUsuarios.get(String(alerta.responsableId)) : null;
-    return {
-      ...alerta,
-      responsableNombre: autor?.nombre || alerta.responsableNombre,
-      autorNombre: autor?.nombre || alerta.responsableNombre,
-    };
-  });
 }
 
 // ─── MOCKS DE PRUEBA ─────────────────────────────────────────────────────────
@@ -230,8 +126,7 @@ export async function crearAlertaManual(payload) {
       descripcion: payload.descripcion
     };
     const { data } = await api.post('/api/alerts/manual', backendPayload);
-    const [alerta] = await hidratarAutoresAlertas([extraerPayload(data)]);
-    return { data: alerta, error: null };
+    return { data: mapBackendAlerta(data.data || data), error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -260,17 +155,12 @@ export async function obtenerAlertas(filtros = {}) {
   }
 
   try {
-    const params = mapFiltrosBackend(filtros);
+    const params = limpiarParams(filtros);
     const { data } = await api.get('/api/alerts', { params });
-    let arr = await hidratarAutoresAlertas(extraerListaAlertas(data));
-
-    if (filtros.aprendizBusqueda) {
-      const texto = filtros.aprendizBusqueda.toLowerCase();
-      arr = arr.filter((alerta) => (
-        `${alerta.aprendizNombre || ''} ${alerta.aprendizDocumento || ''}`.toLowerCase().includes(texto)
-      ));
+    let arr = data.data || data;
+    if (Array.isArray(arr)) {
+      arr = arr.map(mapBackendAlerta);
     }
-
     return { data: { data: arr, total: data.total || arr.length }, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -285,8 +175,8 @@ export async function obtenerAlertaPorId(id) {
 
   try {
     const { data } = await api.get(`/api/alerts/${id}`);
-    const [alerta] = await hidratarAutoresAlertas([extraerPayload(data)]);
-    return { data: alerta, error: null };
+    const alerta = data.data || data;
+    return { data: mapBackendAlerta(alerta), error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -313,8 +203,8 @@ export async function cerrarAlerta(id, justificacion, estadoFinal = 'CERRADA') {
   try {
     // El backend espera: PATCH /api/alerts/:id/status con { estado }
     const { data } = await api.patch(`/api/alerts/${id}/status`, { estado: estadoFinal });
-    const [alerta] = await hidratarAutoresAlertas([extraerPayload(data)]);
-    return { data: alerta, error: null };
+    const alerta = data.data || data;
+    return { data: mapBackendAlerta(alerta), error: null };
   } catch (error) {
     return { data: null, error: error.response?.status || mensajeError(error), fullError: error };
   }
@@ -324,7 +214,8 @@ export async function obtenerAlertasPorAprendiz(aprendizId) {
   if (USE_MOCK) return { data: MOCK_ALERTAS, error: null };
   try {
     const { data } = await api.get('/api/alerts', { params: { id_aprendiz: aprendizId } });
-    const arr = await hidratarAutoresAlertas(extraerListaAlertas(data));
+    let arr = data.data || data;
+    if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
     return { data: arr, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -360,10 +251,11 @@ export async function obtenerGruposAlertasCoordinador() {
 
   try {
     const { data } = await api.get('/api/alerts');
-    const arr = extraerListaAlertas(data);
+    let arr = data.data || data;
+    if (!Array.isArray(arr)) arr = [];
 
     // Mapear y agrupar por grupo (el backend devuelve lista plana)
-    const alertasMapeadas = await hidratarAutoresAlertas(arr);
+    const alertasMapeadas = arr.map(mapBackendAlerta);
     const resumen = {};
 
     alertasMapeadas.forEach(alerta => {
@@ -407,7 +299,8 @@ export async function obtenerAlertasPorGrupo(grupoCodigo) {
 
   try {
     const { data } = await api.get('/api/alerts', { params: { id_grupo: grupoCodigo } });
-    const arr = await hidratarAutoresAlertas(extraerListaAlertas(data));
+    let arr = data.data || data;
+    if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
     return { data: arr, error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -452,35 +345,7 @@ export async function buscarAprendices(query) {
 
     return { data: mapeados, error: null };
   } catch (error) {
-    try {
-      const { data: gruposResp } = await api.get('/api/groups');
-      const grupos = gruposResp.data?.grupos || gruposResp.data || gruposResp.results || [];
-      const respuestas = await Promise.allSettled(
-        (Array.isArray(grupos) ? grupos : []).map((grupo) =>
-          api.get(`/api/apprentices/grupo/${grupo.id_grupo || grupo.id}`, { params: { limit: 1000 } })
-        )
-      );
-
-      const texto = query.toLowerCase();
-      const aprendices = respuestas.flatMap((resultado) => {
-        if (resultado.status !== 'fulfilled') return [];
-        const payload = resultado.value.data?.data ?? resultado.value.data;
-        return payload?.aprendices || payload?.items || (Array.isArray(payload) ? payload : []);
-      });
-
-      const mapeados = aprendices.map(a => ({
-        id: a.id_aprendiz,
-        nombre: `${a.usuario?.persona?.nombres || a.nombres || ''} ${a.usuario?.persona?.apellidos || a.apellidos || ''}`.trim() || `ID ${a.id_aprendiz}`,
-        documento: a.usuario?.persona?.numero_documento || a.numero_documento || 'â€”'
-      })).filter((a, index, arr) => (
-        `${a.nombre} ${a.documento}`.toLowerCase().includes(texto) &&
-        arr.findIndex((item) => String(item.id) === String(a.id)) === index
-      ));
-
-      return { data: mapeados, error: null };
-    } catch {
-      return { data: [], error: mensajeError(error) };
-    }
+    return { data: [], error: mensajeError(error) };
   }
 }
 
@@ -552,3 +417,4 @@ export async function marcarTodasComoLeidas() {
     return { data: null, error: mensajeError(error) };
   }
 }
+
