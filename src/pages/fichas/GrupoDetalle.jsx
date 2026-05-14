@@ -208,25 +208,9 @@ export default function GrupoDetalle() {
         </div>
       </section>
 
-      <div className="gd-view-actions" aria-label="Vistas del detalle de grupo">
-        <button
-          type="button"
-          className={`gd-view-btn ${vistaDetalle === "resumen" ? "active" : ""}`}
-          onClick={() => setVistaDetalle("resumen")}
-        >
-          Tarjetas y graficas
-        </button>
-        <button
-          type="button"
-          className={`gd-view-btn ${vistaDetalle === "datos" ? "active" : ""}`}
-          onClick={() => setVistaDetalle("datos")}
-        >
-          Ver datos del grupo
-        </button>
-      </div>
-
+      
       {/* ── KPIs ── */}
-      <section className={`gd-kpi-grid ${vistaDetalle !== "resumen" ? "gd-view-hidden" : ""}`}>
+      <section className="gd-kpi-grid">
         {kpis.map(({ icon: Icon, label, valor, sub, cls }) => (
           <article key={label} className={`gd-kpi-card ${cls}`}>
             <span className="gd-kpi-label">{label}</span>
@@ -237,7 +221,7 @@ export default function GrupoDetalle() {
       </section>
 
       {/* ── FICHA DETALLE / INFO GENERAL ── */}
-      <article className={`fichas-panel ${vistaDetalle !== "datos" ? "gd-view-hidden" : ""}`}>
+      <article className="fichas-panel">
         <div className="gd-card-header" style={{ marginBottom: 18 }}>
           <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>
           <div className="gd-header-actions">
@@ -285,7 +269,7 @@ export default function GrupoDetalle() {
       {/* ── FILA PRINCIPAL: asistencia + línea de tiempo ── */}
       <section className="gd-main-grid">
         {/* Asistencia */}
-        <article className={`fichas-panel gd-chart-card ${vistaDetalle !== "resumen" ? "gd-view-hidden" : ""}`}>
+        <article className="fichas-panel gd-chart-card">
           <div className="gd-card-header">
             <h2>Asistencia — {periodoAsist}</h2>
             <div className="gd-period-btns">
@@ -316,7 +300,7 @@ export default function GrupoDetalle() {
         </article>
 
         {/* Línea de tiempo */}
-        <article className={`fichas-panel gd-timeline-card ${vistaDetalle !== "datos" ? "gd-view-hidden" : ""}`}>
+        <article className="fichas-panel gd-timeline-card">
           <div className="gd-card-header">
             <h2>Línea de Tiempo — Ficha {detalle.ficha}</h2>
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
@@ -339,7 +323,7 @@ export default function GrupoDetalle() {
       </section>
 
       {/* ── TABLA APRENDICES ── */}
-      <article className={`fichas-panel ${vistaDetalle !== "datos" ? "gd-view-hidden" : ""}`}>
+      <article className="fichas-panel">
         <div className="fichas-panel-header-actions">
           <h2>Aprendices de la Ficha {detalle.ficha}</h2>
           <span className="gd-count-chip">{detalle.aprendices} registrados</span>
@@ -384,7 +368,7 @@ export default function GrupoDetalle() {
       </article>
 
       {/* ── TABLA ALERTAS (Solo Instructor) ── */}
-      {vistaDetalle === "datos" && esInstructor && (
+      {esInstructor && (
         <article className="fichas-panel">
         <div className="fichas-panel-header-actions">
           <h2>Alertas de la Ficha {detalle.ficha}</h2>
@@ -423,7 +407,7 @@ export default function GrupoDetalle() {
       )}
 
       {/* ── GRÁFICAS: severidad (Solo Instructor) ── */}
-      {vistaDetalle === "resumen" && esInstructor && (
+      {esInstructor && (
         <section>
         {/* Alertas por Severidad */}
         <article className="fichas-panel gd-sev-chart-card">
