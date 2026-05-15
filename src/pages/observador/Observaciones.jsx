@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Edit3, Eye, Plus, Save, X } from "lucide-react";
 import "./Observaciones.css";
 
 export default function Observaciones() {
@@ -47,6 +48,21 @@ export default function Observaciones() {
     return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  function formatFechaFiltro(fecha) {
+    if (!fecha) return "";
+    const [year, month, day] = fecha.split("-");
+    return year && month && day ? `${day}/${month}/${year}` : fecha;
+  }
+
+  function normalizarFechaFiltro(fecha, cierreDia = false) {
+    if (!fecha) return "";
+    return `${fecha}T${cierreDia ? "23:59:59.999" : "00:00:00.000"}`;
+  }
+
+  function rangoFechasEsInvalido(fechaDesde, fechaHasta) {
+    return Boolean(fechaDesde && fechaHasta && fechaDesde > fechaHasta);
+  }
+
   // El backend devuelve obs.aprendiz.usuario.persona.{nombres, apellidos}
   // No existe "nombre_completo" — lo construimos aquí
   function getNombreAprendiz(obs) {
@@ -75,6 +91,7 @@ export default function Observaciones() {
   const [total, setTotal] = useState(0);
   const [observacionesAbiertas, setObservacionesAbiertas] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [errorFiltros, setErrorFiltros] = useState("");
   const [pagina, setPagina] = useState(1);
   const LIMIT = 10;
 
@@ -165,6 +182,16 @@ export default function Observaciones() {
   async function fetchObservaciones() {
     try {
       setLoading(true);
+      setErrorFiltros("");
+
+      if (rangoFechasEsInvalido(filtros.fecha_desde, filtros.fecha_hasta)) {
+        setObservaciones([]);
+        setTotal(0);
+        setObservacionesAbiertas(0);
+        setErrorFiltros("La fecha desde no puede ser mayor que la fecha hasta.");
+        return;
+      }
+
       const params = new URLSearchParams();
       params.append("page", pagina);
       params.append("limit", LIMIT);
@@ -173,8 +200,8 @@ export default function Observaciones() {
       if (filtros.tipo)        params.append("tipo_observacion", filtros.tipo);
       if (filtros.severidad)   params.append("severidad", filtros.severidad);
       if (filtros.estado)      params.append("estado", filtros.estado);
-      if (filtros.fecha_desde) params.append("fecha_desde", filtros.fecha_desde);
-      if (filtros.fecha_hasta) params.append("fecha_hasta", filtros.fecha_hasta);
+      if (filtros.fecha_desde) params.append("fecha_desde", normalizarFechaFiltro(filtros.fecha_desde));
+      if (filtros.fecha_hasta) params.append("fecha_hasta", normalizarFechaFiltro(filtros.fecha_hasta, true));
 
       const res = await fetch(
         `${API_URL}/observations/group/${grupoSeleccionado}?${params}`,
@@ -279,10 +306,18 @@ export default function Observaciones() {
 
   function limpiarFiltros() {
     setFiltros({ id_aprendiz: "", tipo: "", severidad: "", estado: "", fecha_desde: "", fecha_hasta: "" });
+    setErrorFiltros("");
     setPagina(1);
   }
 
-  const totalPaginas = Math.ceil(total / LIMIT);
+  const totalPaginas = Math.max(1, Math.ceil(total / LIMIT));
+  const desde = total === 0 ? 0 : (pagina - 1) * LIMIT + 1;
+  const hasta = Math.min(pagina * LIMIT, total);
+
+  function cambiarPagina(nuevaPagina) {
+    const paginaSegura = Math.min(Math.max(nuevaPagina, 1), totalPaginas);
+    setPagina(paginaSegura);
+  }
 
   const aprendizEnModal = aprendices.find(
     (a) => Number(a.id_aprendiz) === Number(form.id_aprendiz)
@@ -294,32 +329,33 @@ export default function Observaciones() {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="coordinador-panel obs-page">
-
-      {/* ── Encabezado + filtros ── */}
-      <div className="coordinador-card">
-        <div className="coordinador-card-header obs-header">
-          <div>
-            <h2>Consultar observaciones</h2>
-            <p>Visualiza y administra observaciones del grupo.</p>
-          </div>
-          {esInstructor && (
-            <button
-              className="obs-btn-primary"
-              onClick={() => { cerrarModal(); setMostrarModal(true); }}
-            >
-              + Registrar observación
-            </button>
+    <div className="obs-page">
+      <header className="obs-main-header">
+        <div>
+          <h1>Gestión de observaciones</h1>
+          <p>Consulta, registra y administra observaciones de los aprendices por ficha.</p>
+          {grupoSeleccionado && (
+            <div className="obs-stats">
+              <span className="badge cerrada">Total: {total}</span>
+              <span className="badge abierta">Abiertas: {observacionesAbiertas}</span>
+            </div>
           )}
         </div>
 
-        {grupoSeleccionado && (
-          <div className="obs-stats">
-            <span className="badge cerrada">Total: {total}</span>
-            <span className="badge abierta">Abiertas: {observacionesAbiertas}</span>
-          </div>
+        {esInstructor && (
+          <button
+            className="obs-btn-primary"
+            type="button"
+            onClick={() => { cerrarModal(); setMostrarModal(true); }}
+          >
+            <Plus size={18} strokeWidth={2.4} />
+            Registrar observación
+          </button>
         )}
+      </header>
 
+      {/* ── Encabezado + filtros ── */}
+      <section className="obs-toolbar">
         <div className="obs-filters">
           <select
             value={grupoSeleccionado}
@@ -353,9 +389,9 @@ export default function Observaciones() {
             value={filtros.tipo}
             onChange={(e) => { setFiltros({ ...filtros, tipo: e.target.value }); setPagina(1); }}
           >
-            <option value="">Tipo</option>
-            <option value="ACADEMICA">ACADEMICA</option>
-            <option value="CONVIVENCIAL">CONVIVENCIAL</option>
+            <option value="">tipo</option>
+            <option value="ACADEMICA">académica</option>
+            <option value="CONVIVENCIAL">convivencial</option>
           </select>
 
           <select
@@ -380,18 +416,24 @@ export default function Observaciones() {
 
         <div className="obs-filters-dates">
           <div className="obs-date-field">
-            <span className="obs-date-label">Desde</span>
+            <span className="obs-date-label">
+              Desde {filtros.fecha_desde && <strong>{formatFechaFiltro(filtros.fecha_desde)}</strong>}
+            </span>
             <input
               type="date"
+              className={filtros.fecha_desde ? "has-value" : ""}
               value={filtros.fecha_desde}
               max={hoy}
               onChange={(e) => { setFiltros({ ...filtros, fecha_desde: e.target.value }); setPagina(1); }}
             />
           </div>
           <div className="obs-date-field">
-            <span className="obs-date-label">Hasta</span>
+            <span className="obs-date-label">
+              Hasta {filtros.fecha_hasta && <strong>{formatFechaFiltro(filtros.fecha_hasta)}</strong>}
+            </span>
             <input
               type="date"
+              className={filtros.fecha_hasta ? "has-value" : ""}
               value={filtros.fecha_hasta}
               max={hoy}
               onChange={(e) => { setFiltros({ ...filtros, fecha_hasta: e.target.value }); setPagina(1); }}
@@ -401,11 +443,17 @@ export default function Observaciones() {
             Limpiar
           </button>
         </div>
-      </div>
+        {errorFiltros && <p className="obs-filter-warning">{errorFiltros}</p>}
+      </section>
 
       {/* ── Tabla observaciones (H18) ── */}
-      <div className="coordinador-card">
-        <h2>Observaciones registradas</h2>
+      <section className="obs-card obs-table-card">
+        <div className="obs-card-header">
+          <div>
+            <h2>Observaciones registradas</h2>
+            <p>Mostrando {desde}-{hasta} de {total} observaciones</p>
+          </div>
+        </div>
 
         {loading ? (
           <p className="obs-loading">Cargando...</p>
@@ -430,22 +478,14 @@ export default function Observaciones() {
                     observaciones.map((obs) => (
                       <tr key={obs.id_observacion}>
                         <td>{getNombreAprendiz(obs)}</td>
-                        <td>
-                          <span className={`badge ${(obs.tipo_observacion || "").toLowerCase()}`}>
-                            {obs.tipo_observacion}
-                          </span>
-                        </td>
+                        <td className="obs-plain-value obs-type-value">{obs.tipo_observacion}</td>
                         <td>
                           <span className={`badge ${(obs.severidad || "").toLowerCase()}`}>
                             {obs.severidad}
                           </span>
                         </td>
-                        <td>
-                          <span className={`badge ${(obs.estado || "").toLowerCase()}`}>
-                            {obs.estado}
-                          </span>
-                        </td>
-                        <td>
+                        <td className="obs-plain-value">{obs.estado}</td>
+                        <td className="obs-description-cell">
                           {obs.descripcion?.length > 80
                             ? obs.descripcion.slice(0, 80) + "..."
                             : obs.descripcion}
@@ -455,16 +495,23 @@ export default function Observaciones() {
                         <td>
                           <div className="obs-actions">
                             <button
+                              type="button"
+                              className="obs-icon-btn"
                               onClick={() => fetchHistorial(obs.id_aprendiz, getNombreAprendiz(obs))}
+                              title="Ver historial"
+                              aria-label="Ver historial"
                             >
-                              Historial
+                              <Eye size={16} strokeWidth={2.2} />
                             </button>
                             {esInstructor && obs.estado === "ABIERTA" && (
                               <button
-                                className="obs-action-edit"
+                                type="button"
+                                className="obs-icon-btn obs-action-edit"
                                 onClick={() => handleEditar(obs)}
+                                title="Editar observación"
+                                aria-label="Editar observación"
                               >
-                                Editar
+                                <Edit3 size={16} strokeWidth={2.2} />
                               </button>
                             )}
                           </div>
@@ -484,21 +531,32 @@ export default function Observaciones() {
               </table>
             </div>
 
-            <div className="obs-pagination">
-              <span>Total registros: {total}</span>
-              <div className="obs-pagination-btns">
-                <button disabled={pagina === 1} onClick={() => setPagina(pagina - 1)}>
+            {total > LIMIT && (
+              <div className="obs-pagination">
+                <span>Página {pagina} de {totalPaginas}</span>
+                <div className="obs-pagination-btns">
+                <button type="button" disabled={pagina === 1} onClick={() => cambiarPagina(pagina - 1)}>
                   Anterior
                 </button>
-                <span>Página {pagina}{totalPaginas > 0 ? ` de ${totalPaginas}` : ""}</span>
-                <button disabled={pagina >= totalPaginas} onClick={() => setPagina(pagina + 1)}>
+                {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((numeroPagina) => (
+                  <button
+                    key={numeroPagina}
+                    type="button"
+                    className={numeroPagina === pagina ? "active" : ""}
+                    onClick={() => cambiarPagina(numeroPagina)}
+                  >
+                    {numeroPagina}
+                  </button>
+                ))}
+                <button type="button" disabled={pagina >= totalPaginas} onClick={() => cambiarPagina(pagina + 1)}>
                   Siguiente
                 </button>
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
-      </div>
+      </section>
 
       {/* ── Modal registro / edición (H17 + H20) ── */}
       {mostrarModal && (
@@ -610,8 +668,12 @@ export default function Observaciones() {
             )}
 
             <div className="modal-actions">
-              <button onClick={cerrarModal}>Cancelar</button>
+              <button onClick={cerrarModal}>
+                <X size={16} strokeWidth={2.3} />
+                Cancelar
+              </button>
               <button className="obs-btn-primary" onClick={handleSubmit}>
+                <Save size={16} strokeWidth={2.3} />
                 {editando ? "Actualizar" : "Guardar observación"}
               </button>
             </div>
@@ -666,7 +728,10 @@ export default function Observaciones() {
             </div>
 
             <div className="modal-actions">
-              <button onClick={() => setMostrarHistorial(false)}>Cerrar</button>
+              <button onClick={() => setMostrarHistorial(false)}>
+                <X size={16} strokeWidth={2.3} />
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
