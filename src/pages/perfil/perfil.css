@@ -1,11 +1,18 @@
 ﻿.perfil-page {
+  --sima-navy: #052d4f;
+  --sima-green: #39a900;
+  --sima-green-dark: #238500;
+  --sima-text: #0b2442;
+  --sima-muted: #6b7a8b;
+  --sima-border: #e1e8f0;
+
   width: 100%;
   max-width: 1480px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  color: #0b2442;
+  gap: 14px;
+  color: var(--sima-text);
 }
 
 .perfil-hero {
@@ -13,11 +20,12 @@
   grid-template-columns: auto 1fr auto;
   gap: 18px;
   align-items: center;
-  padding: 22px;
-  border: 1px solid #e1e8f0;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #072f52, #0d426d 58%, #39a900 150%);
-  color: #ffffff;
+  padding: 18px;
+  border: 1px solid var(--sima-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--sima-text);
+  box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
 }
 
 .perfil-avatar-wrap {
@@ -31,9 +39,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.16);
-  border: 1px solid rgba(255,255,255,0.22);
-  color: #ffffff;
+  background: #edf9e7;
+  border: 1px solid #d7ecd8;
+  color: var(--sima-green-dark);
   font-size: 24px;
   font-weight: 900;
   cursor: pointer;
@@ -90,7 +98,7 @@
 .perfil-eyebrow {
   display: block;
   margin-bottom: 4px;
-  color: #b9f18d;
+  color: var(--sima-green-dark);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
@@ -111,7 +119,7 @@
 
 .perfil-hero-copy p {
   margin: 6px 0 0;
-  color: rgba(255,255,255,0.82);
+  color: var(--sima-muted);
   font-size: 14px;
   font-weight: 700;
 }
@@ -123,8 +131,9 @@
   gap: 8px;
   padding: 0 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  background: #f8fafc;
+  color: var(--sima-text);
+  border: 1px solid var(--sima-border);
   font-size: 13px;
   font-weight: 900;
 }
@@ -151,7 +160,7 @@
 }
 
 .perfil-primary-btn {
-  background: #39a900;
+  background: linear-gradient(180deg, var(--sima-green), var(--sima-green-dark));
   color: #ffffff;
 }
 
@@ -182,8 +191,8 @@
 
 .perfil-card {
   padding: 18px;
-  border: 1px solid #e1e8f0;
-  border-radius: 14px;
+  border: 1px solid var(--sima-border);
+  border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
 }
@@ -206,7 +215,7 @@
 
 .perfil-field {
   padding: 14px;
-  border: 1px solid #e1e8f0;
+  border: 1px solid var(--sima-border);
   border-radius: 10px;
   background: #f8fafc;
   display: flex;

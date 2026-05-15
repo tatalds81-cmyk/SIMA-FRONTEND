@@ -191,6 +191,10 @@
   font-weight: 400;
 }
 
+.aprendices-table tbody strong {
+  font-weight: 400;
+}
+
 .aprendices-highlight {
   color: var(--sima-green-dark) !important;
   font-weight: 400 !important;

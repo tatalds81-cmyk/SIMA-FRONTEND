@@ -245,7 +245,10 @@ function App() {
               path="/configuracion"
               element={
                 <Dashboard onLogout={manejarLogout}>
-                  <div>Configuracion</div>
+                  <InstructorSeccion
+                    titulo="Configuracion"
+                    descripcion="Administra las preferencias generales del sistema y las opciones disponibles para tu rol."
+                  />
                 </Dashboard>
               }
             />

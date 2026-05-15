@@ -197,6 +197,10 @@
   font-weight: 400;
 }
 
+.usuarios-table tbody strong {
+  font-weight: 400;
+}
+
 .usuarios-documento {
   color: var(--sima-green-dark) !important;
   font-weight: 400 !important;

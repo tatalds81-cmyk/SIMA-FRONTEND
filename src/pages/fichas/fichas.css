@@ -205,12 +205,16 @@
 
 .grupos-table td {
   color: #263a52;
-  font-weight: 650;
+  font-weight: 400;
 }
 
 .grupos-highlight {
   color: var(--sima-green-dark) !important;
-  font-weight: 900 !important;
+  font-weight: 400 !important;
+}
+
+.grupos-table tbody strong {
+  font-weight: 400;
 }
 
 .grupos-status {
@@ -563,11 +567,12 @@
   font-size: 13px;
 }
 .gd-table th { background: #f8fafc; color: #38506b; font-weight: 900; font-size: 12px; }
-.gd-table td { color: #263a52; font-weight: 650; }
+.gd-table td { color: #263a52; font-weight: 400; }
+.gd-table tbody strong { font-weight: 400; }
 .gd-table tbody tr:hover { background: #fafcff; }
-.gd-num-alerta { color: #2652cc; font-weight: 900; }
-.gd-num-inasis  { color: #ef4444; font-weight: 900; }
-.gd-td-link { color: #2652cc; font-weight: 700; }
+.gd-num-alerta { color: #2652cc; font-weight: 400; }
+.gd-num-inasis  { color: #ef4444; font-weight: 400; }
+.gd-td-link { color: #2652cc; font-weight: 400; }
 .gd-empty { text-align: center; color: #8b95a3; padding: 24px !important; font-style: italic; }
 
 .gd-action-btn {
