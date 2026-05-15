@@ -47,6 +47,16 @@ function App() {
         {token ? (
           <>
             <Route
+              path="/"
+              element={<Navigate to="/login" replace />}
+            />
+
+            <Route
+              path="/login"
+              element={<Login onLogin={manejarLogin} />}
+            />
+
+            <Route
               path="/dashboard"
               element={
                 esInstructor ? (
@@ -249,11 +259,17 @@ function App() {
           <>
             <Route
               path="/"
+              element={<Navigate to="/login" replace />}
+            />
+
+            <Route
+              path="/login"
               element={<Login onLogin={manejarLogin} />}
             />
+
             <Route
               path="*"
-              element={<Navigate to="/" replace />}
+              element={<Navigate to="/login" replace />}
             />
           </>
         )}
