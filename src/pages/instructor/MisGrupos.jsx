@@ -499,7 +499,7 @@ export default function MisGrupos() {
           </table>
         </div>
 
-        {gruposFiltrados.length > GRUPOS_POR_PAGINA && (
+        {gruposFiltrados.length > 0 && (
           <div className="grupos-pagination">
             <span>
               Pagina {paginaSegura} de {totalPaginas}

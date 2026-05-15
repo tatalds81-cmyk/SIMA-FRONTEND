@@ -494,7 +494,7 @@ export default function Aprendices() {
           </table>
         </div>
 
-        {aprendicesFiltrados.length > APRENDICES_POR_PAGINA && (
+        {aprendicesFiltrados.length > 0 && (
           <div className="aprendices-pagination">
             <span>Pagina {paginaActual} de {totalPaginas}</span>
             <div>

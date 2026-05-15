@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Users, ShieldAlert, ChevronLeft, ChevronRight,
+  Users, ShieldAlert,
   Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
@@ -13,8 +13,6 @@ const ITEMS_POR_PAGINA = 5;
 
 function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
-  const desde = total === 0 ? 0 : (paginaActual - 1) * limite + 1;
-  const hasta = Math.min(paginaActual * limite, total);
   const paginas = [];
   const inicio = Math.max(1, paginaActual - 2);
   const fin = Math.min(totalPaginas, paginaActual + 2);
@@ -26,6 +24,10 @@ function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
   return (
     <div className="ca-pagination">
       <div className="ca-pagination-izq">
+        <span className="ca-limite-label">Pagina {paginaActual} de {totalPaginas}</span>
+      </div>
+
+      <div className="ca-pagination-der">
         <button
           type="button"
           className="ca-page-btn"
@@ -33,7 +35,7 @@ function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
           disabled={paginaActual === 1}
           aria-label="Pagina anterior"
         >
-          <ChevronLeft size={16} />
+          Anterior
         </button>
 
         {paginaActual > 3 && (
@@ -70,12 +72,8 @@ function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
           disabled={paginaActual === totalPaginas}
           aria-label="Pagina siguiente"
         >
-          <ChevronRight size={16} />
+          Siguiente
         </button>
-      </div>
-
-      <div className="ca-pagination-der">
-        <span className="ca-limite-label">Mostrando {desde}-{hasta} de {total}</span>
       </div>
     </div>
   );

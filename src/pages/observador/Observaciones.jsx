@@ -563,7 +563,7 @@ export default function Observaciones() {
               </table>
             </div>
 
-            {total > LIMIT && (
+            {total > 0 && (
               <div className="obs-pagination">
                 <span>Página {pagina} de {totalPaginas}</span>
                 <div className="obs-pagination-btns">

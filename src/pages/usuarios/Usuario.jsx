@@ -494,7 +494,7 @@ export default function Usuario() {
           </table>
         </div>
 
-        {usuariosFiltrados.length > USUARIOS_POR_PAGINA && (
+        {usuariosFiltrados.length > 0 && (
           <div className="usuarios-pagination">
             <span>Pagina {paginaActual} de {totalPaginas}</span>
             <div>

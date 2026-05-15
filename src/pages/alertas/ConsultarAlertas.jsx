@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Download, Plus, Search, Eye, RefreshCw,
-  ChevronLeft, ChevronRight, ChevronsUpDown
+  ChevronsUpDown
 } from 'lucide-react';
 import { useAlertas } from '../../hooks/useAlertas';
 import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
@@ -51,7 +51,7 @@ function formatearTipoAlerta(tipo) {
 }
 
 // ── Paginación ────────────────────────────────────────────────────────────────
-function Paginacion({ paginaActual, total, limite, onCambiarPagina, onCambiarLimite }) {
+function Paginacion({ paginaActual, total, limite, onCambiarPagina }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
 
   function paginas() {
@@ -66,13 +66,17 @@ function Paginacion({ paginaActual, total, limite, onCambiarPagina, onCambiarLim
   return (
     <div className="ca-pagination">
       <div className="ca-pagination-izq">
+        <span className="ca-limite-label">Pagina {paginaActual} de {totalPaginas}</span>
+      </div>
+
+      <div className="ca-pagination-der">
         <button
           className="ca-page-btn"
           onClick={() => onCambiarPagina(paginaActual - 1)}
           disabled={paginaActual === 1}
           aria-label="Página anterior"
         >
-          <ChevronLeft size={15} />
+          Anterior
         </button>
 
         {paginaActual > 3 && (
@@ -105,21 +109,8 @@ function Paginacion({ paginaActual, total, limite, onCambiarPagina, onCambiarLim
           disabled={paginaActual === totalPaginas}
           aria-label="Página siguiente"
         >
-          <ChevronRight size={15} />
+          Siguiente
         </button>
-      </div>
-
-      <div className="ca-pagination-der">
-        <label className="ca-limite-label">Por página:</label>
-        <select
-          className="ca-limite-select"
-          value={limite}
-          onChange={e => onCambiarLimite(Number(e.target.value))}
-        >
-          {[5, 10, 20, 50].map(n => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
       </div>
     </div>
   );

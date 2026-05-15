@@ -1480,7 +1480,7 @@ export default function GrupoDetalle() {
             </tbody>
           </table>
         </div>
-        {aprendicesGrupo.length > REGISTROS_POR_PAGINA && (
+        {aprendicesGrupo.length > 0 && (
           <div className="grupos-pagination">
             <span>Pagina {paginaAprendicesSegura} de {totalPaginasAprendices}</span>
             <div>
@@ -1611,7 +1611,7 @@ export default function GrupoDetalle() {
             </tbody>
           </table>
         </div>
-        {alertasFiltradas.length > REGISTROS_POR_PAGINA && (
+        {alertasFiltradas.length > 0 && (
           <div className="grupos-pagination">
             <span>Pagina {paginaAlertasSegura} de {totalPaginasAlertas}</span>
             <div>

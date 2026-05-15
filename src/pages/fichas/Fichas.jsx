@@ -503,7 +503,7 @@ export default function GruposFormativos() {
           </table>
         </div>
 
-        {gruposFiltrados.length > GRUPOS_POR_PAGINA && (
+        {gruposFiltrados.length > 0 && (
           <div className="grupos-pagination">
             <span>Pagina {paginaActual} de {totalPaginas}</span>
             <div>
