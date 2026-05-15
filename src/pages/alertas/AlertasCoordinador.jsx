@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Users, ShieldAlert,
+  Users, ShieldAlert, ChevronRight,
   Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
