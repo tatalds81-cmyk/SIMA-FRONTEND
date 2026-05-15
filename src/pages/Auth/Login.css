@@ -11,10 +11,13 @@
   --sima-panel: #ffffff;
 
   width: 100vw;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   margin-left: calc((100% - 100vw) / 2);
   display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(440px, 1fr);
+  grid-template-columns: minmax(520px, 49%) minmax(440px, 51%);
   overflow: hidden;
   background: #ffffff;
   color: var(--sima-text);
@@ -24,11 +27,14 @@
 
 .login-sima-hero {
   position: relative;
-  min-height: 100vh;
-  padding: clamp(46px, 6vw, 86px) clamp(42px, 7vw, 104px);
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: clamp(46px, 6vh, 66px) clamp(34px, 5vw, 72px) clamp(28px, 4vh, 42px) clamp(46px, 5.4vw, 88px);
   overflow: hidden;
   background:
-    radial-gradient(circle at 62% 72%, rgba(32, 188, 227, 0.13), transparent 22%),
+    radial-gradient(circle at 92% 82%, rgba(57, 169, 0, 0.48), transparent 32%),
+    linear-gradient(180deg, rgba(5, 45, 79, 0.9), rgba(5, 45, 79, 0.96)),
     linear-gradient(140deg, var(--sima-navy), var(--sima-navy-2));
   border-top-right-radius: 165px;
   border-bottom-right-radius: 165px;
@@ -37,22 +43,22 @@
 
 .login-sima-brand {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   display: inline-flex;
   align-items: center;
 }
 
 .login-sima-brand-logo {
-  width: clamp(96px, 11vw, 136px);
+  width: clamp(102px, 10vw, 126px);
   height: auto;
   display: block;
 }
 
 .login-sima-copy {
   position: relative;
-  z-index: 2;
-  max-width: 530px;
-  margin-top: clamp(68px, 10vh, 124px);
+  z-index: 4;
+  max-width: min(410px, 50%);
+  margin-top: clamp(48px, 8vh, 82px);
 }
 
 .login-sima-eyebrow {
@@ -65,16 +71,16 @@
 .login-sima-copy h1 {
   margin: 0 0 26px;
   color: #ffffff;
-  font-size: clamp(36px, 4.6vw, 58px);
+  font-size: clamp(34px, 3.45vw, 50px);
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .login-sima-copy p:last-child {
-  max-width: 430px;
+  max-width: 360px;
   color: rgba(255, 255, 255, 0.94);
-  font-size: clamp(18px, 1.8vw, 25px);
+  font-size: clamp(17px, 1.42vw, 21px);
   line-height: 1.48;
 }
 
@@ -82,101 +88,31 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 1;
 }
 
-.login-sima-orbit {
+.login-sima-students-image {
   position: absolute;
-  right: -100px;
-  bottom: 230px;
-  width: 430px;
-  height: 430px;
-  border: 3px solid rgba(32, 188, 227, 0.72);
-  border-left-color: transparent;
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  transform: rotate(-18deg);
-}
-
-.login-sima-orbit-dot {
-  position: absolute;
-  right: 142px;
-  bottom: 377px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--sima-gold);
-  box-shadow: 0 0 0 6px rgba(248, 192, 8, 0.15);
-}
-
-.login-sima-green-shape {
-  position: absolute;
-  right: -90px;
-  bottom: -138px;
-  width: min(54vw, 620px);
-  height: min(34vw, 430px);
-  min-width: 360px;
-  min-height: 300px;
-  border-radius: 100% 0 0 0;
-  background: linear-gradient(135deg, #48be12, #1d9101);
-}
-
-.login-sima-students {
-  position: absolute;
-  left: clamp(46px, 7vw, 118px);
+  right: clamp(-72px, -5vw, -34px);
   bottom: 0;
-  width: min(48vw, 560px);
-  height: 45vh;
-  min-height: 340px;
-}
-
-.student {
-  position: absolute;
-  bottom: 0;
-  display: block;
-  border-radius: 120px 120px 12px 12px;
-  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.22);
-}
-
-.student::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: -82px;
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  background: radial-gradient(circle at 50% 36%, #f3c49c 0 35%, #111827 36% 44%, #f3c49c 45% 100%);
-  border: 8px solid rgba(255, 255, 255, 0.22);
-}
-
-.student-one {
-  left: 4%;
-  width: 180px;
-  height: 270px;
-  background: linear-gradient(160deg, #1e7aa8 0 48%, #145777 49% 100%);
-}
-
-.student-two {
-  left: 245px;
-  width: 190px;
-  height: 315px;
-  background: linear-gradient(160deg, #117033 0 48%, #075229 49% 100%);
-}
-
-.student-two::before {
-  top: -92px;
+  width: min(44vw, 590px);
+  max-width: none;
+  height: auto;
+  z-index: 1;
+  filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.24));
 }
 
 .login-sima-panel {
   position: relative;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 46px;
-  padding: 72px clamp(28px, 6vw, 78px) 46px;
+  gap: clamp(20px, 3.5vh, 34px);
+  padding: clamp(54px, 7vh, 72px) clamp(28px, 5vw, 72px) clamp(22px, 3vh, 34px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.92)),
     radial-gradient(circle at 84% 18%, rgba(57, 169, 0, 0.08), transparent 28%);
@@ -184,7 +120,7 @@
 
 .login-sima-help {
   position: absolute;
-  top: 48px;
+  top: clamp(28px, 5vh, 46px);
   right: clamp(28px, 6vw, 78px);
   display: inline-flex;
   align-items: center;
@@ -203,7 +139,7 @@
 
 .login-sima-card {
   width: min(100%, 520px);
-  padding: clamp(32px, 5vw, 54px);
+  padding: clamp(30px, 4.2vh, 44px) clamp(30px, 4vw, 48px);
   border: 1px solid var(--sima-border);
   border-radius: 18px;
   background: var(--sima-panel);
@@ -220,7 +156,7 @@
 }
 
 .login-sima-subtitle {
-  margin-bottom: 34px;
+  margin-bottom: 28px;
   color: #596879;
   font-size: 17px;
 }
@@ -228,7 +164,7 @@
 .login-sima-form {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
 }
 
 .login-sima-field {
@@ -375,7 +311,7 @@
   display: grid;
   grid-template-columns: minmax(210px, 1fr) auto;
   align-items: end;
-  gap: 34px;
+  gap: 24px;
   color: #5f6b79;
   font-size: 14px;
 }
@@ -428,15 +364,15 @@
   }
 
   .login-sima-copy {
-    max-width: 620px;
+    max-width: 58%;
     margin-top: 46px;
   }
 
-  .login-sima-students {
+  .login-sima-students-image {
     left: auto;
-    right: 24px;
-    width: 360px;
-    opacity: 0.78;
+    right: -36px;
+    width: min(48vw, 410px);
+    opacity: 0.72;
   }
 
   .login-sima-panel {
@@ -471,9 +407,7 @@
     font-size: 17px;
   }
 
-  .login-sima-students,
-  .login-sima-orbit,
-  .login-sima-orbit-dot {
+  .login-sima-students-image {
     display: none;
   }
 

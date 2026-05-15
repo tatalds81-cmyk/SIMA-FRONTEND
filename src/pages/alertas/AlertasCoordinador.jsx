@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Users, ShieldAlert, ChevronRight,
+  Users, ShieldAlert, ChevronLeft, ChevronRight,
   Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
@@ -8,6 +8,78 @@ import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
 import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
 import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
 import './alertasCoordinador.css';
+
+const ITEMS_POR_PAGINA = 10;
+
+function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
+  const totalPaginas = Math.max(1, Math.ceil(total / limite));
+  const desde = total === 0 ? 0 : (paginaActual - 1) * limite + 1;
+  const hasta = Math.min(paginaActual * limite, total);
+  const paginas = [];
+  const inicio = Math.max(1, paginaActual - 2);
+  const fin = Math.min(totalPaginas, paginaActual + 2);
+
+  for (let pagina = inicio; pagina <= fin; pagina += 1) {
+    paginas.push(pagina);
+  }
+
+  return (
+    <div className="ca-pagination">
+      <div className="ca-pagination-izq">
+        <button
+          type="button"
+          className="ca-page-btn"
+          onClick={() => onCambiarPagina(paginaActual - 1)}
+          disabled={paginaActual === 1}
+          aria-label="Pagina anterior"
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        {paginaActual > 3 && (
+          <>
+            <button type="button" className="ca-page-btn" onClick={() => onCambiarPagina(1)}>1</button>
+            {paginaActual > 4 && <span className="ca-page-dots">...</span>}
+          </>
+        )}
+
+        {paginas.map((pagina) => (
+          <button
+            key={pagina}
+            type="button"
+            className={`ca-page-btn${pagina === paginaActual ? ' ca-page-btn--active' : ''}`}
+            onClick={() => onCambiarPagina(pagina)}
+          >
+            {pagina}
+          </button>
+        ))}
+
+        {paginaActual < totalPaginas - 2 && (
+          <>
+            {paginaActual < totalPaginas - 3 && <span className="ca-page-dots">...</span>}
+            <button type="button" className="ca-page-btn" onClick={() => onCambiarPagina(totalPaginas)}>
+              {totalPaginas}
+            </button>
+          </>
+        )}
+
+        <button
+          type="button"
+          className="ca-page-btn"
+          onClick={() => onCambiarPagina(paginaActual + 1)}
+          disabled={paginaActual === totalPaginas}
+          aria-label="Pagina siguiente"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      <div className="ca-pagination-der">
+        <span className="ca-limite-label">Mostrando {desde}-{hasta} de {total}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function AlertasCoordinador() {
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
@@ -21,6 +93,8 @@ export default function AlertasCoordinador() {
   const [grupos, setGrupos] = useState([]);
   const [aprendices, setAprendices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [paginaGrupos, setPaginaGrupos] = useState(1);
+  const [paginaAprendices, setPaginaAprendices] = useState(1);
 
   // ── Filtros vista GRUPOS ──────────────────────────────────────────────────
   const [busquedaGrupo, setBusquedaGrupo] = useState('');
@@ -45,6 +119,7 @@ export default function AlertasCoordinador() {
   const manejarSeleccionGrupo = async (grupo) => {
     setGrupoSeleccionado(grupo);
     setVistaActual('APRENDICES');
+    setPaginaAprendices(1);
     // Limpiar filtros de aprendices al cambiar de grupo
     setBusquedaAprendiz('');
     setFiltroSev('');
@@ -61,20 +136,22 @@ export default function AlertasCoordinador() {
     setGrupoSeleccionado(null);
     setAprendices([]);
     setMostrarHistorial(false);
+    setPaginaGrupos(1);
     cargarGrupos();
   };
 
   const limpiarFiltrosGrupos = () => {
     setBusquedaGrupo('');
     setFiltroSevGrupo('');
+    setPaginaGrupos(1);
   };
 
   const limpiarFiltrosAprendices = () => {
     setBusquedaAprendiz('');
     setFiltroSev('');
     setFiltroTipo('');
-    setFiltroFechaDesde('');
-    setFiltroFechaHasta('');
+    setFiltroFecha('');
+    setPaginaAprendices(1);
   };
 
   const formatearFecha = (isoStr) => {
@@ -130,6 +207,40 @@ export default function AlertasCoordinador() {
   const hayFiltrosGrupo = busquedaGrupo || filtroSevGrupo;
   const hayFiltrosAprendiz = busquedaAprendiz || filtroSev || filtroTipo || filtroFecha;
 
+  const totalPaginasGrupos = Math.max(1, Math.ceil(gruposFiltrados.length / ITEMS_POR_PAGINA));
+  const totalPaginasAprendices = Math.max(1, Math.ceil(aprendicesFiltrados.length / ITEMS_POR_PAGINA));
+
+  useEffect(() => {
+    if (paginaGrupos > totalPaginasGrupos) setPaginaGrupos(totalPaginasGrupos);
+  }, [paginaGrupos, totalPaginasGrupos]);
+
+  useEffect(() => {
+    if (paginaAprendices > totalPaginasAprendices) setPaginaAprendices(totalPaginasAprendices);
+  }, [paginaAprendices, totalPaginasAprendices]);
+
+  const gruposPaginados = useMemo(() => {
+    const inicio = (paginaGrupos - 1) * ITEMS_POR_PAGINA;
+    return gruposFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA);
+  }, [gruposFiltrados, paginaGrupos]);
+
+  const aprendicesPaginados = useMemo(() => {
+    const inicio = (paginaAprendices - 1) * ITEMS_POR_PAGINA;
+    return aprendicesFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA);
+  }, [aprendicesFiltrados, paginaAprendices]);
+
+  const totalVista = vistaActual === 'GRUPOS' ? gruposFiltrados.length : aprendicesFiltrados.length;
+  const paginaVista = vistaActual === 'GRUPOS' ? paginaGrupos : paginaAprendices;
+  const desdeVista = totalVista === 0 ? 0 : (paginaVista - 1) * ITEMS_POR_PAGINA + 1;
+  const hastaVista = Math.min(paginaVista * ITEMS_POR_PAGINA, totalVista);
+
+  const cambiarPaginaGrupos = (pagina) => {
+    setPaginaGrupos(Math.min(Math.max(pagina, 1), totalPaginasGrupos));
+  };
+
+  const cambiarPaginaAprendices = (pagina) => {
+    setPaginaAprendices(Math.min(Math.max(pagina, 1), totalPaginasAprendices));
+  };
+
 
   return (
     <div className="grupos-page">
@@ -174,14 +285,14 @@ export default function AlertasCoordinador() {
                 type="text"
                 placeholder="Buscar por código de ficha o nombre del instructor líder..."
                 value={busquedaGrupo}
-                onChange={e => setBusquedaGrupo(e.target.value)}
+                onChange={e => { setBusquedaGrupo(e.target.value); setPaginaGrupos(1); }}
               />
             </div>
 
             <select
               className="grupos-select-filtro"
               value={filtroSevGrupo}
-              onChange={e => setFiltroSevGrupo(e.target.value)}
+              onChange={e => { setFiltroSevGrupo(e.target.value); setPaginaGrupos(1); }}
             >
               <option value="">Todas las severidades</option>
               <option value="graves">Con Graves</option>
@@ -206,11 +317,11 @@ export default function AlertasCoordinador() {
                 type="text"
                 placeholder="Buscar aprendiz por nombre o documento..."
                 value={busquedaAprendiz}
-                onChange={e => setBusquedaAprendiz(e.target.value)}
+                onChange={e => { setBusquedaAprendiz(e.target.value); setPaginaAprendices(1); }}
               />
             </div>
 
-            <select className="grupos-select-filtro" value={filtroSev} onChange={e => setFiltroSev(e.target.value)}>
+            <select className="grupos-select-filtro" value={filtroSev} onChange={e => { setFiltroSev(e.target.value); setPaginaAprendices(1); }}>
               <option value="">Todas las severidades</option>
               <option value="LEVE">Leve</option>
               <option value="MODERADA">Moderada</option>
@@ -218,7 +329,7 @@ export default function AlertasCoordinador() {
               <option value="CRITICA">Crítica</option>
             </select>
 
-            <select className="grupos-select-filtro" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+            <select className="grupos-select-filtro" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPaginaAprendices(1); }}>
               <option value="">Todos los tipos</option>
               <option value="ACADEMICA">Académica</option>
               <option value="CONVIVENCIAL">Convivencial</option>
@@ -234,7 +345,7 @@ export default function AlertasCoordinador() {
                 style={{ width: 'auto' }}
                 title="Fecha"
                 value={filtroFecha}
-                onChange={e => setFiltroFecha(e.target.value)}
+                onChange={e => { setFiltroFecha(e.target.value); setPaginaAprendices(1); }}
               />
               {hayFiltrosAprendiz && (
                 <button type="button" className="ghost" onClick={limpiarFiltrosAprendices}>
@@ -260,8 +371,7 @@ export default function AlertasCoordinador() {
             </h2>
             {!loading && (
               <p>
-                Mostrando {vistaActual === 'GRUPOS' ? gruposFiltrados.length : aprendicesFiltrados.length}{' '}
-                de {vistaActual === 'GRUPOS' ? grupos.length : aprendices.length}{' '}
+                Mostrando {desdeVista}-{hastaVista} de {totalVista}{' '}
                 {vistaActual === 'GRUPOS' ? 'fichas' : 'aprendices'}
               </p>
             )}
@@ -305,7 +415,7 @@ export default function AlertasCoordinador() {
                   </tr>
                 </thead>
                 <tbody>
-                  {gruposFiltrados.map((g) => (
+                  {gruposPaginados.map((g) => (
                     <tr key={g.grupoCodigo} className="ac-tr-clickable" onClick={() => manejarSeleccionGrupo(g)}>
                       <td>
                         <div className="ac-grupo-info">
@@ -371,7 +481,7 @@ export default function AlertasCoordinador() {
                   </tr>
                 </thead>
                 <tbody>
-                  {aprendicesFiltrados.map((a) => (
+                  {aprendicesPaginados.map((a) => (
                     <tr key={a.id} className="ac-tr-clickable" onClick={() => setDetalleAlertaId(a.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -423,6 +533,24 @@ export default function AlertasCoordinador() {
               </div>
             )}
           </div>
+        )}
+
+        {!loading && vistaActual === 'GRUPOS' && gruposFiltrados.length > 0 && (
+          <PaginacionAlertas
+            paginaActual={paginaGrupos}
+            total={gruposFiltrados.length}
+            limite={ITEMS_POR_PAGINA}
+            onCambiarPagina={cambiarPaginaGrupos}
+          />
+        )}
+
+        {!loading && vistaActual === 'APRENDICES' && aprendicesFiltrados.length > 0 && (
+          <PaginacionAlertas
+            paginaActual={paginaAprendices}
+            total={aprendicesFiltrados.length}
+            limite={ITEMS_POR_PAGINA}
+            onCambiarPagina={cambiarPaginaAprendices}
+          />
         )}
       </section>
 
