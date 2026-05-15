@@ -31,6 +31,108 @@ function normalizarTexto(valor) {
     .toLowerCase();
 }
 
+function numeroPositivo(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const numero = Number(String(valor).replace(",", "."));
+  return Number.isFinite(numero) && numero > 0 ? numero : null;
+}
+
+function trimestresDesdeTexto(valor) {
+  const texto = normalizarTexto(valor);
+  if (!texto) return null;
+
+  const coincidencia = texto.match(/\d+(?:[.,]\d+)?/);
+  if (!coincidencia) return null;
+
+  const numero = numeroPositivo(coincidencia[0]);
+  if (!numero) return null;
+
+  if (texto.includes("mes")) return Math.max(1, Math.ceil(numero / 3));
+  if (texto.includes("ano") || texto.includes("año")) {
+    return Math.max(1, Math.ceil((numero * 12) / 3));
+  }
+
+  return Math.round(numero);
+}
+
+function trimestresDesdeMeses(valor) {
+  const meses = numeroPositivo(valor);
+  return meses ? Math.max(1, Math.ceil(meses / 3)) : null;
+}
+
+function trimestresDesdeFechas(fechaInicio, fechaFin) {
+  if (!fechaInicio || !fechaFin) return null;
+
+  const inicio = new Date(`${String(fechaInicio).split("T")[0]}T00:00:00`);
+  const fin = new Date(`${String(fechaFin).split("T")[0]}T00:00:00`);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin <= inicio) {
+    return null;
+  }
+
+  const meses =
+    (fin.getFullYear() - inicio.getFullYear()) * 12 +
+    (fin.getMonth() - inicio.getMonth()) +
+    (fin.getDate() >= inicio.getDate() ? 0 : -1);
+
+  return meses > 0 ? Math.max(1, Math.ceil(meses / 3)) : null;
+}
+
+function obtenerTrimestres(grupo) {
+  const candidatos = [
+    grupo?.trimestres,
+    grupo?.total_trimestres,
+    grupo?.numero_trimestres,
+    grupo?.cantidad_trimestres,
+    grupo?.duracion_trimestres,
+    grupo?.duracion_en_trimestres,
+    grupo?.programa_formacion?.trimestres,
+    grupo?.programa_formacion?.total_trimestres,
+    grupo?.programa_formacion?.numero_trimestres,
+    grupo?.programa_formacion?.cantidad_trimestres,
+    grupo?.programa_formacion?.duracion_trimestres,
+    grupo?.programa?.trimestres,
+    grupo?.programa?.duracion_trimestres,
+  ];
+
+  for (const candidato of candidatos) {
+    const valor = typeof candidato === "string"
+      ? trimestresDesdeTexto(candidato)
+      : numeroPositivo(candidato);
+    if (valor) return Math.round(valor);
+  }
+
+  const meses = [
+    grupo?.duracion_meses,
+    grupo?.meses,
+    grupo?.programa_formacion?.duracion_meses,
+    grupo?.programa_formacion?.meses,
+    grupo?.programa?.duracion_meses,
+    grupo?.programa?.meses,
+  ];
+
+  for (const candidato of meses) {
+    const valor = trimestresDesdeMeses(candidato);
+    if (valor) return valor;
+  }
+
+  const duracionesTexto = [
+    grupo?.duracion,
+    grupo?.programa_formacion?.duracion,
+    grupo?.programa?.duracion,
+  ];
+
+  for (const candidato of duracionesTexto) {
+    const valor = trimestresDesdeTexto(candidato);
+    if (valor) return valor;
+  }
+
+  return trimestresDesdeFechas(grupo?.fecha_inicio, grupo?.fecha_fin);
+}
+
+function formatearTrimestres(grupo) {
+  return obtenerTrimestres(grupo) ?? "-";
+}
+
 function extraerListaGrupos(data) {
   const lista =
     data?.data?.grupos ||
@@ -82,6 +184,8 @@ function obtenerIdGrupo(grupo, index = 0) {
 }
 
 function prepararGrupoDetalle(grupo) {
+  const trimestres = obtenerTrimestres(grupo);
+
   return {
     ...grupo,
     id_grupo: grupo.id_grupo || grupo.id || null,
@@ -91,7 +195,7 @@ function prepararGrupoDetalle(grupo) {
     estado: obtenerEstado(grupo),
     fecha_inicio: grupo.fecha_inicio || "",
     fecha_fin: grupo.fecha_fin || "",
-    trimestres: grupo.trimestres || "",
+    trimestres: trimestres || "",
   };
 }
 
@@ -362,7 +466,7 @@ export default function MisGrupos() {
                       <td className="grupos-highlight">{obtenerCodigo(grupo)}</td>
                       <td>{obtenerPrograma(grupo)}</td>
                       <td>{grupo.jornada || "No registrada"}</td>
-                      <td>{grupo.trimestres ?? "-"}</td>
+                      <td>{formatearTrimestres(grupo)}</td>
                       <td>
                         <span className={`grupos-status ${obtenerEstadoClase(estado)}`}>
                           {estado}
