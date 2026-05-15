@@ -54,6 +54,7 @@ const FILTROS_ALERTAS_INICIALES = {
 
 const ESTADOS_ALERTA_CERRADA = new Set(["CERRADA", "CERRADO", "RESUELTA"]);
 const ESTADOS_APRENDIZ_INACTIVO = new Set(["INACTIVO", "RETIRADO", "CANCELADO", "APLAZADO", "SUSPENDIDO"]);
+const REGISTROS_POR_PAGINA = 5;
 
 function payload(resp) {
   return resp?.data ?? resp;
@@ -611,6 +612,8 @@ export default function GrupoDetalle() {
   const [cargandoPerfil, setCargandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState("");
   const [filtrosAlertas, setFiltrosAlertas] = useState(FILTROS_ALERTAS_INICIALES);
+  const [paginaAprendices, setPaginaAprendices] = useState(1);
+  const [paginaAlertas, setPaginaAlertas] = useState(1);
 
   useEffect(() => {
     let activo = true;
@@ -749,6 +752,20 @@ export default function GrupoDetalle() {
     });
   }, [alertas, filtrosAlertas]);
 
+  const totalPaginasAprendices = Math.max(1, Math.ceil(aprendicesGrupo.length / REGISTROS_POR_PAGINA));
+  const paginaAprendicesSegura = Math.min(paginaAprendices, totalPaginasAprendices);
+  const inicioAprendices = (paginaAprendicesSegura - 1) * REGISTROS_POR_PAGINA;
+  const aprendicesGrupoPagina = aprendicesGrupo.slice(inicioAprendices, inicioAprendices + REGISTROS_POR_PAGINA);
+  const desdeAprendices = aprendicesGrupo.length === 0 ? 0 : inicioAprendices + 1;
+  const hastaAprendices = Math.min(inicioAprendices + REGISTROS_POR_PAGINA, aprendicesGrupo.length);
+
+  const totalPaginasAlertas = Math.max(1, Math.ceil(alertasFiltradas.length / REGISTROS_POR_PAGINA));
+  const paginaAlertasSegura = Math.min(paginaAlertas, totalPaginasAlertas);
+  const inicioAlertas = (paginaAlertasSegura - 1) * REGISTROS_POR_PAGINA;
+  const alertasPagina = alertasFiltradas.slice(inicioAlertas, inicioAlertas + REGISTROS_POR_PAGINA);
+  const desdeAlertas = alertasFiltradas.length === 0 ? 0 : inicioAlertas + 1;
+  const hastaAlertas = Math.min(inicioAlertas + REGISTROS_POR_PAGINA, alertasFiltradas.length);
+
   /* ── funciones de edición (existentes) ── */
   function cambiarForm(e) {
     const { name, value } = e.target;
@@ -758,10 +775,20 @@ export default function GrupoDetalle() {
 
   function cambiarFiltroAlertas(campo, valor) {
     setFiltrosAlertas((prev) => ({ ...prev, [campo]: valor }));
+    setPaginaAlertas(1);
   }
 
   function limpiarFiltrosAlertas() {
     setFiltrosAlertas({ ...FILTROS_ALERTAS_INICIALES });
+    setPaginaAlertas(1);
+  }
+
+  function cambiarPaginaAprendices(nuevaPagina) {
+    setPaginaAprendices(Math.min(Math.max(nuevaPagina, 1), totalPaginasAprendices));
+  }
+
+  function cambiarPaginaAlertas(nuevaPagina) {
+    setPaginaAlertas(Math.min(Math.max(nuevaPagina, 1), totalPaginasAlertas));
   }
 
   function iniciarEdicionGrupo() {
@@ -1257,7 +1284,7 @@ export default function GrupoDetalle() {
       <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
           <h2>Aprendices de la Ficha {detalle.ficha}</h2>
-          <span className="gd-count-chip">{detalle.aprendices} registrados</span>
+          <span className="gd-count-chip">Mostrando {desdeAprendices}-{hastaAprendices} de {aprendicesGrupo.length}</span>
         </div>
         <div className="gd-table-wrap">
           <table className="gd-table">
@@ -1272,7 +1299,7 @@ export default function GrupoDetalle() {
               </tr>
             </thead>
             <tbody>
-              {aprendicesGrupo.length > 0 ? aprendicesGrupo.map((item) => {
+              {aprendicesGrupoPagina.length > 0 ? aprendicesGrupoPagina.map((item) => {
                 const idAprendiz = String(obtenerIdAprendiz(item) ?? "");
                 const resumenAlertas = alertas?.porAprendiz?.[idAprendiz] || {};
                 const nombre = obtenerNombreAprendiz(item);
@@ -1322,6 +1349,29 @@ export default function GrupoDetalle() {
             </tbody>
           </table>
         </div>
+        {aprendicesGrupo.length > REGISTROS_POR_PAGINA && (
+          <div className="grupos-pagination">
+            <span>Pagina {paginaAprendicesSegura} de {totalPaginasAprendices}</span>
+            <div>
+              <button type="button" onClick={() => cambiarPaginaAprendices(paginaAprendicesSegura - 1)} disabled={paginaAprendicesSegura === 1}>
+                Anterior
+              </button>
+              {Array.from({ length: totalPaginasAprendices }, (_, index) => index + 1).map((pagina) => (
+                <button
+                  key={pagina}
+                  type="button"
+                  className={pagina === paginaAprendicesSegura ? "active" : ""}
+                  onClick={() => cambiarPaginaAprendices(pagina)}
+                >
+                  {pagina}
+                </button>
+              ))}
+              <button type="button" onClick={() => cambiarPaginaAprendices(paginaAprendicesSegura + 1)} disabled={paginaAprendicesSegura === totalPaginasAprendices}>
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </article>
       )}
 
@@ -1330,7 +1380,7 @@ export default function GrupoDetalle() {
         <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
           <h2>Alertas de la Ficha {detalle.ficha}</h2>
-          <span className="gd-count-chip">{alertasFiltradas.length} visibles</span>
+          <span className="gd-count-chip">Mostrando {desdeAlertas}-{hastaAlertas} de {alertasFiltradas.length}</span>
         </div>
 
         <div className="gd-alertas-toolbar">
@@ -1405,11 +1455,11 @@ export default function GrupoDetalle() {
               </tr>
             </thead>
             <tbody>
-              {alertasFiltradas.length > 0 ? alertasFiltradas.map((a, i) => {
+              {alertasPagina.length > 0 ? alertasPagina.map((a, i) => {
                 const esManual  = a.fuente === "Manual";
                 const esTardio  = typeof a.fecha === "string" && (a.fecha.toLowerCase().startsWith("hoy") || a.fecha.toLowerCase().startsWith("ayer"));
                 return (
-                  <tr key={i}>
+                  <tr key={inicioAlertas + i}>
                     <td><strong>{a.aprendiz}</strong></td>
                     <td>{a.grupo || detalle.ficha}</td>
                     <td>{a.tipo}</td>
@@ -1430,6 +1480,29 @@ export default function GrupoDetalle() {
             </tbody>
           </table>
         </div>
+        {alertasFiltradas.length > REGISTROS_POR_PAGINA && (
+          <div className="grupos-pagination">
+            <span>Pagina {paginaAlertasSegura} de {totalPaginasAlertas}</span>
+            <div>
+              <button type="button" onClick={() => cambiarPaginaAlertas(paginaAlertasSegura - 1)} disabled={paginaAlertasSegura === 1}>
+                Anterior
+              </button>
+              {Array.from({ length: totalPaginasAlertas }, (_, index) => index + 1).map((pagina) => (
+                <button
+                  key={pagina}
+                  type="button"
+                  className={pagina === paginaAlertasSegura ? "active" : ""}
+                  onClick={() => cambiarPaginaAlertas(pagina)}
+                >
+                  {pagina}
+                </button>
+              ))}
+              <button type="button" onClick={() => cambiarPaginaAlertas(paginaAlertasSegura + 1)} disabled={paginaAlertasSegura === totalPaginasAlertas}>
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
         </article>
       )}
 

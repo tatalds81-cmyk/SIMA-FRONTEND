@@ -106,7 +106,7 @@ export default function Observaciones() {
   const [loading, setLoading] = useState(false);
   const [errorFiltros, setErrorFiltros] = useState("");
   const [pagina, setPagina] = useState(1);
-  const LIMIT = 10;
+  const LIMIT = 5;
 
   // Todos los filtros van como query params al backend
   const [filtros, setFiltros] = useState(FILTROS_INICIALES);

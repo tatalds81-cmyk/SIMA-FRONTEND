@@ -46,7 +46,7 @@ export default function Aprendices() {
   const URL_APRENDICES_REGISTRO = `${API_URL}/apprentices/registro`;
   const URL_APRENDICES_MASIVO = `${API_URL}/apprentices/registro-masivo`;
   const URL_GRUPOS_ACTIVOS = `${API_URL}/apprentices/grupos-activos`;
-  const APRENDICES_POR_PAGINA = 10;
+  const APRENDICES_POR_PAGINA = 5;
 
   function getHeaders(json = true) {
     const token = localStorage.getItem("access") || localStorage.getItem("token");

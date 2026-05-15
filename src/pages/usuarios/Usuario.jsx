@@ -37,7 +37,7 @@ export default function Usuario() {
 
   const URL_USUARIOS = "/api/users";
   const URL_ROLES = "/api/roles";
-  const USUARIOS_POR_PAGINA = 10;
+  const USUARIOS_POR_PAGINA = 5;
 
   useEffect(() => {
     cargarUsuarios();

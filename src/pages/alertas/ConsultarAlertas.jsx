@@ -116,7 +116,7 @@ function Paginacion({ paginaActual, total, limite, onCambiarPagina, onCambiarLim
           value={limite}
           onChange={e => onCambiarLimite(Number(e.target.value))}
         >
-          {[10, 20, 50].map(n => (
+          {[5, 10, 20, 50].map(n => (
             <option key={n} value={n}>{n}</option>
           ))}
         </select>

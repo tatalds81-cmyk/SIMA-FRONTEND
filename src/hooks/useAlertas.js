@@ -19,7 +19,7 @@ export function useAlertas() {
   const [error,         setError]         = useState(null);
   const [total,         setTotal]         = useState(0);
   const [paginaActual,  setPaginaActual]  = useState(1);
-  const [limite,        setLimite]        = useState(10);
+  const [limite,        setLimite]        = useState(5);
   const [filtros,       setFiltros]       = useState({ ...FILTROS_INICIALES });
 
   // ── cargarAlertas ────────────────────────────────────────────────────────

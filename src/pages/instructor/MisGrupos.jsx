@@ -4,7 +4,7 @@ import { Eye, FilterX, Search } from "lucide-react";
 import "../fichas/fichas.css";
 
 const API_URL = "/api";
-const GRUPOS_POR_PAGINA = 6;
+const GRUPOS_POR_PAGINA = 5;
 const ENDPOINTS_GRUPOS_INSTRUCTOR = [
   `${API_URL}/groups/mis-grupos`,
   `${API_URL}/groups/instructor`,

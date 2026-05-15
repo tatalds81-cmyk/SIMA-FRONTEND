@@ -9,7 +9,7 @@ import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
 import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
 import './alertasCoordinador.css';
 
-const ITEMS_POR_PAGINA = 10;
+const ITEMS_POR_PAGINA = 5;
 
 function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));

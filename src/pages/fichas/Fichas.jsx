@@ -32,7 +32,7 @@ export default function GruposFormativos() {
   const API_URL = "/api";
   const URL_GRUPOS = `${API_URL}/groups`;
   const URL_INSTRUCTORES = `${URL_GRUPOS}/instructores-disponibles`;
-  const GRUPOS_POR_PAGINA = 10;
+  const GRUPOS_POR_PAGINA = 5;
 
   function extraerLista(data, llavePrincipal = "") {
     if (Array.isArray(data)) return data;

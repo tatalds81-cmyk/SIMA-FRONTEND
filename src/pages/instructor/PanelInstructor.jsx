@@ -32,9 +32,11 @@ const coloresBarras = ["verde", "azul", "morado"];
 const coloresRiesgo = ["#ef4444", "#f59e0b", "#facc15"];
 
 const nombresRiesgo = {
+  INASISTENCIA: "Inasistencia",
   ASISTENCIAL: "Asistencial",
   OBSERVACIONES_RECURRENTES: "Observaciones recurrentes",
-  CONVIVENCIAL: "Convivencial"
+  CONVIVENCIAL: "Convivencial",
+  MANUAL: "Manual"
 };
 
 const inicioMesActual = () => {
@@ -66,6 +68,11 @@ const extraerGrupos = (data) => {
   return Array.isArray(grupos) ? grupos : [];
 };
 
+const extraerAlertas = (data) => {
+  const alertas = data?.alerts || data?.alertas || data?.data || data?.results || data;
+  return Array.isArray(alertas) ? alertas : [];
+};
+
 const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || grupo.programa || "Sin programa";
 const obtenerCodigo = (grupo) => grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "Sin ficha";
 const obtenerRol = (grupo) => {
@@ -93,7 +100,7 @@ export default function PanelInstructor() {
         const gruposInstructor = extraerGrupos(gruposData);
 
         const [alertasResultado, aprendicesResultados, observacionesResultados] = await Promise.all([
-          fetchJson("/api/alerts").catch(() => []),
+          fetchJson("/api/alerts?limit=1000").catch(() => []),
           Promise.allSettled(
             gruposInstructor.map((grupo) =>
               fetchJson(`/api/apprentices/grupo/${grupo.id_grupo}?limit=1`)
@@ -111,7 +118,7 @@ export default function PanelInstructor() {
         if (!activo) return;
 
         setGrupos(gruposInstructor);
-        setAlertas(Array.isArray(alertasResultado) ? alertasResultado : []);
+        setAlertas(extraerAlertas(alertasResultado));
         setTotalAprendices(
           aprendicesResultados.reduce((total, result) => (
             result.status === "fulfilled" ? total + (Number(result.value?.total) || 0) : total
@@ -138,13 +145,13 @@ export default function PanelInstructor() {
   }, []);
 
   const alertasActivas = useMemo(
-    () => alertas.filter((alerta) => ["ACTIVA", "EN_SEGUIMIENTO"].includes(alerta.estado)),
+    () => alertas.filter((alerta) => ["ACTIVA", "EN_SEGUIMIENTO"].includes(String(alerta.estado || "").toUpperCase())),
     [alertas]
   );
 
   const riesgos = useMemo(() => {
     const conteo = alertasActivas.reduce((acc, alerta) => {
-      const tipo = alerta.tipo_alerta || "CONVIVENCIAL";
+      const tipo = alerta.tipo_alerta || alerta.tipoAlerta || "MANUAL";
       acc[tipo] = (acc[tipo] || 0) + 1;
       return acc;
     }, {});
@@ -185,7 +192,7 @@ export default function PanelInstructor() {
       tono: "verde"
     },
     {
-      titulo: "Aprendices en riesgo",
+      titulo: "Alertas activas",
       valor: alertasActivas.length,
       detalle: "Con alertas activas o en seguimiento",
       meta: null,
@@ -294,7 +301,7 @@ export default function PanelInstructor() {
 
         <article className="coordinador-card instructor-risk-card">
           <div className="coordinador-card-header">
-            <h2>Aprendices en riesgo por causa</h2>
+            <h2>Alertas activas por causa</h2>
             <button className="coordinador-select-btn" type="button">Este mes</button>
           </div>
 
