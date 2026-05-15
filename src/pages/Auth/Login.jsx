@@ -4,6 +4,7 @@ import { Eye, EyeOff, HelpCircle, Lock, Mail, ShieldCheck } from "lucide-react";
 import "./Login.css";
 import OlvidePassword from "./OlvidePassword";
 import senaLogo from "../../assets/logoSena.png";
+import loginStudents from "../../assets/personajes.png";
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -143,13 +144,7 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className="login-sima-visual" aria-hidden="true">
-          <div className="login-sima-orbit"></div>
-          <div className="login-sima-orbit-dot"></div>
-          <div className="login-sima-green-shape"></div>
-          <div className="login-sima-students">
-            <span className="student student-one"></span>
-            <span className="student student-two"></span>
-          </div>
+          <img src={loginStudents} alt="" className="login-sima-students-image" />
         </div>
       </section>
 
