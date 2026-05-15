@@ -145,6 +145,9 @@ export default function ConsultarAlertas() {
       <div className="ca-page-header">
         <div>
           <h1 className="ca-page-title">Consultar alertas</h1>
+          <p className="ca-page-description">
+            Revisa, filtra y gestiona las alertas activas o en seguimiento de los aprendices.
+          </p>
         </div>
 
         <div className="ca-header-acciones">

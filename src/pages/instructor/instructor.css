@@ -264,6 +264,10 @@
   font-weight: 400;
 }
 
+.instructor-groups-table tbody strong {
+  font-weight: 400;
+}
+
 .instructor-table-actions {
   display: flex;
   gap: 6px;
@@ -402,6 +406,53 @@
 
 .instructor-mini-news .coordinador-novedades-list {
   margin-top: 10px;
+}
+
+.instructor-placeholder {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  border: 1px solid #e1e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
+  color: #0b2442;
+  text-align: center;
+}
+
+.instructor-placeholder-icon {
+  width: 54px;
+  height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #edf9e7;
+  color: #238500;
+}
+
+.instructor-placeholder h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #0b2442;
+}
+
+.instructor-placeholder p {
+  max-width: 560px;
+  margin: 0;
+  color: #6b7a8b;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
 }
 
 @media (max-width: 1280px) {

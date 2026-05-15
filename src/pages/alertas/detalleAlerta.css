@@ -3,11 +3,20 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .da-page {
+  --sima-navy: #052d4f;
+  --sima-green: #39a900;
+  --sima-green-dark: #238500;
+  --sima-text: #0b2442;
+  --sima-muted: #6b7a8b;
+  --sima-border: #e1e8f0;
+
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 10px 0;
+  gap: 14px;
   width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  color: var(--sima-text);
 }
 
 /* ── Header ── */
@@ -43,8 +52,9 @@
 .da-title {
   margin: 0;
   font-size: 24px;
+  line-height: 1.1;
   font-weight: 900;
-  color: #0b2442;
+  color: var(--sima-text);
 }
 
 .da-btn-cerrar {
@@ -67,22 +77,23 @@
 .da-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
-  gap: 20px;
+  gap: 14px;
   align-items: start;
 }
 
 .da-col-main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 
 /* ── Tarjetas ── */
 .da-card {
   background: #fff;
-  border: 1px solid #e1e8f0;
-  border-radius: 16px;
+  border: 1px solid var(--sima-border);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
 }
 
 .da-card-header {
@@ -91,7 +102,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fafbfc;
+  background: #ffffff;
 }
 
 .da-card-titulo {
@@ -237,6 +248,9 @@
 
 /* ── Estados ── */
 .da-estado-carga, .da-estado-error {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
   min-height: 400px;
   display: flex;
   flex-direction: column;
@@ -244,8 +258,9 @@
   justify-content: center;
   gap: 16px;
   background: #fff;
-  border-radius: 20px;
+  border-radius: 12px;
   border: 1px solid #e1e8f0;
+  box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
 }
 
 .da-spinner {
