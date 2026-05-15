@@ -20,6 +20,11 @@ function limpiarParams(filtros = {}) {
   return p;
 }
 
+function nombreCompletoPersona(persona) {
+  if (!persona) return '';
+  return `${persona.nombres || ''} ${persona.apellidos || ''}`.trim();
+}
+
 function mapBackendAlerta(alerta) {
   if (!alerta) return alerta;
 
@@ -30,19 +35,32 @@ function mapBackendAlerta(alerta) {
   
   const documentoAprendiz = persona?.numero_documento || alerta.aprendizDocumento || '—';
 
+  const creadorPersona = alerta.usuario_creador?.persona;
+  const nombreResponsable = nombreCompletoPersona(creadorPersona)
+    || alerta.usuario_creador?.email
+    || (alerta.creada_por ? `ID Usuario ${alerta.creada_por}` : 'Sistema');
+
   return {
     ...alerta,
     id: alerta.id_alerta || alerta.id,
     fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion,
     tipoAlerta: alerta.tipo_alerta || alerta.tipoAlerta,
+    origen: alerta.origen || alerta.origenAlerta,
     grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo,
     idGrupo: alerta.id_grupo || alerta.idGrupo,
-    responsableNombre: alerta.creada_por ? `ID Usuario ${alerta.creada_por}` : 'Sistema',
+    responsableNombre: nombreResponsable,
+    responsable: {
+      id: alerta.usuario_creador?.id_usuario || alerta.creada_por || null,
+      nombre: nombreResponsable,
+      email: alerta.usuario_creador?.email || '',
+      documento: creadorPersona?.numero_documento || '',
+    },
     aprendizNombre: nombreAprendiz,
     aprendizDocumento: documentoAprendiz,
     observacionesVinculadas: (alerta.alerta_observaciones || []).map(ao => ({
       id: ao.id_observacion,
       fecha: ao.observacion?.fecha_observacion || ao.fecha_asociacion,
+      tipoObservacion: ao.observacion?.tipo_observacion || '',
       descripcion: ao.observacion?.descripcion || '—'
     }))
   };
@@ -53,6 +71,7 @@ export async function crearAlertaManual(payload) {
     const backendPayload = {
       id_aprendiz: payload.aprendizId,
       id_grupo: payload.grupoId,
+      tipo_alerta: payload.tipoAlerta || 'CONVIVENCIAL',
       severidad: payload.severidad,
       descripcion: payload.descripcion
     };
@@ -68,6 +87,7 @@ export async function crearAlertaDesdeObservaciones(payload) {
     const backendPayload = {
       id_aprendiz: Number(payload.aprendizId),
       id_grupo: Number(payload.grupoId),
+      tipo_alerta: payload.tipoAlerta || 'CONVIVENCIAL',
       severidad: payload.severidad,
       descripcion: payload.descripcion,
       observationIds: (payload.observationIds || []).map(Number),
@@ -84,6 +104,11 @@ export async function obtenerAlertas(filtros = {}) {
   try {
     const params = limpiarParams(filtros);
     
+    if (params.aprendizId) {
+      params.id_aprendiz = params.aprendizId;
+      delete params.aprendizId;
+      delete params.aprendizBusqueda;
+    }
     if (params.aprendizBusqueda) {
       params.q = params.aprendizBusqueda;
       delete params.aprendizBusqueda;
@@ -93,15 +118,7 @@ export async function obtenerAlertas(filtros = {}) {
       delete params.grupoId;
     }
     if (params.tipoAlerta) {
-      if (params.tipoAlerta === 'ACADEMICA' || params.tipoAlerta === 'CONVIVENCIAL') {
-        params.tipo_alerta = 'MANUAL';
-      } else if (params.tipoAlerta.includes('INASISTENCIA')) {
-        params.tipo_alerta = 'INASISTENCIA';
-      } else if (params.tipoAlerta === 'RECURRENCIA_OBSERVACIONES') {
-        params.tipo_alerta = 'OBSERVACIONES_RECURRENTES';
-      } else {
-        params.tipo_alerta = params.tipoAlerta;
-      }
+      params.tipo_alerta = params.tipoAlerta;
       delete params.tipoAlerta;
     }
     if (params.fechaInicio) {

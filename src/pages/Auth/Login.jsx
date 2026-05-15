@@ -135,11 +135,10 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className="login-sima-copy">
-          <p className="login-sima-eyebrow">Bienvenido al</p>
-          <h1>Sistema de Asistencias y Observatorio</h1>
+          <p className="login-sima-eyebrow">Bienvenido a SIMA</p>
+          <h1>Sistema Integral de Monitoreo del Aprendiz</h1>
           <p>
-            Gestiona tus asistencias y consulta tu desempeno academico de forma
-            facil y eficiente.
+            Herramienta diseñada para el seguimiento academico de los aprendices.
           </p>
         </div>
 
@@ -161,7 +160,7 @@ export default function Login({ onLogin }) {
           <form onSubmit={iniciarSesion} className="login-sima-form">
             <div className="login-sima-field">
               <label className="login-sima-label" htmlFor="login-user">
-                Documento institucional
+                Documento de Identidad
               </label>
               <div className="login-sima-input-wrap">
                 <Mail size={21} aria-hidden="true" />
@@ -179,14 +178,14 @@ export default function Login({ onLogin }) {
             </div>
 
             <div className="login-sima-field">
-              <label className="login-sima-label" htmlFor="login-password">Contrasena</label>
+              <label className="login-sima-label" htmlFor="login-password">Contraseña</label>
               <div className="login-sima-input-wrap">
                 <Lock size={21} aria-hidden="true" />
                 <input
                   id="login-password"
                   type={mostrarPassword ? "text" : "password"}
                   className="login-sima-input"
-                  placeholder="Ingresa tu contrasena"
+                  placeholder="Ingresa tu contraseña"
                   value={password}
                   onChange={manejarCambioPassword}
                   autoComplete="current-password"
@@ -208,7 +207,7 @@ export default function Login({ onLogin }) {
               className="login-sima-link"
               onClick={() => setMostrarOlvide(true)}
             >
-              Olvidaste tu contrasena?
+              Olvidaste tu contraseña?
             </button>
 
             {mensaje && (

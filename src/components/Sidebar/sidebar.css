@@ -1,15 +1,19 @@
 .sima-sidebar-main {
-  --sidebar-width: 128px;
+  --sidebar-width: 105px;
+  --sidebar-blue-width: 104px;
+  --navbar-height: 76px;
+  --sidebar-top-gap: 18px;
   --sima-navy: #062b4c;
   --sima-navy-deep: #021f39;
   --sima-green: #39a900;
 
   position: fixed;
-  inset: 0 auto 0 0;
+  inset: calc(var(--navbar-height) + var(--sidebar-top-gap)) auto 0 0;
   z-index: 120;
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
-  height: 100vh;
+  height: auto;
+  max-height: calc(100vh - var(--navbar-height) - var(--sidebar-top-gap));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -25,13 +29,13 @@
   position: absolute;
   left: 0;
   top: 0;
-  bottom: 112px;
+  bottom: 136px;
   z-index: 0;
-  width: 106px;
+  width: var(--sidebar-blue-width);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 34%),
     linear-gradient(180deg, var(--sima-navy) 0%, var(--sima-navy-deep) 100%);
-  border-radius: 0 0 62px 0;
+  border-radius: 0 58px 62px 0;
   box-shadow: 10px 0 22px rgba(5, 45, 79, 0.12);
   pointer-events: none;
 }
@@ -43,9 +47,9 @@
   min-height: 0;
   display: flex;
   justify-content: center;
-  margin-top: 68px;
-  margin-bottom: 106px;
-  padding: 112px 0 76px;
+  margin-top: 34px;
+  margin-bottom: 132px;
+  padding: 64px 0 34px;
 }
 
 .sima-sidebar-nav {
@@ -57,7 +61,7 @@
   justify-content: center;
   align-items: center;
   gap: 12px;
-  padding: 0 24px 26px 0;
+  padding: 0 14px 26px 0;
 }
 
 .sima-nav-link {
@@ -136,16 +140,16 @@
 @media (max-height: 760px) {
   .sima-sidebar-main::before {
     top: 0;
-    bottom: 88px;
-    width: 102px;
-    border-radius: 0 0 54px 0;
+    bottom: 112px;
+    width: var(--sidebar-blue-width);
+    border-radius: 0 50px 54px 0;
   }
 
   .sima-sidebar-shell {
-    margin-top: 54px;
-    margin-bottom: 88px;
-    padding-top: 88px;
-    padding-bottom: 64px;
+    margin-top: 24px;
+    margin-bottom: 108px;
+    padding-top: 44px;
+    padding-bottom: 26px;
   }
 
   .sima-sidebar-nav {
@@ -175,25 +179,26 @@
 @media (max-width: 860px) {
   .sima-sidebar-main {
     --sidebar-width: 96px;
+    --sidebar-blue-width: 88px;
   }
 
   .sima-sidebar-main::before {
     top: 0;
-    bottom: 88px;
-    width: 84px;
-    border-radius: 0 0 48px 0;
+    bottom: 108px;
+    width: var(--sidebar-blue-width);
+    border-radius: 0 44px 48px 0;
   }
 
   .sima-sidebar-shell {
-    margin-top: 56px;
-    margin-bottom: 88px;
-    padding: 92px 0 62px;
+    margin-top: 24px;
+    margin-bottom: 104px;
+    padding: 48px 0 28px;
   }
 
   .sima-sidebar-nav {
     width: calc(100% - 12px);
     gap: 8px;
-    padding: 0 12px 18px 0;
+    padding: 0 8px 18px 0;
   }
 
   .sima-nav-link {

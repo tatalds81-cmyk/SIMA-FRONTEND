@@ -182,7 +182,7 @@ function alertaEsObservacion(alerta) {
 }
 
 function alertaEsInasistencia(alerta) {
-  return textoPlano(alerta?.tipo_alerta || alerta?.tipoAlerta).includes("INASISTENCIA");
+  return textoPlano(alerta?.tipo_alerta || alerta?.tipoAlerta) === "ASISTENCIAL";
 }
 
 function formatearFecha(valor) {
@@ -227,12 +227,9 @@ function etiquetaSeveridad(valor) {
 function etiquetaTipoAlerta(valor) {
   const tipo = textoPlano(valor);
   const map = {
-    ACADEMICA: "Academica",
+    ASISTENCIAL: "Asistencial",
     CONVIVENCIAL: "Convivencial",
-    INASISTENCIA_CONSECUTIVA: "Inasistencia consecutiva",
-    INASISTENCIA_ACUMULADA: "Inasistencia acumulada",
     OBSERVACIONES_RECURRENTES: "Observaciones recurrentes",
-    RECURRENCIA_OBSERVACIONES: "Recurrencia observaciones",
   };
   return map[tipo] || (tipo ? tipo.replace(/_/g, " ") : "No registrado");
 }
@@ -1352,12 +1349,9 @@ export default function GrupoDetalle() {
             aria-label="Filtrar por tipo de alerta"
           >
             <option value="">Todos los tipos</option>
-            <option value="ACADEMICA">Academica</option>
-            <option value="CONVIVENCIAL">Convivencial</option>
-            <option value="INASISTENCIA_CONSECUTIVA">Inasistencia consecutiva</option>
-            <option value="INASISTENCIA_ACUMULADA">Inasistencia acumulada</option>
+            <option value="ASISTENCIAL">Asistencial</option>
             <option value="OBSERVACIONES_RECURRENTES">Observaciones recurrentes</option>
-            <option value="RECURRENCIA_OBSERVACIONES">Recurrencia observaciones</option>
+            <option value="CONVIVENCIAL">Convivencial</option>
           </select>
 
           <select

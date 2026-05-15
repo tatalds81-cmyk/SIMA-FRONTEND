@@ -345,7 +345,8 @@ export default function ModalCrearAlerta({ isOpen, onClose, onAlertaCreada }) {
                 onChange={e => setForm({ ...form, tipoAlerta: e.target.value })}
               >
                 <option value="">Seleccione el tipo de alerta</option>
-                <option value="ACADEMICA">Academica</option>
+                <option value="ASISTENCIAL">Asistencial</option>
+                <option value="OBSERVACIONES_RECURRENTES">Observaciones recurrentes</option>
                 <option value="CONVIVENCIAL">Convivencial</option>
               </select>
               {errores.tipoAlerta && <span className="mcal-error-msg">{errores.tipoAlerta}</span>}
@@ -361,11 +362,13 @@ export default function ModalCrearAlerta({ isOpen, onClose, onAlertaCreada }) {
                 <option value="LEVE">Leve</option>
                 <option value="MODERADA">Moderada</option>
                 <option value="GRAVE">Grave</option>
+                <option value="CRITICA">Crítica</option>
               </select>
               <div className="mcal-sev-leyenda">
                 <span><i className="mcal-dot leve" /> LEVE</span>
                 <span><i className="mcal-dot moderada" /> MODERADA</span>
                 <span><i className="mcal-dot grave" /> GRAVE</span>
+                <span><i className="mcal-dot critica" /> CRITICA</span>
               </div>
               {errores.severidad && <span className="mcal-error-msg">{errores.severidad}</span>}
             </div>

@@ -128,6 +128,7 @@
 .mcal-dot.leve { background: #22c55e; }
 .mcal-dot.moderada { background: #f59e0b; }
 .mcal-dot.grave { background: #ef4444; }
+.mcal-dot.critica { background: #7f1d1d; }
 
 /* ── Checkboxes Notificación ── */
 .mcal-notif-group {

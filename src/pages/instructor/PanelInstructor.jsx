@@ -32,9 +32,9 @@ const coloresBarras = ["verde", "azul", "morado"];
 const coloresRiesgo = ["#ef4444", "#f59e0b", "#facc15"];
 
 const nombresRiesgo = {
-  INASISTENCIA: "Inasistencia recurrente",
+  ASISTENCIAL: "Asistencial",
   OBSERVACIONES_RECURRENTES: "Observaciones recurrentes",
-  MANUAL: "Alertas manuales"
+  CONVIVENCIAL: "Convivencial"
 };
 
 const inicioMesActual = () => {
@@ -144,7 +144,7 @@ export default function PanelInstructor() {
 
   const riesgos = useMemo(() => {
     const conteo = alertasActivas.reduce((acc, alerta) => {
-      const tipo = alerta.tipo_alerta || "MANUAL";
+      const tipo = alerta.tipo_alerta || "CONVIVENCIAL";
       acc[tipo] = (acc[tipo] || 0) + 1;
       return acc;
     }, {});

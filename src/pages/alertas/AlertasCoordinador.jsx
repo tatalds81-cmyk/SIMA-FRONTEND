@@ -331,11 +331,9 @@ export default function AlertasCoordinador() {
 
             <select className="grupos-select-filtro" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPaginaAprendices(1); }}>
               <option value="">Todos los tipos</option>
-              <option value="ACADEMICA">Académica</option>
+              <option value="ASISTENCIAL">Asistencial</option>
+              <option value="OBSERVACIONES_RECURRENTES">Observaciones recurrentes</option>
               <option value="CONVIVENCIAL">Convivencial</option>
-              <option value="INASISTENCIA_CONSECUTIVA">Inasistencia consecutiva</option>
-              <option value="INASISTENCIA_ACUMULADA">Inasistencia acumulada</option>
-              <option value="RECURRENCIA_OBSERVACIONES">Recurrencia observaciones</option>
             </select>
 
             <div style={{ display: 'flex', gap: '10px' }}>

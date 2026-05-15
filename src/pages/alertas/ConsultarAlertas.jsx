@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Download, Plus, Search, Eye, RefreshCw,
   ChevronLeft, ChevronRight, ChevronsUpDown
@@ -9,6 +9,7 @@ import BadgeEstado from '../../components/alertas/BadgeEstado';
 import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
 import ModalCrearAlerta from '../../components/alertas/ModalCrearAlerta';
 import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
+import { obtenerAprendicesPorGrupo, obtenerGrupos } from '../../services/alertasService';
 import './consultarAlertas.css';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -28,6 +29,25 @@ function rolDesdeStorage() {
 function puedeCrearAlerta() {
   const rol = rolDesdeStorage();
   return rol === 'INSTRUCTOR_LIDER' || rol === 'INSTRUCTOR_ASIGNADO' || rol === 'INSTRUCTOR';
+}
+
+function obtenerIdGrupo(grupo) {
+  return grupo?.id_grupo ?? grupo?.id ?? '';
+}
+
+function obtenerEtiquetaGrupo(grupo) {
+  const ficha = grupo?.numero_ficha ?? grupo?.numero_grupo ?? grupo?.codigo ?? obtenerIdGrupo(grupo);
+  const programa = grupo?.programa_formacion?.nombre_programa ?? grupo?.programa ?? grupo?.nombre_programa ?? '';
+  return programa ? `${ficha} - ${programa}` : `Ficha ${ficha}`;
+}
+
+function formatearTipoAlerta(tipo) {
+  const etiquetas = {
+    ASISTENCIAL: 'Asistencial',
+    OBSERVACIONES_RECURRENTES: 'Observaciones recurrentes',
+    CONVIVENCIAL: 'Convivencial',
+  };
+  return etiquetas[tipo] || (tipo ?? '').replace(/_/g, ' ');
 }
 
 // ── Paginación ────────────────────────────────────────────────────────────────
@@ -109,6 +129,13 @@ function Paginacion({ paginaActual, total, limite, onCambiarPagina, onCambiarLim
 export default function ConsultarAlertas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
+  const [gruposFiltro, setGruposFiltro] = useState([]);
+  const [cargandoGrupos, setCargandoGrupos] = useState(false);
+  const [errorGrupos, setErrorGrupos] = useState('');
+  const [aprendicesGrupo, setAprendicesGrupo] = useState([]);
+  const [cargandoAprendices, setCargandoAprendices] = useState(false);
+  const [errorAprendices, setErrorAprendices] = useState('');
+  const [mostrarSugerenciasAprendiz, setMostrarSugerenciasAprendiz] = useState(false);
 
   const { 
     alertas, total, paginaActual, totalPaginas, loading, error, limite,
@@ -119,8 +146,97 @@ export default function ConsultarAlertas() {
   // ── Filtros locales (se aplican al hacer clic en Buscar) ──────────────────
   const [filtrosLocales, setFiltrosLocales] = useState({ ...filtros });
 
+  const aprendicesFiltrados = useMemo(() => {
+    if (!filtrosLocales.grupoId) return [];
+
+    const texto = (filtrosLocales.aprendizBusqueda || '').trim().toLowerCase();
+    if (!texto) return aprendicesGrupo.slice(0, 8);
+
+    return aprendicesGrupo
+      .filter(aprendiz => (
+        aprendiz.nombre?.toLowerCase().includes(texto) ||
+        String(aprendiz.documento || '').includes(texto)
+      ))
+      .slice(0, 8);
+  }, [aprendicesGrupo, filtrosLocales.aprendizBusqueda, filtrosLocales.grupoId]);
+
+  useEffect(() => {
+    let activo = true;
+
+    async function cargarGruposFiltro() {
+      setCargandoGrupos(true);
+      setErrorGrupos('');
+
+      const { data, error: errorCarga } = await obtenerGrupos();
+      if (!activo) return;
+
+      if (errorCarga) {
+        setGruposFiltro([]);
+        setErrorGrupos(errorCarga);
+      } else {
+        setGruposFiltro(Array.isArray(data) ? data : []);
+      }
+
+      setCargandoGrupos(false);
+    }
+
+    cargarGruposFiltro();
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let activo = true;
+
+    async function cargarAprendicesGrupo() {
+      if (!filtrosLocales.grupoId) {
+        setAprendicesGrupo([]);
+        setErrorAprendices('');
+        setCargandoAprendices(false);
+        return;
+      }
+
+      setCargandoAprendices(true);
+      setErrorAprendices('');
+
+      const { data, error: errorCarga } = await obtenerAprendicesPorGrupo(filtrosLocales.grupoId);
+      if (!activo) return;
+
+      setAprendicesGrupo(Array.isArray(data) ? data : []);
+      setErrorAprendices(errorCarga || '');
+      setCargandoAprendices(false);
+    }
+
+    cargarAprendicesGrupo();
+
+    return () => {
+      activo = false;
+    };
+  }, [filtrosLocales.grupoId]);
+
   function handleFiltroLocal(campo, valor) {
-    setFiltrosLocales(prev => ({ ...prev, [campo]: valor }));
+    setFiltrosLocales(prev => {
+      if (campo === 'grupoId') {
+        return { ...prev, grupoId: valor, aprendizId: '', aprendizBusqueda: '' };
+      }
+      return { ...prev, [campo]: valor };
+    });
+  }
+
+  function handleBusquedaAprendiz(valor) {
+    setFiltrosLocales(prev => ({ ...prev, aprendizBusqueda: valor, aprendizId: '' }));
+    setMostrarSugerenciasAprendiz(true);
+  }
+
+  function seleccionarAprendiz(aprendiz) {
+    setFiltrosLocales(prev => ({
+      ...prev,
+      aprendizId: aprendiz.id,
+      aprendizBusqueda: `${aprendiz.nombre} ${aprendiz.documento}`,
+    }));
+    setMostrarSugerenciasAprendiz(false);
   }
 
   function aplicarFiltros() {
@@ -165,16 +281,44 @@ export default function ConsultarAlertas() {
           {/* Buscar aprendiz */}
           <div className="ca-filtro-grupo ca-filtro-grupo--wide">
             <label className="ca-filtro-label">Buscar aprendiz</label>
-            <div className="ca-search-wrap">
+            <div className="ca-search-wrap ca-aprendiz-search">
               <Search size={14} className="ca-search-icon" />
               <input
                 type="text"
                 className="ca-input ca-input--search"
-                placeholder="Nombre o documento..."
+                placeholder={filtrosLocales.grupoId ? 'Nombre o documento...' : 'Selecciona un grupo primero'}
                 value={filtrosLocales.aprendizBusqueda}
-                onChange={e => handleFiltroLocal('aprendizBusqueda', e.target.value)}
+                onChange={e => handleBusquedaAprendiz(e.target.value)}
+                onFocus={() => setMostrarSugerenciasAprendiz(true)}
+                onBlur={() => setTimeout(() => setMostrarSugerenciasAprendiz(false), 120)}
                 onKeyDown={e => e.key === 'Enter' && aplicarFiltros()}
+                disabled={cargandoAprendices}
               />
+              {mostrarSugerenciasAprendiz && filtrosLocales.grupoId && (
+                <div className="ca-aprendiz-dropdown">
+                  {cargandoAprendices && (
+                    <div className="ca-aprendiz-option ca-aprendiz-option--empty">Cargando aprendices...</div>
+                  )}
+                  {!cargandoAprendices && errorAprendices && (
+                    <div className="ca-aprendiz-option ca-aprendiz-option--empty">{errorAprendices}</div>
+                  )}
+                  {!cargandoAprendices && !errorAprendices && aprendicesFiltrados.length === 0 && (
+                    <div className="ca-aprendiz-option ca-aprendiz-option--empty">No hay coincidencias en este grupo</div>
+                  )}
+                  {!cargandoAprendices && !errorAprendices && aprendicesFiltrados.map(aprendiz => (
+                    <button
+                      type="button"
+                      key={aprendiz.id}
+                      className="ca-aprendiz-option"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => seleccionarAprendiz(aprendiz)}
+                    >
+                      <span>{aprendiz.nombre}</span>
+                      <small>{aprendiz.documento}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -201,29 +345,41 @@ export default function ConsultarAlertas() {
             </select>
           </div>
 
-          {/* Tipo */}
+          {/* Tipo de alerta */}
           <div className="ca-filtro-grupo">
             <label className="ca-filtro-label">Tipo de alerta</label>
             <select className="ca-select" value={filtrosLocales.tipoAlerta} onChange={e => handleFiltroLocal('tipoAlerta', e.target.value)}>
               <option value="">Todos</option>
-              <option value="ACADEMICA">Académica</option>
+              <option value="ASISTENCIAL">Asistencial</option>
+              <option value="OBSERVACIONES_RECURRENTES">Observaciones recurrentes</option>
               <option value="CONVIVENCIAL">Convivencial</option>
-              <option value="INASISTENCIA_CONSECUTIVA">Inasistencia consecutiva</option>
-              <option value="INASISTENCIA_ACUMULADA">Inasistencia acumulada</option>
-              <option value="RECURRENCIA_OBSERVACIONES">Recurrencia observaciones</option>
             </select>
           </div>
 
           {/* Grupo */}
           <div className="ca-filtro-grupo">
             <label className="ca-filtro-label">Grupo</label>
-            <input
-              type="text"
-              className="ca-input"
-              placeholder="Ej: 302"
+            <select
+              className="ca-select"
               value={filtrosLocales.grupoId}
               onChange={e => handleFiltroLocal('grupoId', e.target.value)}
-            />
+              disabled={cargandoGrupos}
+            >
+              <option value="">
+                {cargandoGrupos ? 'Cargando grupos...' : 'Todos mis grupos'}
+              </option>
+              {errorGrupos && (
+                <option value="" disabled>No se pudieron cargar los grupos</option>
+              )}
+              {gruposFiltro.map(grupo => {
+                const idGrupo = obtenerIdGrupo(grupo);
+                return (
+                  <option key={idGrupo} value={idGrupo}>
+                    {obtenerEtiquetaGrupo(grupo)}
+                  </option>
+                );
+              })}
+            </select>
           </div>
 
           {/* Fecha desde */}
@@ -336,7 +492,7 @@ export default function ConsultarAlertas() {
                       {alerta.grupo?.codigo ?? alerta.grupoCodigo ?? alerta.grupoId ?? '—'}
                     </td>
                     <td className="ca-cell-texto">
-                      {(alerta.tipoAlerta ?? '').replace(/_/g, ' ')}
+                      {formatearTipoAlerta(alerta.tipoAlerta)}
                     </td>
                     <td>
                       <BadgeSeveridad severidad={alerta.severidad} />

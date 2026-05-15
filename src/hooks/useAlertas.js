@@ -6,6 +6,7 @@ const FILTROS_INICIALES = {
   severidad:         '',
   tipoAlerta:        '',
   grupoId:           '',
+  aprendizId:        '',
   aprendizBusqueda:  '',
   fechaInicio:       '',
   fechaFin:          ''
