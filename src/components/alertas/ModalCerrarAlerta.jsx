@@ -42,7 +42,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
       return;
     }
 
-    if (justificacion.trim().length < 10) {
+    if (estadoFinal === 'CERRADA' && justificacion.trim().length < 20) {
       setErrorJustificacion(true);
       return;
     }
@@ -139,7 +139,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
               onChange={(e) => {
                 if (e.target.value.length <= 300) {
                   setJustificacion(e.target.value);
-                  if (errorJustificacion && e.target.value.trim().length >= 10) {
+                  if (errorJustificacion && e.target.value.trim().length >= 20) {
                     setErrorJustificacion(false);
                   }
                 }
@@ -162,7 +162,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
               <span style={{ color: errorJustificacion ? '#ef4444' : 'transparent', fontWeight: '500' }}>
-                {errorJustificacion ? 'Mínimo 10 caracteres requeridos' : ' '}
+                {errorJustificacion ? 'Mínimo 20 caracteres requeridos' : ' '}
               </span>
               <span style={{ color: '#6b7280' }}>
                 {justificacion.length} / 300

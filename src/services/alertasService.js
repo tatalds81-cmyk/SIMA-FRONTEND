@@ -33,14 +33,31 @@ function limpiarParams(filtros = {}) {
 
 function mapBackendAlerta(alerta) {
   if (!alerta) return alerta;
+
+  // Extraer información del aprendiz si está disponible (vía joins del backend)
+  const persona = alerta.aprendiz?.usuario?.persona;
+  const nombreAprendiz = persona 
+    ? `${persona.nombres || ''} ${persona.apellidos || ''}`.trim() 
+    : (alerta.aprendizNombre || '—');
+  
+  const documentoAprendiz = persona?.numero_documento || alerta.aprendizDocumento || '—';
+
   return {
     ...alerta,
     id: alerta.id_alerta || alerta.id,
     fechaCreacion: alerta.fecha_alerta || alerta.fechaCreacion,
     tipoAlerta: alerta.tipo_alerta || alerta.tipoAlerta,
     grupoCodigo: alerta.grupo?.numero_ficha || alerta.grupoCodigo,
+    idGrupo: alerta.id_grupo || alerta.idGrupo,
     responsableNombre: alerta.creada_por ? `ID Usuario ${alerta.creada_por}` : 'Sistema',
-    aprendizNombre: alerta.aprendiz?.id_aprendiz ? `Aprendiz #${alerta.aprendiz.id_aprendiz}` : '—',
+    aprendizNombre: nombreAprendiz,
+    aprendizDocumento: documentoAprendiz,
+    // Mapear observaciones vinculadas si vienen del backend (alerta_observaciones)
+    observacionesVinculadas: (alerta.alerta_observaciones || []).map(ao => ({
+      id: ao.id_observacion,
+      fecha: ao.observacion?.fecha_observacion || ao.fecha_asociacion,
+      descripcion: ao.observacion?.descripcion || '—'
+    }))
   };
 }
 
@@ -132,6 +149,45 @@ export async function crearAlertaManual(payload) {
   }
 }
 
+export async function crearAlertaDesdeObservaciones(payload) {
+  if (USE_MOCK) {
+    const nueva = {
+      id: `AL-${Math.floor(Math.random() * 900) + 200}`,
+      aprendizNombre: payload.aprendizNombre || 'Aprendiz Nuevo',
+      aprendizDocumento: payload.aprendizDocumento || '00000000',
+      grupoCodigo: payload.grupoCodigo || 'Grupo Desconocido',
+      tipoAlerta: 'MANUAL',
+      severidad: payload.severidad,
+      estado: 'ACTIVA',
+      fechaCreacion: new Date().toISOString(),
+      responsableNombre: 'Instructor',
+      descripcion: payload.descripcion,
+      observacionesVinculadas: (payload.observationIds || []).map(id => ({
+        id,
+        fecha: new Date().toISOString(),
+        descripcion: `Observacion ${id}`
+      }))
+    };
+    MOCK_ALERTAS = [nueva, ...MOCK_ALERTAS];
+    return new Promise(resolve => setTimeout(() => resolve({ data: nueva, error: null }), 800));
+  }
+
+  try {
+    const backendPayload = {
+      id_aprendiz: Number(payload.aprendizId),
+      id_grupo: Number(payload.grupoId),
+      severidad: payload.severidad,
+      descripcion: payload.descripcion,
+      observationIds: (payload.observationIds || []).map(Number),
+      notificar_coordinador: Boolean(payload.notificarCoordinador)
+    };
+    const { data } = await api.post('/api/alerts/from-observations', backendPayload);
+    return { data: mapBackendAlerta(data.data || data), error: null };
+  } catch (error) {
+    return { data: null, error: mensajeError(error) };
+  }
+}
+
 export async function obtenerAlertas(filtros = {}) {
   if (USE_MOCK) {
     return new Promise(resolve => {
@@ -156,12 +212,64 @@ export async function obtenerAlertas(filtros = {}) {
 
   try {
     const params = limpiarParams(filtros);
+    
+    // ── Mapeo de filtros Frontend -> Backend ──
+    if (params.aprendizBusqueda) {
+      params.q = params.aprendizBusqueda;
+      delete params.aprendizBusqueda;
+    }
+    if (params.grupoId) {
+      params.id_grupo = params.grupoId;
+      delete params.grupoId;
+    }
+    if (params.tipoAlerta) {
+      // Mapeo de tipos de frontend a categorías del backend
+      if (params.tipoAlerta === 'ACADEMICA' || params.tipoAlerta === 'CONVIVENCIAL') {
+        params.tipo_alerta = 'MANUAL';
+      } else if (params.tipoAlerta.includes('INASISTENCIA')) {
+        params.tipo_alerta = 'INASISTENCIA';
+      } else if (params.tipoAlerta === 'RECURRENCIA_OBSERVACIONES') {
+        params.tipo_alerta = 'OBSERVACIONES_RECURRENTES';
+      } else {
+        params.tipo_alerta = params.tipoAlerta;
+      }
+      delete params.tipoAlerta;
+    }
+    if (params.fechaInicio) {
+      params.fecha_desde = params.fechaInicio;
+      delete params.fechaInicio;
+    }
+    if (params.fechaFin) {
+      params.fecha_hasta = params.fechaFin;
+      delete params.fechaFin;
+    }
+    
+    // Mapear parámetros de paginación
+    if (params.pagina) {
+      params.page = params.pagina;
+      delete params.pagina;
+    }
+    if (params.limite) {
+      params.limit = params.limite;
+      delete params.limite;
+    }
+
     const { data } = await api.get('/api/alerts', { params });
-    let arr = data.data || data;
+    const res = data.data || data;
+    let arr = res.alertas || res;
+
     if (Array.isArray(arr)) {
       arr = arr.map(mapBackendAlerta);
     }
-    return { data: { data: arr, total: data.total || arr.length }, error: null };
+    return { 
+      data: { 
+        data: arr, 
+        total: res.total || arr.length,
+        pagina: res.pagina || 1,
+        totalPaginas: res.total_paginas || 1
+      }, 
+      error: null 
+    };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }
@@ -201,8 +309,11 @@ export async function cerrarAlerta(id, justificacion, estadoFinal = 'CERRADA') {
     });
   }
   try {
-    // El backend espera: PATCH /api/alerts/:id/status con { estado }
-    const { data } = await api.patch(`/api/alerts/${id}/status`, { estado: estadoFinal });
+    const payload = { estado: estadoFinal };
+    if (estadoFinal === 'CERRADA') {
+      payload.justificacion_cierre = justificacion;
+    }
+    const { data } = await api.patch(`/api/alerts/${id}/status`, payload);
     const alerta = data.data || data;
     return { data: mapBackendAlerta(alerta), error: null };
   } catch (error) {
@@ -227,7 +338,6 @@ export async function obtenerGruposAlertasCoordinador() {
     // Agrupar MOCK_ALERTAS por grupoCodigo y contar severidades
     const resumen = {};
     MOCK_ALERTAS.forEach(alerta => {
-      if (alerta.estado === 'CERRADA' || alerta.estado === 'RESUELTA') return;
       const g = alerta.grupoCodigo;
       if (!resumen[g]) {
         resumen[g] = {
@@ -238,10 +348,12 @@ export async function obtenerGruposAlertasCoordinador() {
           ultimaAlerta: alerta.fechaCreacion
         };
       }
-      resumen[g].totalAlertas++;
-      if (alerta.severidad === 'LEVE') resumen[g].leves++;
-      if (alerta.severidad === 'MODERADA') resumen[g].moderadas++;
-      if (alerta.severidad === 'GRAVE') resumen[g].graves++;
+      if (alerta.estado !== 'CERRADA' && alerta.estado !== 'RESUELTA') {
+        resumen[g].totalAlertas++;
+        if (alerta.severidad === 'LEVE') resumen[g].leves++;
+        if (alerta.severidad === 'MODERADA') resumen[g].moderadas++;
+        if (alerta.severidad === 'GRAVE') resumen[g].graves++;
+      }
       if (new Date(alerta.fechaCreacion) > new Date(resumen[g].ultimaAlerta)) {
         resumen[g].ultimaAlerta = alerta.fechaCreacion;
       }
@@ -250,37 +362,62 @@ export async function obtenerGruposAlertasCoordinador() {
   }
 
   try {
-    const { data } = await api.get('/api/alerts');
-    let arr = data.data || data;
-    if (!Array.isArray(arr)) arr = [];
+    // 1. Obtener todos los grupos a los que el coordinador tiene acceso
+    const { data: respGrupos } = await api.get('/api/groups', { params: { limit: 1000 } });
+    let listaGrupos = respGrupos.data?.grupos || respGrupos.data || respGrupos;
+    if (!Array.isArray(listaGrupos)) listaGrupos = [];
 
-    // Mapear y agrupar por grupo (el backend devuelve lista plana)
-    const alertasMapeadas = arr.map(mapBackendAlerta);
+    // 2. Traemos todas las alertas activas
+    const { data: respAlertas } = await api.get('/api/alerts', { params: { estado: 'ACTIVA', limit: 1000 } });
+    let arrAlertas = respAlertas.data?.alertas || respAlertas.data || respAlertas;
+    if (!Array.isArray(arrAlertas)) arrAlertas = [];
+
     const resumen = {};
 
-    alertasMapeadas.forEach(alerta => {
-      if (alerta.estado === 'CERRADA' || alerta.estado === 'RESUELTA') return;
+    // 3. Inicializar el resumen con TODOS los grupos
+    listaGrupos.forEach(grupo => {
+      const idGrupo = grupo.id_grupo || grupo.id;
+      const instructor = grupo.instructor_lider?.usuario?.persona;
+      const nombreInstructor = instructor ? `${instructor.nombres} ${instructor.apellidos}`.trim() : (grupo.instructor_lider_nombre || 'Sin asignar');
 
-      // Usamos el id_grupo del backend como clave
+      resumen[idGrupo] = {
+        idGrupo: idGrupo,
+        grupoCodigo: grupo.numero_ficha || String(idGrupo),
+        instructorLider: nombreInstructor,
+        totalAlertas: 0,
+        leves: 0, moderadas: 0, graves: 0,
+        ultimaAlerta: null
+      };
+    });
+
+    // 4. Mapear y agrupar las alertas
+    const alertasMapeadas = arrAlertas.map(mapBackendAlerta);
+
+    alertasMapeadas.forEach(alerta => {
       const idGrupo = alerta.id_grupo;
       if (!idGrupo) return;
 
       if (!resumen[idGrupo]) {
+        // Si el grupo no vino en /api/groups pero tiene alertas, lo añadimos
         resumen[idGrupo] = {
           idGrupo: idGrupo,
           grupoCodigo: alerta.grupoCodigo || String(idGrupo),
           instructorLider: alerta.responsableNombre || 'Sistema',
           totalAlertas: 0,
           leves: 0, moderadas: 0, graves: 0,
-          ultimaAlerta: alerta.fechaCreacion
+          ultimaAlerta: null
         };
       }
 
-      resumen[idGrupo].totalAlertas++;
-      if (alerta.severidad === 'LEVE') resumen[idGrupo].leves++;
-      if (alerta.severidad === 'MODERADA') resumen[idGrupo].moderadas++;
-      if (alerta.severidad === 'GRAVE') resumen[idGrupo].graves++;
-      if (new Date(alerta.fechaCreacion) > new Date(resumen[idGrupo].ultimaAlerta)) {
+      if (alerta.estado !== 'CERRADA' && alerta.estado !== 'RESUELTA') {
+        resumen[idGrupo].totalAlertas++;
+        if (alerta.severidad === 'LEVE') resumen[idGrupo].leves++;
+        if (alerta.severidad === 'MODERADA') resumen[idGrupo].moderadas++;
+        if (alerta.severidad === 'GRAVE' || alerta.severidad === 'CRITICA') resumen[idGrupo].graves++;
+      }
+      
+      const fechaAlerta = new Date(alerta.fechaCreacion);
+      if (!resumen[idGrupo].ultimaAlerta || fechaAlerta > new Date(resumen[idGrupo].ultimaAlerta)) {
         resumen[idGrupo].ultimaAlerta = alerta.fechaCreacion;
       }
     });
@@ -299,7 +436,8 @@ export async function obtenerAlertasPorGrupo(grupoCodigo) {
 
   try {
     const { data } = await api.get('/api/alerts', { params: { id_grupo: grupoCodigo } });
-    let arr = data.data || data;
+    const res = data.data || data;
+    let arr = res.alertas || res;
     if (Array.isArray(arr)) arr = arr.map(mapBackendAlerta);
     return { data: arr, error: null };
   } catch (error) {
@@ -316,6 +454,102 @@ export async function obtenerGrupos() {
     // Mapear respuesta según lo que devuelve el backend
     const lista = data.data?.grupos || data.data || data;
     return { data: Array.isArray(lista) ? lista : [], error: null };
+  } catch (error) {
+    return { data: [], error: mensajeError(error) };
+  }
+}
+
+function mapAprendiz(aprendiz) {
+  const persona = aprendiz?.usuario?.persona;
+  const nombre = persona
+    ? `${persona.nombres || ''} ${persona.apellidos || ''}`.trim()
+    : aprendiz?.nombre;
+
+  return {
+    id: aprendiz?.id_aprendiz || aprendiz?.id,
+    nombre: nombre || `ID ${aprendiz?.id_aprendiz || aprendiz?.id || ''}`,
+    documento: persona?.numero_documento || aprendiz?.documento || '---',
+    email: aprendiz?.usuario?.email || aprendiz?.email || '',
+    raw: aprendiz
+  };
+}
+
+export async function obtenerAprendicesPorGrupo(grupoId, filtros = {}) {
+  if (USE_MOCK) {
+    const data = [
+      { id: 1, nombre: 'Juan Pablo Duarte', documento: '1020304050' },
+      { id: 2, nombre: 'Maria Fernanda Lopez', documento: '1098765432' },
+      { id: 3, nombre: 'Carlos Alberto Perez', documento: '1122334455' }
+    ];
+    return { data, error: null };
+  }
+
+  try {
+    const params = limpiarParams({
+      estado: 'ACTIVO',
+      limit: 1000,
+      ...filtros
+    });
+    const { data } = await api.get(`/api/apprentices/grupo/${grupoId}`, { params });
+    const res = data.data || data;
+    const lista = res.aprendices || res.data || res;
+    return { data: Array.isArray(lista) ? lista.map(mapAprendiz) : [], error: null };
+  } catch (error) {
+    return { data: [], error: mensajeError(error) };
+  }
+}
+
+function mapObservacion(observacion) {
+  const persona = observacion?.aprendiz?.usuario?.persona;
+  const instructorPersona = observacion?.instructor?.usuario?.persona;
+  const autor = instructorPersona
+    ? `${instructorPersona.nombres || ''} ${instructorPersona.apellidos || ''}`.trim()
+    : 'Instructor';
+
+  return {
+    id: observacion?.id_observacion || observacion?.id,
+    idAprendiz: observacion?.id_aprendiz,
+    idGrupo: observacion?.id_grupo,
+    tipo: observacion?.tipo_observacion,
+    severidad: observacion?.severidad,
+    estado: observacion?.estado,
+    descripcion: observacion?.descripcion || '',
+    fecha: observacion?.fecha_observacion,
+    autor,
+    aprendizNombre: persona ? `${persona.nombres || ''} ${persona.apellidos || ''}`.trim() : '',
+    raw: observacion
+  };
+}
+
+export async function obtenerObservacionesAbiertasPorAprendiz(grupoId, aprendizId) {
+  if (USE_MOCK) {
+    return {
+      data: [
+        {
+          id: 11,
+          tipo: 'ACADEMICA',
+          severidad: 'GRAVE',
+          estado: 'ABIERTA',
+          fecha: new Date().toISOString(),
+          autor: 'Instructor',
+          descripcion: 'Observacion abierta de prueba con evidencia suficiente para escalar.'
+        }
+      ],
+      error: null
+    };
+  }
+
+  try {
+    const { data } = await api.get(`/api/observations/group/${grupoId}`, {
+      params: {
+        id_aprendiz: aprendizId,
+        estado: 'ABIERTA',
+        limit: 1000
+      }
+    });
+    const res = data.data || data;
+    const lista = res.observaciones || res.data || res;
+    return { data: Array.isArray(lista) ? lista.map(mapObservacion) : [], error: null };
   } catch (error) {
     return { data: [], error: mensajeError(error) };
   }
