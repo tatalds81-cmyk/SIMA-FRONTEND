@@ -21,7 +21,7 @@ const menuByRole = {
     
   ],
   coordinador: [
-    { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },git
+    { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },
     { icon: Users, label: "Gestion de usuarios", path: "/usuarios", id: "usuarios" },
     { icon: UsersRound, label: "Gestion de grupos", path: "/fichas", id: "grupos" },
     { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "alertas" }
