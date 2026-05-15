@@ -21,7 +21,7 @@ function formatFechaLarga(isoStr) {
   });
 }
 
-export default function ModalDetalleAlerta({ isOpen, onClose, alertaId }) {
+export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlertaCerrada }) {
   const [alerta, setAlerta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -207,11 +207,30 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId }) {
                     <div className="da-card-titulo"><History size={18} /> Historial</div>
                   </div>
                   <div className="da-timeline">
+                    {alerta.estado === 'CERRADA' && alerta.fecha_cierre && (
+                      <div className="da-timeline-item">
+                        <div className="da-timeline-dot" style={{ background: '#22c55e', borderColor: '#dcfce7' }} />
+                        <div className="da-timeline-content">
+                          <div className="da-timeline-head">
+                            <strong style={{ color: '#16a34a' }}>CERRADA</strong>
+                            <span>{formatFechaLarga(alerta.fecha_cierre)}</span>
+                          </div>
+                          <p style={{ marginTop: '8px', fontStyle: 'italic', color: '#475569' }}>
+                            "{alerta.justificacion_cierre}"
+                          </p>
+                          {alerta.cerrada_por && (
+                            <p style={{ fontSize: '11px', marginTop: '4px', color: '#94a3b8' }}>
+                              Cerrada por: ID Usuario {alerta.cerrada_por}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="da-timeline-item">
                       <div className="da-timeline-dot" />
                       <div className="da-timeline-content">
                         <div className="da-timeline-head">
-                          <strong>{alerta.estado}</strong>
+                          <strong>ACTIVA</strong>
                           <span>{formatFechaLarga(alerta.fechaCreacion)}</span>
                         </div>
                         <p>Estado inicial de la alerta</p>
@@ -235,6 +254,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId }) {
           onCerradaExitosamente={() => {
             setModalCerrarAbierto(false);
             setAlerta(prev => ({ ...prev, estado: 'CERRADA' }));
+            if (onAlertaCerrada) onAlertaCerrada(alerta?.id);
           }}
         />
       )}

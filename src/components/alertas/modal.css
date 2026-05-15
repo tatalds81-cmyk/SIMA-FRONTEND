@@ -253,5 +253,135 @@
 .mcal-btn-enviar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .mcal-error-msg { font-size: 11px; color: #ef4444; font-weight: 600; margin-top: 4px; display: block; }
+.mcal-help-msg { font-size: 11px; color: #64748b; font-weight: 600; margin-top: 4px; display: block; }
+
+.mcal-observaciones-box {
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.mcal-observaciones-box.error {
+  border-color: #ef4444;
+  background: #fff7f7;
+}
+
+.mcal-observaciones-state {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px;
+}
+
+.mcal-observaciones-state.error {
+  color: #b91c1c;
+}
+
+.mcal-inline-spin {
+  color: #2563eb;
+  animation: spin 1s linear infinite;
+}
+
+.mcal-observacion-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.mcal-observacion-item:hover {
+  border-color: #b9c8dc;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.mcal-observacion-item input {
+  display: none;
+}
+
+.mcal-observacion-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  margin-top: 2px;
+  position: relative;
+}
+
+.mcal-observacion-item input:checked + .mcal-observacion-check {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.mcal-observacion-item input:checked + .mcal-observacion-check::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.mcal-observacion-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mcal-observacion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mcal-observacion-head strong {
+  color: #0b2442;
+  font-size: 12px;
+}
+
+.mcal-observacion-head em {
+  color: #38506b;
+  background: #edf2f7;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.mcal-observacion-desc {
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.mcal-observacion-meta {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

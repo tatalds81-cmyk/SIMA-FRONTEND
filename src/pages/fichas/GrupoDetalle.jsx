@@ -627,8 +627,8 @@ export default function GrupoDetalle() {
 
         let alertasNormalizadas = normalizarAlertas([], listaAprendices);
         try {
-          const respAlertas = await api.get("/api/alerts");
-          const listaAlertas = extraerLista(payload(respAlertas.data));
+          const respAlertas = await api.get("/api/alerts", { params: { id_grupo: id } });
+          const listaAlertas = extraerLista(payload(respAlertas.data), "alertas");
           alertasNormalizadas = normalizarAlertas(listaAlertas, listaAprendices);
         } catch (errAlertas) {
           console.warn("No fue posible cargar alertas del grupo", errAlertas);

@@ -110,11 +110,10 @@ export default function ConsultarAlertas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
 
-  const {
-    alertas, loading, error, total,
-    paginaActual, limite, filtros,
-    cargarAlertas, cambiarFiltro, limpiarFiltros,
-    cambiarPagina, cambiarLimite
+  const { 
+    alertas, total, paginaActual, totalPaginas, loading, error, limite,
+    cambiarPagina, cambiarLimite, filtros, aplicarFiltrosCompletos, limpiarFiltros,
+    cargarAlertas 
   } = useAlertas();
 
   // ── Filtros locales (se aplican al hacer clic en Buscar) ──────────────────
@@ -125,7 +124,7 @@ export default function ConsultarAlertas() {
   }
 
   function aplicarFiltros() {
-    Object.entries(filtrosLocales).forEach(([k, v]) => cambiarFiltro(k, v));
+    aplicarFiltrosCompletos(filtrosLocales);
   }
 
   function handleLimpiar() {
@@ -181,7 +180,6 @@ export default function ConsultarAlertas() {
             <label className="ca-filtro-label">Estado</label>
             <select className="ca-select" value={filtrosLocales.estado} onChange={e => handleFiltroLocal('estado', e.target.value)}>
               <option value="">Todos</option>
-              <option value="ABIERTA">Abierta</option>
               <option value="ACTIVA">Activa</option>
               <option value="EN_SEGUIMIENTO">En seguimiento</option>
               <option value="CERRADA">Cerrada</option>
@@ -196,6 +194,7 @@ export default function ConsultarAlertas() {
               <option value="LEVE">Leve</option>
               <option value="MODERADA">Moderada</option>
               <option value="GRAVE">Grave</option>
+              <option value="CRITICA">Crítica</option>
             </select>
           </div>
 
@@ -324,7 +323,6 @@ export default function ConsultarAlertas() {
                   >
                     <td>
                       <div className="ca-aprendiz-cell">
-                        <AvatarAprendiz nombre={nombre} size="sm" />
                         <div>
                           <span className="ca-aprendiz-nombre">{nombre}</span>
                           {doc && <span className="ca-aprendiz-doc">{doc}</span>}

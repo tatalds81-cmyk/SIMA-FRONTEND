@@ -50,6 +50,12 @@ export function useAlertas() {
     setLoading(false);
   }, [filtros, paginaActual, limite]);
 
+  // ── aplicarFiltrosCompletos ──────────────────────────────────────────────
+  const aplicarFiltrosCompletos = useCallback((nuevosFiltros) => {
+    setFiltros(nuevosFiltros);
+    setPaginaActual(1);
+  }, []);
+
   // ── cambiarFiltro ────────────────────────────────────────────────────────
   const cambiarFiltro = useCallback((campo, valor) => {
     setFiltros(prev => ({ ...prev, [campo]: valor }));
@@ -91,6 +97,7 @@ export function useAlertas() {
     // funciones
     cargarAlertas,
     cambiarFiltro,
+    aplicarFiltrosCompletos,
     limpiarFiltros,
     cambiarPagina,
     cambiarLimite
