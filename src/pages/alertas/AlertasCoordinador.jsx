@@ -30,8 +30,7 @@ export default function AlertasCoordinador() {
   const [busquedaAprendiz, setBusquedaAprendiz] = useState('');
   const [filtroSev, setFiltroSev] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
-  const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
-  const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
+  const [filtroFecha, setFiltroFecha] = useState('');
 
   // Cargar grupos al montar
   useEffect(() => { cargarGrupos(); }, []);
@@ -50,8 +49,7 @@ export default function AlertasCoordinador() {
     setBusquedaAprendiz('');
     setFiltroSev('');
     setFiltroTipo('');
-    setFiltroFechaDesde('');
-    setFiltroFechaHasta('');
+    setFiltroFecha('');
     setLoading(true);
     const { data } = await obtenerAlertasPorGrupo(grupo.idGrupo ?? grupo.grupoCodigo);
     if (data) setAprendices(data);
@@ -114,16 +112,24 @@ export default function AlertasCoordinador() {
       const coincideTipo = !filtroTipo || a.tipoAlerta === filtroTipo;
 
       const fechaA = a.fechaCreacion ? new Date(a.fechaCreacion) : null;
-      const coincideDesde = !filtroFechaDesde || (fechaA && fechaA >= new Date(filtroFechaDesde));
-      const coincideHasta = !filtroFechaHasta || (fechaA && fechaA <= new Date(filtroFechaHasta + 'T23:59:59'));
+      let coincideFecha = true;
+      if (filtroFecha && fechaA) {
+        // Comprobar que sea el mismo día (ignorando la hora)
+        const d = new Date(filtroFecha + 'T00:00:00');
+        coincideFecha = fechaA.getFullYear() === d.getFullYear() &&
+                        fechaA.getMonth() === d.getMonth() &&
+                        fechaA.getDate() === d.getDate();
+      }
+
       const coincideEstado = mostrarHistorial ? a.estado === 'CERRADA' : a.estado !== 'CERRADA';
 
-      return coincideTexto && coincideSev && coincideTipo && coincideDesde && coincideHasta && coincideEstado;
+      return coincideTexto && coincideSev && coincideTipo && coincideFecha && coincideEstado;
     });
-  }, [aprendices, busquedaAprendiz, filtroSev, filtroTipo, filtroFechaDesde, filtroFechaHasta, mostrarHistorial]);
+  }, [aprendices, busquedaAprendiz, filtroSev, filtroTipo, filtroFecha, mostrarHistorial]);
 
   const hayFiltrosGrupo = busquedaGrupo || filtroSevGrupo;
-  const hayFiltrosAprendiz = busquedaAprendiz || filtroSev || filtroTipo || filtroFechaDesde || filtroFechaHasta;
+  const hayFiltrosAprendiz = busquedaAprendiz || filtroSev || filtroTipo || filtroFecha;
+
 
   return (
     <div className="grupos-page">
@@ -226,17 +232,9 @@ export default function AlertasCoordinador() {
                 type="date"
                 className="grupos-select-filtro"
                 style={{ width: 'auto' }}
-                title="Desde"
-                value={filtroFechaDesde}
-                onChange={e => setFiltroFechaDesde(e.target.value)}
-              />
-              <input
-                type="date"
-                className="grupos-select-filtro"
-                style={{ width: 'auto' }}
-                title="Hasta"
-                value={filtroFechaHasta}
-                onChange={e => setFiltroFechaHasta(e.target.value)}
+                title="Fecha"
+                value={filtroFecha}
+                onChange={e => setFiltroFecha(e.target.value)}
               />
               {hayFiltrosAprendiz && (
                 <button type="button" className="ghost" onClick={limpiarFiltrosAprendices}>
@@ -377,7 +375,6 @@ export default function AlertasCoordinador() {
                     <tr key={a.id} className="ac-tr-clickable" onClick={() => setDetalleAlertaId(a.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <AvatarAprendiz nombre={a.aprendizNombre} size="md" />
                           <div className="ac-grupo-info">
                             <strong>{a.aprendizNombre}</strong>
                             <span>{a.aprendizDocumento}</span>

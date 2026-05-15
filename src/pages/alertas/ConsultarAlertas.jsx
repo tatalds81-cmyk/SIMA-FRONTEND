@@ -110,11 +110,10 @@ export default function ConsultarAlertas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
 
-  const {
-    alertas, loading, error, total,
-    paginaActual, limite, filtros,
-    cargarAlertas, cambiarFiltro, limpiarFiltros,
-    cambiarPagina, cambiarLimite
+  const { 
+    alertas, total, paginaActual, totalPaginas, loading, error, limite,
+    cambiarPagina, cambiarLimite, filtros, aplicarFiltrosCompletos, limpiarFiltros,
+    cargarAlertas 
   } = useAlertas();
 
   // ── Filtros locales (se aplican al hacer clic en Buscar) ──────────────────
@@ -125,7 +124,7 @@ export default function ConsultarAlertas() {
   }
 
   function aplicarFiltros() {
-    Object.entries(filtrosLocales).forEach(([k, v]) => cambiarFiltro(k, v));
+    aplicarFiltrosCompletos(filtrosLocales);
   }
 
   function handleLimpiar() {
@@ -324,7 +323,6 @@ export default function ConsultarAlertas() {
                   >
                     <td>
                       <div className="ca-aprendiz-cell">
-                        <AvatarAprendiz nombre={nombre} size="sm" />
                         <div>
                           <span className="ca-aprendiz-nombre">{nombre}</span>
                           {doc && <span className="ca-aprendiz-doc">{doc}</span>}
