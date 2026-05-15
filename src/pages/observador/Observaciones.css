@@ -20,48 +20,65 @@
   gap: 14px;
   color: var(--sima-text);
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 /* ── Cards ──────────────────────────────────────────────────── */
 
-.coordinador-card {
+.obs-card {
   border: 1px solid var(--sima-border);
   border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(9, 36, 68, 0.06);
-  padding: 20px 24px;
+  box-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
+  overflow: hidden;
+}
+
+.obs-table-card {
+  padding: 0;
 }
 
 /* ── Header ─────────────────────────────────────────────────── */
 
-.obs-header {
+.obs-main-header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
   flex-wrap: wrap;
 }
 
-.obs-header h2 {
+.obs-main-header h1 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
   color: var(--sima-text);
-  line-height: 1.2;
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 900;
 }
 
-.obs-header p {
-  margin: 4px 0 0;
+.obs-main-header p,
+.obs-card-header p {
+  margin: 6px 0 0;
   color: var(--sima-muted);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.coordinador-card > h2 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  font-weight: 800;
+.obs-card-header {
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--sima-border);
+}
+
+.obs-card-header h2 {
+  margin: 0;
   color: var(--sima-text);
+  font-size: 17px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.obs-header,
+.obs-section-header {
+  display: none;
 }
 
 /* ── Botones principales ─────────────────────────────────────── */
@@ -75,10 +92,10 @@
   border-radius: 8px;
   padding: 0 18px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
   border: none;
-  background: var(--sima-green);
+  background: linear-gradient(180deg, var(--sima-green), var(--sima-green-dark));
   color: #ffffff;
   transition: background 150ms ease;
   white-space: nowrap;
@@ -93,10 +110,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   border-radius: 8px;
   padding: 0 16px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
   border: 1px solid var(--sima-border);
   background: #ffffff;
@@ -119,19 +137,61 @@
 
 /* ── Filtros ─────────────────────────────────────────────────── */
 
+.obs-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--sima-border);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(9, 36, 68, 0.05);
+}
+
 .obs-filters {
   display: grid;
-  grid-template-columns: minmax(200px, 2fr) minmax(160px, 1.5fr) 130px 130px 110px;
+  grid-template-columns: minmax(210px, 1.35fr) minmax(210px, 1.35fr) minmax(130px, 0.8fr) minmax(130px, 0.8fr) minmax(120px, 0.7fr);
   gap: 10px;
-  margin-top: 14px;
 }
 
 .obs-filters-dates {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
   gap: 10px;
   margin-top: 10px;
   align-items: end;
+}
+
+.obs-filter-control {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.obs-filter-control:focus-within {
+  border-color: var(--sima-green);
+  box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+  background: #ffffff;
+}
+
+.obs-filter-control svg {
+  flex: 0 0 auto;
+  color: var(--sima-navy);
+}
+
+.obs-filter-control select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0;
+  border: 0 !important;
+  background: transparent;
+  outline: 0;
 }
 
 .obs-date-field {
@@ -141,12 +201,23 @@
 }
 
 .obs-date-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   font-weight: 700;
   color: var(--sima-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding-left: 2px;
+}
+
+.obs-date-label strong {
+  color: var(--sima-text);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .obs-filters select,
@@ -156,15 +227,32 @@
   height: 38px;
   border: 1px solid #d0d9e4;
   border-radius: 8px;
-  background: #ffffff;
+  background: #f8fafc;
   color: var(--sima-text);
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   outline: none;
   font-family: inherit;
   appearance: auto;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.obs-filters-dates input.has-value {
+  color: var(--sima-text);
+  border-color: #b9c8d9;
+  background: #ffffff;
+}
+
+.obs-filter-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .obs-filters select:focus,
@@ -172,6 +260,7 @@
 .obs-filters-dates input:focus {
   border-color: var(--sima-green);
   box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+  background: #ffffff;
 }
 
 /* ── Tabla ──────────────────────────────────────────────────── */
@@ -183,48 +272,76 @@
 
 .obs-table table {
   width: 100%;
-  min-width: 780px;
+  min-width: 1040px;
   border-collapse: collapse;
 }
 
 .obs-table th {
-  padding: 10px 14px;
+  padding: 11px 12px;
   background: #f8fafc;
-  border-bottom: 2px solid #edf2f7;
+  border-bottom: 1px solid #edf2f7;
   text-align: left;
   font-size: 12px;
-  font-weight: 700;
-  color: #52687e;
+  font-weight: 900;
+  color: #38506b;
   white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .obs-table td {
-  padding: 12px 14px;
+  padding: 11px 12px;
   border-bottom: 1px solid #f0f4f8;
-  font-size: 13px;
-  color: #1e3448;
+  font-size: 12.5px;
+  color: #263a52;
   font-weight: 400;
   vertical-align: middle;
 }
 
+.obs-table td,
+.obs-table td span,
+.obs-table td button {
+  font-weight: 400;
+}
+
+.obs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .obs-table tbody tr:hover {
-  background: #f8fbff;
+  background: #fafbfd;
+}
+
+.obs-description-cell {
+  max-width: 340px;
+  color: #263a52;
+  line-height: 1.45;
+}
+
+.obs-plain-value {
+  color: #263a52;
+  font-weight: 400 !important;
+}
+
+.obs-type-value {
+  text-transform: lowercase;
 }
 
 /* Botones dentro de la tabla */
 .obs-actions {
   display: flex;
-  gap: 6px;
+  gap: 7px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .obs-table td button {
-  height: 30px;
-  padding: 0 12px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
   border: 1px solid var(--sima-border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: #ffffff;
   color: var(--sima-text);
   font-size: 12px;
@@ -233,6 +350,14 @@
   font-family: inherit;
   transition: all 150ms ease;
   white-space: nowrap;
+}
+
+.obs-table td button.obs-icon-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
 }
 
 .obs-table td button:hover {
@@ -253,41 +378,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 14px;
+  gap: 14px;
+  padding: 13px 16px;
   border-top: 1px solid var(--sima-border);
-  flex-wrap: wrap;
+  background: #fbfdff;
 }
 
 .obs-pagination > span {
   color: var(--sima-muted);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .obs-pagination-btns {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.obs-pagination-btns span {
-  color: var(--sima-text);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0 4px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .obs-pagination button {
-  height: 34px;
+  min-width: 34px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--sima-border);
   border-radius: 8px;
   background: #ffffff;
   color: var(--sima-text);
-  padding: 0 14px;
+  padding: 0 10px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
   font-family: inherit;
   transition: all 150ms ease;
@@ -303,25 +425,32 @@
   opacity: 0.4;
 }
 
+.obs-pagination button.active {
+  border-color: var(--sima-green);
+  background: var(--sima-green);
+  color: #ffffff;
+}
+
 /* ── Badges ─────────────────────────────────────────────────── */
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
-  padding: 2px 10px;
+  min-width: 0;
+  min-height: 26px;
+  padding: 0 12px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 /* Severidad */
-.badge.leve     { background: #dcfce7; color: #166534; }
-.badge.moderada { background: #fef9c3; color: #854d0e; }
-.badge.grave    { background: #fee2e2; color: #991b1b; }
+.badge.leve     { background: #edf9e7; color: var(--sima-green-dark); }
+.badge.moderada { background: #fff7d6; color: #b88700; }
+.badge.grave    { background: #fde7e7; color: #dc2626; }
 
 /* Estado */
 .badge.abierta  { background: #dbeafe; color: #1e40af; }
@@ -367,7 +496,7 @@
   width: min(100%, 640px);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   padding: 28px;
@@ -387,7 +516,7 @@
   margin: 0;
   color: var(--sima-text);
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.2;
 }
 
@@ -596,10 +725,14 @@
 
 .modal-actions button {
   min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border-radius: 8px;
   padding: 0 20px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
   font-family: inherit;
   transition: all 150ms ease;
@@ -684,10 +817,14 @@
   .obs-filters {
     grid-template-columns: 1fr 1fr 1fr;
   }
+
+  .obs-filters-dates {
+    grid-template-columns: 1fr 1fr auto;
+  }
 }
 
 @media (max-width: 768px) {
-  .obs-header,
+  .obs-main-header,
   .modal-actions {
     flex-direction: column;
     align-items: stretch;
@@ -715,5 +852,9 @@
   .obs-pagination {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .obs-pagination-btns {
+    width: 100%;
   }
 }
