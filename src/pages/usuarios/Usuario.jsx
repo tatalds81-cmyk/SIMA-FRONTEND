@@ -17,6 +17,7 @@ const detalleVacio = {
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [grupos, setGrupos] = useState([]);
   const [busquedaDocumento, setBusquedaDocumento] = useState("");
   const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
@@ -31,17 +32,22 @@ export default function Usuario() {
   const [correo, setCorreo] = useState("");
   const [telefono, setTelefono] = useState("");
   const [rol, setRol] = useState("");
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [errorUsuarios, setErrorUsuarios] = useState("");
   const [errorRoles, setErrorRoles] = useState("");
+  const [errorGrupos, setErrorGrupos] = useState("");
 
   const URL_USUARIOS = "/api/users";
   const URL_ROLES = "/api/roles";
+  const URL_GRUPOS = "/api/groups";
   const USUARIOS_POR_PAGINA = 10;
+  const LIMITE_CARGA_USUARIOS = 1000;
 
   useEffect(() => {
     cargarUsuarios();
     cargarRoles();
+    cargarGrupos();
   }, []);
 
   function obtenerHeaders() {
@@ -82,7 +88,7 @@ export default function Usuario() {
         return;
       }
 
-      const res = await fetch(URL_USUARIOS, {
+      const res = await fetch(`${URL_USUARIOS}?limit=${LIMITE_CARGA_USUARIOS}`, {
         method: "GET",
         headers: obtenerHeaders()
       });
@@ -142,6 +148,38 @@ export default function Usuario() {
     }
   }
 
+  async function cargarGrupos() {
+    try {
+      setErrorGrupos("");
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      if (!token) {
+        setErrorGrupos("Debe iniciar sesion para cargar las fichas.");
+        return;
+      }
+
+      const res = await fetch(`${URL_GRUPOS}?estado=ACTIVO&limit=1000`, {
+        method: "GET",
+        headers: obtenerHeaders()
+      });
+
+      const responseData = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw responseData || { message: "No se pudieron cargar las fichas activas" };
+      }
+
+      const datos =
+        responseData?.data?.grupos ||
+        responseData?.data ||
+        responseData?.results ||
+        (Array.isArray(responseData) ? responseData : []);
+
+      setGrupos(datos);
+    } catch (error) {
+      console.error(error);
+      setErrorGrupos(error?.message || "Error al cargar las fichas activas");
+    }
+  }
+
   function buscarUsuarioPorDocumento() {
     const textoBusqueda = busquedaDocumento.trim().toLowerCase();
     if (textoBusqueda === "") {
@@ -191,6 +229,12 @@ export default function Usuario() {
       return;
     }
 
+    const esAprendiz = esRolAprendiz(rol);
+    if (esAprendiz && !grupoSeleccionado) {
+      setMensaje("Debe seleccionar la ficha activa a la que pertenece el aprendiz.");
+      return;
+    }
+
     const data = {
       email: correo.trim(),
       id_rol: parseInt(rol, 10),
@@ -200,6 +244,10 @@ export default function Usuario() {
       apellidos: apellidos.trim(),
       telefono: telefono.trim()
     };
+
+    if (esAprendiz) {
+      data.id_grupo = parseInt(grupoSeleccionado, 10);
+    }
 
     try {
       const res = await fetch(URL_USUARIOS, {
@@ -360,6 +408,7 @@ export default function Usuario() {
     setCorreo("");
     setTelefono("");
     setRol("");
+    setGrupoSeleccionado("");
   }
 
   function limitarNumero10Digitos(valor) {
@@ -370,6 +419,32 @@ export default function Usuario() {
     const rolId = item.id_rol;
     const rolEncontrado = roles.find((r) => Number(r.id_rol) === Number(rolId));
     return rolEncontrado ? rolEncontrado.nombre : item.rol?.nombre || "-";
+  }
+
+  function obtenerNombreRolPorId(idRol) {
+    const rolEncontrado = roles.find((r) => Number(r.id_rol) === Number(idRol));
+    return rolEncontrado?.nombre || "";
+  }
+
+  function esRolAprendiz(idRol) {
+    return obtenerNombreRolPorId(idRol).toLowerCase() === "aprendiz";
+  }
+
+  function cambiarRolCrear(valor) {
+    setRol(valor);
+    if (!esRolAprendiz(valor)) {
+      setGrupoSeleccionado("");
+    }
+  }
+
+  function obtenerEtiquetaGrupo(item) {
+    const programa =
+      item.programa_formacion?.nombre_programa ||
+      item.programa?.nombre_programa ||
+      item.nombre_programa ||
+      "Sin programa";
+
+    return `${item.numero_ficha} - ${programa}`;
   }
 
   const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / USUARIOS_POR_PAGINA));
@@ -423,6 +498,7 @@ export default function Usuario() {
       {mensaje && <div className="usuarios-alert info">{mensaje}</div>}
       {errorUsuarios && <div className="usuarios-alert danger">{errorUsuarios}</div>}
       {errorRoles && <div className="usuarios-alert warning">{errorRoles}</div>}
+      {errorGrupos && <div className="usuarios-alert warning">{errorGrupos}</div>}
 
       <section className="usuarios-toolbar">
         <div className="usuarios-search">
@@ -709,7 +785,7 @@ export default function Usuario() {
               <div className="usuarios-form-grid usuarios-form-grid-single">
                 <label>
                   <span>Rol</span>
-                  <select value={rol} onChange={(e) => setRol(e.target.value)} required>
+                  <select value={rol} onChange={(e) => cambiarRolCrear(e.target.value)} required>
                     <option value="">Seleccione un rol</option>
                     {roles.map((item) => (
                       <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
@@ -717,6 +793,26 @@ export default function Usuario() {
                   </select>
                 </label>
               </div>
+
+              {esRolAprendiz(rol) && (
+                <div className="usuarios-form-grid usuarios-form-grid-single">
+                  <label>
+                    <span>Ficha activa</span>
+                    <select
+                      value={grupoSeleccionado}
+                      onChange={(e) => setGrupoSeleccionado(e.target.value)}
+                      required
+                    >
+                      <option value="">Seleccione la ficha del aprendiz</option>
+                      {grupos.map((item) => (
+                        <option key={item.id_grupo} value={item.id_grupo}>
+                          {obtenerEtiquetaGrupo(item)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
 
               <div className="usuarios-modal-actions">
                 <button type="button" className="usuarios-secondary-btn" onClick={() => { limpiarFormulario(); setModalCrearAbierto(false); }}>Cancelar</button>
