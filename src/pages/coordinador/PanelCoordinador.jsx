@@ -2,15 +2,15 @@
 import {
   AlertTriangle,
   ArrowRight,
-  BookOpen,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
+  FileText,
   Layers,
   Megaphone,
+  UserCheck,
   UsersRound
 } from "lucide-react";
-import { obtenerAlertas } from "../../services/alertasService";
 import "./coordinador.css";
 
 const obtenerNumero = (valor) => {
@@ -25,52 +25,58 @@ const calcularProgreso = (valor, maximo) => {
   return Math.min(100, Math.max(0, Math.round((numero / maximo) * 100)));
 };
 
+const getHeaders = () => {
+  const token = localStorage.getItem("access") || localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 export default function PanelCoordinador() {
   const [resumen, setResumen] = useState(null);
-  const [alertas, setAlertas] = useState([]);
+  const [conteoInstructores, setConteoInstructores] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [errorAlertas, setErrorAlertas] = useState("");
   const [filtroResumenActivo, setFiltroResumenActivo] = useState("asistencia");
   const [filtroOperativoActivo, setFiltroOperativoActivo] = useState("inasistencias");
+  const [mostrarTodosProgramas, setMostrarTodosProgramas] = useState(false);
 
   useEffect(() => {
     let activo = true;
 
-    async function cargarPanel() {
+    async function cargarResumen() {
       try {
-        const token = localStorage.getItem("access") || localStorage.getItem("token");
-        const [res, alertasResp] = await Promise.all([
-          fetch("/api/dashboard/coordinador/resumen", {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {})
-            }
-          }),
-          obtenerAlertas({ estado: "ACTIVA", limite: 1000 })
-        ]);
+        const res = await fetch("/api/dashboard/coordinador/resumen", {
+          headers: getHeaders()
+        });
 
         const data = await res.json().catch(() => null);
         if (!res.ok) {
           throw new Error(data?.message || data?.error || "No fue posible cargar el resumen del coordinador");
         }
 
+        const instructoresRes = await fetch("/api/groups/instructores-disponibles", {
+          headers: getHeaders()
+        }).catch(() => null);
+
+        let totalInstructores = 0;
+        if (instructoresRes?.ok) {
+          const instructoresData = await instructoresRes.json().catch(() => null);
+          const listaInstructores = instructoresData?.data || instructoresData?.results || [];
+          totalInstructores = Array.isArray(listaInstructores) ? listaInstructores.length : 0;
+        }
+
         if (activo) {
           setResumen(data?.data || null);
+          setConteoInstructores(totalInstructores);
           setError("");
-          if (alertasResp.error) {
-            setAlertas([]);
-            setErrorAlertas(alertasResp.error);
-          } else {
-            setAlertas(alertasResp.data?.data || []);
-            setErrorAlertas("");
-          }
         }
       } catch (err) {
         console.error("Error cargando dashboard:", err);
         if (activo) {
           setResumen(null);
-          setAlertas([]);
+          setConteoInstructores(0);
           setError(err.message || "No fue posible cargar el dashboard");
         }
       } finally {
@@ -78,25 +84,22 @@ export default function PanelCoordinador() {
       }
     }
 
-    cargarPanel();
+    cargarResumen();
     return () => {
       activo = false;
     };
   }, []);
 
-  const kpis = useMemo(() => resumen?.kpis || {}, [resumen]);
-  const totalAlertasActivas = alertas.length || kpis.total_alertas_activas || 0;
-  const alertasRecientes = useMemo(() => alertas.slice(0, 4), [alertas]);
-  const resumenAlertas = useMemo(() => {
-    const base = { LEVE: 0, MODERADA: 0, GRAVE: 0, CRITICA: 0 };
-    alertas.forEach((alerta) => {
-      const severidad = String(alerta.severidad || "").toUpperCase();
-      if (base[severidad] !== undefined) base[severidad] += 1;
-    });
-    return base;
-  }, [alertas]);
+  const kpis = resumen?.kpis || {};
+  const programas = resumen?.programas || [];
 
   const resumenCards = useMemo(() => {
+    const totalInstructores =
+      kpis.total_instructores ??
+      kpis.total_instructores_activos ??
+      kpis.instructores_activos ??
+      conteoInstructores;
+
     const cards = [
       {
         titulo: "Aprendices activos",
@@ -106,11 +109,11 @@ export default function PanelCoordinador() {
         tono: "amarillo"
       },
       {
-        titulo: "Programas activos",
-        valor: kpis.total_programas ?? 0,
-        detalle: "Programas con grupos en tus areas",
-        icono: BookOpen,
-        tono: "azul"
+        titulo: "Instructores",
+        valor: totalInstructores,
+        detalle: "Instructores disponibles para asignacion",
+        icono: UserCheck,
+        tono: "morado"
       },
       {
         titulo: "Grupos activos",
@@ -128,8 +131,8 @@ export default function PanelCoordinador() {
       },
       {
         titulo: "Alertas activas",
-        valor: totalAlertasActivas,
-        detalle: "Consumidas desde /api/alerts",
+        valor: kpis.total_alertas_activas ?? 0,
+        detalle: "Alertas asociadas a aprendices activos",
         icono: AlertTriangle,
         tono: "rojo",
         alerta: true
@@ -141,14 +144,30 @@ export default function PanelCoordinador() {
       ...card,
       progreso: calcularProgreso(card.valor, maximo)
     }));
-  }, [kpis, totalAlertasActivas]);
+  }, [kpis, conteoInstructores]);
 
   const estadoAcademico = useMemo(() => ([
     { etiqueta: "Areas asignadas", valor: kpis.total_areas ?? 0 },
     { etiqueta: "Programas activos", valor: kpis.total_programas ?? 0 },
-    { etiqueta: "Alertas activas", valor: totalAlertasActivas },
+    { etiqueta: "Alertas activas", valor: kpis.total_alertas_activas ?? 0 },
     { etiqueta: "Inasistencias validas", valor: kpis.total_inasistencias_validas ?? 0 }
-  ]), [kpis, totalAlertasActivas]);
+  ]), [kpis]);
+
+  const novedades = useMemo(() => {
+    if (!programas.length) {
+      return [
+        { icono: Megaphone, titulo: "Sin programas cargados", texto: "Aun no hay programas activos asociados a tus areas." }
+      ];
+    }
+
+    const programasVisibles = mostrarTodosProgramas ? programas : programas.slice(0, 3);
+
+    return programasVisibles.map((programa) => ({
+      icono: FileText,
+      titulo: programa.nombre_programa,
+      texto: `${programa.nombre_area} - ${programa.total_grupos || 0} grupos activos.`
+    }));
+  }, [programas, mostrarTodosProgramas]);
 
   const asistenciaJornada = [
     { nombre: "Manana", valor: 0, color: "#20b9d7" },
@@ -163,6 +182,101 @@ export default function PanelCoordinador() {
     { id: "inasistencias", label: "Inasistencias" }
   ];
 
+  const resumenInstitucional = useMemo(() => {
+    const totalAlertas = kpis.total_alertas_activas ?? 0;
+    const totalObservaciones = kpis.total_observaciones_abiertas ?? 0;
+    const totalInasistencias = kpis.total_inasistencias_validas ?? 0;
+    const totalAprendices = kpis.total_aprendices_activos ?? 0;
+    const totalAreas = kpis.total_areas ?? 0;
+    const totalProgramas = kpis.total_programas ?? 0;
+    const totalGrupos = kpis.total_grupos_activos ?? 0;
+
+    if (filtroResumenActivo === "programas") {
+      const puntosProgramas = programas.length
+        ? programas.slice(0, 6).map((programa) => ({
+          label: programa.nombre_programa,
+          value: obtenerNumero(programa.total_grupos)
+        }))
+        : [{ label: "Programas", value: totalProgramas }];
+
+      return {
+        titulo: "Programas",
+        valor: totalProgramas,
+        unidad: totalProgramas === 1 ? "programa" : "programas",
+        detalle: `${totalGrupos} grupos activos en programas de tus areas.`,
+        puntos: puntosProgramas
+      };
+    }
+
+    if (filtroResumenActivo === "inasistencias") {
+      return {
+        titulo: "Inasistencias",
+        valor: totalInasistencias,
+        unidad: totalInasistencias === 1 ? "inasistencia valida" : "inasistencias validas",
+        detalle: "Registros validados asociados a grupos activos.",
+        puntos: [
+          { label: "Validas", value: totalInasistencias },
+          { label: "Alertas", value: totalAlertas },
+          { label: "Observ.", value: totalObservaciones },
+          { label: "Grupos", value: totalGrupos }
+        ]
+      };
+    }
+
+    if (filtroResumenActivo === "tiempo") {
+      return {
+        titulo: "Tiempo",
+        valor: totalAreas,
+        unidad: totalAreas === 1 ? "area" : "areas",
+        detalle: "Corte actual por areas, programas, grupos y aprendices.",
+        puntos: [
+          { label: "Areas", value: totalAreas },
+          { label: "Programas", value: totalProgramas },
+          { label: "Grupos", value: totalGrupos },
+          { label: "Aprendices", value: totalAprendices }
+        ]
+      };
+    }
+
+    return {
+      titulo: "Asistencia y observaciones",
+      valor: totalObservaciones + totalAlertas + totalInasistencias,
+      unidad: "registros",
+      detalle: `${totalInasistencias} inasistencias, ${totalObservaciones} observaciones y ${totalAlertas} alertas activas.`,
+      puntos: [
+        { label: "Inasist.", value: totalInasistencias },
+        { label: "Observ.", value: totalObservaciones },
+        { label: "Alertas", value: totalAlertas },
+        { label: "Aprendices", value: totalAprendices }
+      ]
+    };
+  }, [filtroResumenActivo, kpis, programas]);
+
+  const graficoResumen = useMemo(() => {
+    const puntosBase = resumenInstitucional.puntos.length
+      ? resumenInstitucional.puntos
+      : [{ label: "Sin datos", value: 0 }];
+    const maximo = Math.max(...puntosBase.map((punto) => obtenerNumero(punto.value)), 1);
+    const ancho = 630;
+    const inicioX = 25;
+    const baseY = 205;
+    const alto = 150;
+    const paso = puntosBase.length > 1 ? ancho / (puntosBase.length - 1) : 0;
+    const puntos = puntosBase.map((punto, index) => {
+      const valor = obtenerNumero(punto.value);
+      return {
+        ...punto,
+        x: puntosBase.length > 1 ? inicioX + (paso * index) : inicioX + (ancho / 2),
+        y: baseY - ((valor / maximo) * alto)
+      };
+    });
+    const linea = puntos.map((punto, index) => `${index === 0 ? "M" : "L"}${punto.x} ${punto.y}`).join(" ");
+    const area = `${linea} L${puntos[puntos.length - 1].x} ${baseY} L${puntos[0].x} ${baseY} Z`;
+    const escala = [maximo, maximo * 0.75, maximo * 0.5, maximo * 0.25, 0].map((valor) => Math.round(valor));
+
+    return { puntos, linea, area, escala };
+  }, [resumenInstitucional]);
+
   if (cargando) {
     return (
       <div className="coordinador-panel">
@@ -174,7 +288,6 @@ export default function PanelCoordinador() {
   return (
     <div className="coordinador-panel">
       {error && <div className="grupos-alert danger">{error}</div>}
-      {errorAlertas && <div className="grupos-alert danger">{errorAlertas}</div>}
 
       <section className="dashboard-welcome">
         <section className="dashboard-role-welcome">
@@ -212,9 +325,9 @@ export default function PanelCoordinador() {
         <article className="coordinador-card coordinador-asistencia-card">
           <div className="coordinador-card-header">
             <div>
-              <h2>Resumen institucional</h2>
-              <strong>{kpis.total_areas ?? 0} areas</strong>
-              <p>{kpis.total_grupos_activos ?? 0} grupos activos y {kpis.total_aprendices_activos ?? 0} aprendices vinculados.</p>
+              <h2>{resumenInstitucional.titulo}</h2>
+              <strong>{resumenInstitucional.valor} {resumenInstitucional.unidad}</strong>
+              <p>{resumenInstitucional.detalle}</p>
             </div>
             <div className="coordinador-filter-actions" aria-label="Filtros de resumen institucional">
               {filtrosResumen.map((filtro) => {
@@ -236,13 +349,11 @@ export default function PanelCoordinador() {
             </div>
           </div>
 
-          <div className="coordinador-line-chart" aria-label="Resumen por areas y programas">
+          <div className="coordinador-line-chart" aria-label={resumenInstitucional.titulo}>
             <div className="chart-scale">
-              <span>{kpis.total_aprendices_activos ?? 0}</span>
-              <span>{kpis.total_grupos_activos ?? 0}</span>
-              <span>{kpis.total_programas ?? 0}</span>
-              <span>{kpis.total_areas ?? 0}</span>
-              <span>0</span>
+              {graficoResumen.escala.map((valor, index) => (
+                <span key={`${valor}-${index}`}>{valor}</span>
+              ))}
             </div>
             <svg viewBox="0 0 680 230" role="img">
               <defs>
@@ -251,19 +362,21 @@ export default function PanelCoordinador() {
                   <stop offset="100%" stopColor="#2ca8df" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              <path className="chart-area" d="M25 160 C120 120 180 115 255 130 C320 142 380 110 455 98 C530 85 605 92 655 78 L655 205 L25 205 Z" />
-              <path className="chart-line" d="M25 160 C120 120 180 115 255 130 C320 142 380 110 455 98 C530 85 605 92 655 78" />
-              {[25, 160, 290, 410, 540, 655].map((x, i) => (
-                <circle key={x} cx={x} cy={[160, 122, 132, 110, 94, 78][i]} r="5" />
+              <path className="chart-area" d={graficoResumen.area} />
+              <path className="chart-line" d={graficoResumen.linea} />
+              {graficoResumen.puntos.map((punto) => (
+                <circle key={punto.label} cx={punto.x} cy={punto.y} r="5" />
               ))}
             </svg>
-            <div className="chart-months">
-              <span>Areas</span>
-              <span>Programas</span>
-              <span>Grupos</span>
-              <span>Alertas</span>
-              <span>Observ.</span>
-              <span>Aprendices</span>
+            <div
+              className="chart-months"
+              style={{ "--chart-columns": graficoResumen.puntos.length }}
+            >
+              {graficoResumen.puntos.map((punto) => (
+                <span key={punto.label} title={`${punto.label}: ${punto.value}`}>
+                  {punto.label}
+                </span>
+              ))}
             </div>
           </div>
         </article>
@@ -314,7 +427,7 @@ export default function PanelCoordinador() {
           <div className="coordinador-meta">
             <div>
               <span>Seguimiento general</span>
-              <strong>{totalAlertasActivas} alertas</strong>
+              <strong>{kpis.total_alertas_activas ?? 0} alertas</strong>
             </div>
             <span className="coordinador-meta-track">
               <span></span>
@@ -324,40 +437,34 @@ export default function PanelCoordinador() {
 
         <article className="coordinador-novedades">
           <h2>
-            <AlertTriangle size={21} />
-            Alertas activas
+            <Megaphone size={21} />
+            Programas activos
           </h2>
           <div className="coordinador-novedades-list">
-            {alertasRecientes.length ? alertasRecientes.map((alerta) => (
-                <div className="coordinador-novedad-item" key={alerta.id || alerta.id_alerta}>
-                  <AlertTriangle size={25} />
+            {novedades.map((item) => {
+              const Icon = item.icono;
+              return (
+                <div className="coordinador-novedad-item" key={item.titulo}>
+                  <Icon size={25} />
                   <div>
-                    <strong>{alerta.aprendizNombre || "Aprendiz sin nombre"}</strong>
-                    <p>{alerta.grupoCodigo || "Sin grupo"} - {alerta.severidad || "Sin severidad"} - {alerta.tipoAlerta || alerta.tipo_alerta || "Alerta"}</p>
+                    <strong>{item.titulo}</strong>
+                    <p>{item.texto}</p>
                   </div>
                 </div>
-              )) : (
-                <div className="coordinador-novedad-item">
-                  <Megaphone size={25} />
-                  <div>
-                    <strong>Sin alertas activas</strong>
-                    <p>No hay alertas pendientes para seguimiento.</p>
-                  </div>
-                </div>
-              )}
+              );
+            })}
           </div>
-          <div className="coordinador-estado-row">
-            <span>Leves</span><strong>{resumenAlertas.LEVE}</strong>
-          </div>
-          <div className="coordinador-estado-row">
-            <span>Moderadas</span><strong>{resumenAlertas.MODERADA}</strong>
-          </div>
-          <div className="coordinador-estado-row">
-            <span>Graves/Criticas</span><strong>{resumenAlertas.GRAVE + resumenAlertas.CRITICA}</strong>
-          </div>
-          <button className="coordinador-novedades-btn" type="button" onClick={() => window.location.href = "/alertas/consultar"}>
-            Ver alertas <ArrowRight size={18} />
-          </button>
+          {programas.length > 3 && (
+            <button
+              className="coordinador-novedades-btn"
+              type="button"
+              onClick={() => setMostrarTodosProgramas((actual) => !actual)}
+              aria-expanded={mostrarTodosProgramas}
+            >
+              {mostrarTodosProgramas ? "Ver menos" : "Ver detalle"}
+              {mostrarTodosProgramas ? <ChevronDown size={18} /> : <ArrowRight size={18} />}
+            </button>
+          )}
         </article>
       </section>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -12,8 +13,6 @@ import {
   UserRoundCheck,
   UsersRound
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { obtenerAlertas } from "../../services/alertasService";
 import "../coordinador/coordinador.css";
 import "./instructor.css";
 
@@ -29,136 +28,180 @@ const calcularProgreso = (valor, maximo) => {
   return Math.min(100, Math.max(0, Math.round((numero / maximo) * 100)));
 };
 
-const coloresSeveridad = {
-  CRITICA: "#b91c1c",
-  GRAVE: "#ef4444",
-  MODERADA: "#f59e0b",
-  LEVE: "#facc15"
+const coloresBarras = ["verde", "azul", "morado"];
+const coloresRiesgo = ["#ef4444", "#f59e0b", "#facc15"];
+
+const nombresRiesgo = {
+  INASISTENCIA: "Inasistencia recurrente",
+  OBSERVACIONES_RECURRENTES: "Observaciones recurrentes",
+  MANUAL: "Alertas manuales"
 };
 
-const severidades = ["CRITICA", "GRAVE", "MODERADA", "LEVE"];
+const inicioMesActual = () => {
+  const fecha = new Date();
+  return new Date(fecha.getFullYear(), fecha.getMonth(), 1).toISOString().slice(0, 10);
+};
 
-function estadoAlerta(alerta) {
-  return String(alerta.estado || "").toUpperCase();
+const finMesActual = () => {
+  const fecha = new Date();
+  return new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).toISOString().slice(0, 10);
+};
+
+const getHeaders = () => {
+  const token = localStorage.getItem("access") || localStorage.getItem("token");
+  const headers = { "Content-Type": "application/json" };
+  if (token && token !== "undefined") headers.Authorization = `Bearer ${token}`;
+  return headers;
+};
+
+async function fetchJson(url) {
+  const res = await fetch(url, { headers: getHeaders() });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible cargar la informacion");
+  return data?.data ?? data;
 }
 
-function tipoAlerta(alerta) {
-  return String(alerta.tipoAlerta || alerta.tipo_alerta || "ALERTA").replaceAll("_", " ");
-}
+const extraerGrupos = (data) => {
+  const grupos = data?.grupos || data?.fichas || data?.results || data;
+  return Array.isArray(grupos) ? grupos : [];
+};
+
+const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || grupo.programa || "Sin programa";
+const obtenerCodigo = (grupo) => grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "Sin ficha";
+const obtenerRol = (grupo) => {
+  const idInstructor = localStorage.getItem("id_instructor");
+  if (idInstructor && String(grupo.id_instructor_lider) === String(idInstructor)) return "Lider";
+  return grupo.id_instructor_lider ? "Asignado" : "Instructor";
+};
 
 export default function PanelInstructor() {
   const navigate = useNavigate();
+  const [grupos, setGrupos] = useState([]);
   const [alertas, setAlertas] = useState([]);
+  const [totalAprendices, setTotalAprendices] = useState(0);
+  const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let activo = true;
 
-    async function cargarAlertasInstructor() {
-      setCargando(true);
-      const { data, error: errorServicio } = await obtenerAlertas({ limite: 1000 });
+    async function cargarDashboard() {
+      try {
+        setCargando(true);
+        const gruposData = await fetchJson("/api/groups?limit=100");
+        const gruposInstructor = extraerGrupos(gruposData);
 
-      if (!activo) return;
+        const [alertasResultado, aprendicesResultados, observacionesResultados] = await Promise.all([
+          fetchJson("/api/alerts").catch(() => []),
+          Promise.allSettled(
+            gruposInstructor.map((grupo) =>
+              fetchJson(`/api/apprentices/grupo/${grupo.id_grupo}?limit=1`)
+            )
+          ),
+          Promise.allSettled(
+            gruposInstructor.map((grupo) =>
+              fetchJson(
+                `/api/observations/group/${grupo.id_grupo}?limit=1&fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}`
+              )
+            )
+          )
+        ]);
 
-      if (errorServicio) {
-        setAlertas([]);
-        setError(errorServicio);
-      } else {
-        setAlertas(data?.data || []);
+        if (!activo) return;
+
+        setGrupos(gruposInstructor);
+        setAlertas(Array.isArray(alertasResultado) ? alertasResultado : []);
+        setTotalAprendices(
+          aprendicesResultados.reduce((total, result) => (
+            result.status === "fulfilled" ? total + (Number(result.value?.total) || 0) : total
+          ), 0)
+        );
+        setTotalObservacionesMes(
+          observacionesResultados.reduce((total, result) => (
+            result.status === "fulfilled" ? total + (Number(result.value?.total) || 0) : total
+          ), 0)
+        );
         setError("");
+      } catch (err) {
+        console.error("Error cargando dashboard del instructor:", err);
+        if (activo) setError(err.message || "No fue posible cargar el dashboard del instructor");
+      } finally {
+        if (activo) setCargando(false);
       }
-
-      setCargando(false);
     }
 
-    cargarAlertasInstructor();
+    cargarDashboard();
     return () => {
       activo = false;
     };
   }, []);
 
   const alertasActivas = useMemo(
-    () => alertas.filter((alerta) => estadoAlerta(alerta) !== "CERRADA"),
+    () => alertas.filter((alerta) => ["ACTIVA", "EN_SEGUIMIENTO"].includes(alerta.estado)),
     [alertas]
   );
 
-  const aprendicesEnRiesgo = useMemo(() => {
-    const ids = new Set();
-    alertasActivas.forEach((alerta) => {
-      ids.add(alerta.id_aprendiz || alerta.aprendizDocumento || alerta.aprendizNombre || alerta.id);
-    });
-    return ids.size;
-  }, [alertasActivas]);
-
   const riesgos = useMemo(() => {
+    const conteo = alertasActivas.reduce((acc, alerta) => {
+      const tipo = alerta.tipo_alerta || "MANUAL";
+      acc[tipo] = (acc[tipo] || 0) + 1;
+      return acc;
+    }, {});
     const total = Math.max(alertasActivas.length, 1);
-    return severidades.map((severidad) => {
-      const valor = alertasActivas.filter((alerta) => String(alerta.severidad || "").toUpperCase() === severidad).length;
-      return {
-        nombre: severidad,
-        valor,
-        porcentaje: Math.round((valor / total) * 100),
-        color: coloresSeveridad[severidad]
-      };
-    }).filter((item) => item.valor > 0);
+
+    return Object.entries(conteo).map(([tipo, valor], index) => ({
+      nombre: nombresRiesgo[tipo] || tipo,
+      valor,
+      porcentaje: Math.round((valor / total) * 100),
+      color: coloresRiesgo[index % coloresRiesgo.length]
+    }));
   }, [alertasActivas]);
 
-  const gruposConAlertas = useMemo(() => {
-    const gruposMap = new Map();
-    alertasActivas.forEach((alerta) => {
-      const grupo = alerta.grupoCodigo || alerta.idGrupo || "Sin grupo";
-      const actual = gruposMap.get(grupo) || {
-        grupo,
-        programa: tipoAlerta(alerta),
-        jornada: alerta.severidad || "Sin severidad",
-        rol: 0,
-        idGrupo: alerta.idGrupo
-      };
-      actual.rol += 1;
-      gruposMap.set(grupo, actual);
-    });
-    return Array.from(gruposMap.values()).slice(0, 5);
-  }, [alertasActivas]);
-
-  const alertasRecientes = useMemo(() => alertasActivas.slice(0, 4), [alertasActivas]);
+  const barras = useMemo(() => (
+    grupos.slice(0, 3).map((grupo, index) => ({
+      grupo: obtenerCodigo(grupo),
+      programa: obtenerPrograma(grupo),
+      porcentaje: 0,
+      color: coloresBarras[index % coloresBarras.length]
+    }))
+  ), [grupos]);
 
   const resumenCards = useMemo(() => ([
     {
-      titulo: "Alertas activas",
-      valor: alertasActivas.length,
-      detalle: "Consumidas desde /api/alerts",
-      meta: null,
-      icono: AlertTriangle,
-      tono: "rojo",
-      alerta: true
-    },
-    {
-      titulo: "Aprendices en riesgo",
-      valor: aprendicesEnRiesgo,
-      detalle: "Con alertas abiertas",
+      titulo: "Mis grupos asignados",
+      valor: grupos.length,
+      detalle: "Grupos visibles para el instructor",
       meta: null,
       icono: UsersRound,
-      tono: "amarillo",
-      alerta: aprendicesEnRiesgo > 0
+      tono: "amarillo"
     },
     {
-      titulo: "En seguimiento",
-      valor: alertas.filter((alerta) => estadoAlerta(alerta) === "EN_SEGUIMIENTO").length,
-      detalle: "Alertas en proceso",
-      meta: null,
+      titulo: "Asistencia promedio (este mes)",
+      valor: "N/D",
+      detalle: "Pendiente endpoint de asistencias",
+      meta: "No disponible con las rutas actuales",
       icono: CheckCircle2,
       tono: "verde"
     },
     {
-      titulo: "Graves o criticas",
-      valor: alertasActivas.filter((alerta) => ["GRAVE", "CRITICA"].includes(String(alerta.severidad || "").toUpperCase())).length,
-      detalle: "Prioridad alta",
+      titulo: "Aprendices en riesgo",
+      valor: alertasActivas.length,
+      detalle: "Con alertas activas o en seguimiento",
       meta: null,
+      icono: AlertTriangle,
+      tono: "rojo",
+      alerta: alertasActivas.length > 0
+    },
+    {
+      titulo: "Observaciones registradas",
+      valor: totalObservacionesMes,
+      detalle: "Este mes",
+      meta: "Calculado por grupo asignado",
       icono: PencilLine,
       tono: "cyan"
     }
-  ]), [alertas, alertasActivas, aprendicesEnRiesgo]);
+  ]), [alertasActivas.length, grupos.length, totalObservacionesMes]);
 
   const maximoResumen = Math.max(
     ...resumenCards
@@ -171,9 +214,16 @@ export default function PanelInstructor() {
     progreso: calcularProgreso(card.valor, card.valor?.toString().includes("%") ? 100 : maximoResumen)
   }));
 
+  if (cargando) {
+    return (
+      <div className="coordinador-panel instructor-panel-v2">
+        <div className="grupos-alert info">Cargando dashboard del instructor...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="coordinador-panel instructor-panel-v2">
-      {cargando && <div className="grupos-alert info">Cargando alertas del instructor...</div>}
       {error && <div className="grupos-alert danger">{error}</div>}
 
       <section className="dashboard-welcome">
@@ -211,27 +261,27 @@ export default function PanelInstructor() {
       <section className="instructor-main-grid">
         <article className="coordinador-card instructor-chart-card">
           <div className="coordinador-card-header">
-            <h2>Alertas activas por grupo</h2>
-            <button className="coordinador-select-btn" type="button">/api/alerts</button>
+            <h2>Asistencia promedio por grupo (este mes)</h2>
+            <button className="coordinador-select-btn" type="button">Este mes</button>
           </div>
 
           <div className="instructor-group-chart">
             <div className="instructor-chart-scale">
-              <span>{Math.max(...gruposConAlertas.map((item) => item.rol), 1)}</span>
-              <span></span>
-              <span></span>
-              <span></span>
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
               <span>0%</span>
             </div>
 
             <div className="instructor-bars-wrap">
-              {(gruposConAlertas.length ? gruposConAlertas : [{ grupo: "Sin alertas", programa: "Sin datos", rol: 0 }]).map((item) => (
+              {barras.map((item) => (
                 <div className="instructor-group-bar-item" key={item.grupo}>
-                  <span>{item.rol}</span>
+                  <span>Sin endpoint</span>
                   <div className="instructor-group-bar-track">
                     <span
-                      className="instructor-group-bar-fill azul"
-                      style={{ height: `${calcularProgreso(item.rol, Math.max(...gruposConAlertas.map((grupo) => grupo.rol), 1))}%` }}
+                      className={`instructor-group-bar-fill ${item.color}`}
+                      style={{ height: `${item.porcentaje}%` }}
                     ></span>
                   </div>
                   <strong>Grupo {item.grupo}</strong>
@@ -244,8 +294,8 @@ export default function PanelInstructor() {
 
         <article className="coordinador-card instructor-risk-card">
           <div className="coordinador-card-header">
-            <h2>Alertas por severidad</h2>
-            <button className="coordinador-select-btn" type="button">Activas</button>
+            <h2>Aprendices en riesgo por causa</h2>
+            <button className="coordinador-select-btn" type="button">Este mes</button>
           </div>
 
           <div className="instructor-risk-layout">
@@ -253,11 +303,15 @@ export default function PanelInstructor() {
               className="instructor-risk-donut"
               style={{
                 background: riesgos.length
-                  ? `conic-gradient(${riesgos.map((item, index) => {
-                      const inicio = riesgos.slice(0, index).reduce((sum, actual) => sum + actual.porcentaje, 0);
-                      return `${item.color} ${inicio}% ${inicio + item.porcentaje}%`;
-                    }).join(", ")})`
-                  : "conic-gradient(#e5e7eb 0% 100%)"
+                  ? `conic-gradient(${riesgos
+                    .reduce((segmentos, item) => {
+                      const inicio = segmentos.total;
+                      const fin = inicio + item.porcentaje;
+                      segmentos.partes.push(`${item.color} ${inicio}% ${fin}%`);
+                      segmentos.total = fin;
+                      return segmentos;
+                    }, { total: 0, partes: [] }).partes.join(", ")})`
+                  : "#e5e7eb"
               }}
             >
               <div className="instructor-risk-donut-inner">
@@ -267,13 +321,19 @@ export default function PanelInstructor() {
             </div>
 
             <div className="instructor-risk-list">
-              {(riesgos.length ? riesgos : [{ nombre: "Sin alertas", valor: 0, porcentaje: 0, color: "#94a3b8" }]).map((item) => (
+              {riesgos.length ? riesgos.map((item) => (
                 <div className="instructor-risk-item" key={item.nombre}>
                   <span className="dot" style={{ background: item.color }}></span>
                   <p>{item.nombre}</p>
                   <strong>{item.valor} ({item.porcentaje}%)</strong>
                 </div>
-              ))}
+              )) : (
+                <div className="instructor-risk-item">
+                  <span className="dot" style={{ background: "#94a3b8" }}></span>
+                  <p>Sin alertas activas</p>
+                  <strong>0</strong>
+                </div>
+              )}
             </div>
           </div>
         </article>
@@ -282,49 +342,54 @@ export default function PanelInstructor() {
       <section className="instructor-bottom-grid">
         <article className="coordinador-card instructor-table-card">
           <div className="coordinador-card-header">
-            <h2>Grupos con alertas</h2>
+            <h2>Mis grupos asignados</h2>
           </div>
 
           <table className="instructor-groups-table">
             <thead>
               <tr>
                 <th>Grupo</th>
-                <th>Tipo principal</th>
-                <th>Severidad</th>
-                <th>Alertas</th>
+                <th>Programa</th>
+                <th>Jornada</th>
+                <th>Rol</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {(gruposConAlertas.length ? gruposConAlertas : [{ grupo: "Sin alertas", programa: "Sin datos", jornada: "-", rol: 0 }]).map((item) => (
-                <tr key={item.grupo}>
-                  <td>{item.grupo}</td>
-                  <td>{item.programa}</td>
-                  <td>{item.jornada}</td>
-                  <td>{item.rol}</td>
+              {grupos.slice(0, 5).map((item) => (
+                <tr key={item.id_grupo || obtenerCodigo(item)}>
+                  <td>{obtenerCodigo(item)}</td>
+                  <td>{obtenerPrograma(item)}</td>
+                  <td>{item.jornada || "Sin jornada"}</td>
+                  <td>{obtenerRol(item)}</td>
                   <td>
                     <div className="instructor-table-actions">
-                      <button type="button" aria-label="Ver grupo" onClick={() => navigate("/instructor/grupos")}>
+                      <button type="button" aria-label="Ver grupo" onClick={() => navigate(`/fichas/${item.id_grupo}`)}>
                         <Eye size={15} />
                       </button>
-                      <button type="button" aria-label="Ver alertas" onClick={() => navigate("/alertas/consultar")}>
+                      <button type="button" aria-label="Ver observaciones" onClick={() => navigate("/instructor/observaciones")}>
                         <MessageSquareWarning size={15} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {!grupos.length && (
+                <tr>
+                  <td colSpan="5">No tienes grupos asignados.</td>
+                </tr>
+              )}
             </tbody>
           </table>
 
-          <button className="coordinador-link-btn" type="button" onClick={() => navigate("/alertas/consultar")}>
-            Ver todas las alertas <ArrowRight size={17} />
+          <button className="coordinador-link-btn" type="button" onClick={() => navigate("/instructor/grupos")}>
+            Ver todos mis grupos <ArrowRight size={17} />
           </button>
         </article>
 
         <article className="coordinador-card instructor-calendar-card">
           <div className="coordinador-card-header">
-            <h2>Alertas recientes</h2>
+            <h2>Calendario de sesiones</h2>
             <div className="instructor-calendar-controls">
               <button type="button" className="instructor-icon-btn"><ChevronLeft size={16} /></button>
               <button type="button" className="instructor-icon-btn"><ChevronRight size={16} /></button>
@@ -332,25 +397,20 @@ export default function PanelInstructor() {
           </div>
 
           <div className="instructor-calendar-grid">
-            {(alertasRecientes.length ? alertasRecientes : [{ id: "sin-alertas", aprendizNombre: "Sin alertas recientes", descripcion: "No hay alertas pendientes.", estado: "sin" }]).map((item) => (
-              <div
-                key={item.id || item.id_alerta}
-                className={`instructor-calendar-day ${estadoAlerta(item) === "ACTIVA" ? "activa" : ""}`}
-              >
+            {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"].map((dia) => (
+              <div key={dia} className="instructor-calendar-day">
                 <div className="instructor-calendar-head">
-                  <strong>{item.aprendizNombre || "Aprendiz"}</strong>
-                  {item.severidad ? <span>{item.severidad}</span> : null}
+                  <strong>{dia}</strong>
                 </div>
-                <p>{item.grupoCodigo || "Sin grupo"}</p>
-                <p>{tipoAlerta(item)}</p>
+                <p>Pendiente endpoint de sesiones/horarios</p>
               </div>
             ))}
           </div>
 
           <div className="instructor-calendar-legend">
-            <span><i className="activa"></i> Activa</span>
-            <span><i className="proxima"></i> En seguimiento</span>
-            <span><i className="sin"></i> Cerrada</span>
+            <span><i className="activa"></i> Sesion activa</span>
+            <span><i className="proxima"></i> Proxima sesion</span>
+            <span><i className="sin"></i> Sin sesion</span>
           </div>
         </article>
       </section>
@@ -359,9 +419,9 @@ export default function PanelInstructor() {
         <article className="coordinador-card instructor-mini-card">
           <h2>Indicadores rapidos</h2>
           <div className="instructor-mini-list">
-            <div><UsersRound size={18} /><span>{aprendicesEnRiesgo} aprendices con alerta</span></div>
-            <div><UserRoundCheck size={18} /><span>{alertas.filter((alerta) => estadoAlerta(alerta) === "CERRADA").length} alertas cerradas</span></div>
-            <div><TrendingUp size={18} /><span>{alertasActivas.length} alertas activas</span></div>
+            <div><UsersRound size={18} /><span>{totalAprendices} aprendices activos</span></div>
+            <div><UserRoundCheck size={18} /><span>{Math.max(0, totalAprendices - alertasActivas.length)} sin alertas activas</span></div>
+            <div><TrendingUp size={18} /><span>{grupos.length} grupos asignados</span></div>
           </div>
         </article>
 
@@ -374,8 +434,8 @@ export default function PanelInstructor() {
             <div className="coordinador-novedad-item">
               <PencilLine size={22} />
               <div>
-                <strong>Seguimiento de alertas</strong>
-                <p>El panel esta consumiendo el endpoint real de alertas.</p>
+                <strong>Nueva funcionalidad</strong>
+                <p>Ahora puedes registrar observaciones directamente desde el detalle del grupo.</p>
               </div>
             </div>
           </div>

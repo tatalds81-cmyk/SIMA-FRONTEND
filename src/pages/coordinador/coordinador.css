@@ -20,7 +20,8 @@
 
 .coordinador-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  align-items: stretch;
   gap: 14px;
 }
 
@@ -63,6 +64,7 @@
   padding: 18px;
   position: relative;
   overflow: hidden;
+  height: 100%;
 }
 
 .coordinador-kpi-top {
@@ -85,6 +87,7 @@
 .tono-azul .coordinador-kpi-icon { background: #f1f5fb; color: var(--sima-navy); }
 .tono-verde .coordinador-kpi-icon { background: #edf9e7; color: var(--sima-green-dark); }
 .tono-cyan .coordinador-kpi-icon { background: #e8fbff; color: #159eb9; }
+.tono-morado .coordinador-kpi-icon { background: #f4f0ff; color: #6d4cc2; }
 .tono-rojo .coordinador-kpi-icon { background: #fff1f2; color: var(--sima-red); }
 
 .coordinador-kpi-ring {
@@ -113,6 +116,7 @@
 .tono-azul .coordinador-kpi-ring { color: var(--sima-navy); }
 .tono-verde .coordinador-kpi-ring { color: var(--sima-green-dark); }
 .tono-cyan .coordinador-kpi-ring { color: var(--sima-cyan); }
+.tono-morado .coordinador-kpi-ring { color: #7c5bd6; }
 .tono-rojo .coordinador-kpi-ring { color: var(--sima-red); }
 
 .coordinador-kpi-card h2 {
@@ -264,6 +268,8 @@
   fill: none;
   stroke: #1685c1;
   stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .coordinador-line-chart circle {
@@ -275,10 +281,17 @@
 .chart-months {
   grid-column: 2;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(var(--chart-columns, 6), minmax(0, 1fr));
+  gap: 8px;
   color: #38506b;
   font-size: 13px;
   font-weight: 700;
+}
+
+.chart-months span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .coordinador-bars {
@@ -300,7 +313,7 @@
 }
 
 .coordinador-bar-track {
-  width: 54px;
+  width: 68px;
   height: 100%;
   display: flex;
   align-items: end;
@@ -685,7 +698,7 @@
 }
 
 .coordinador-bar-track {
-  width: 38px;
+  width: 52px;
 }
 
 .coordinador-bar-item strong,
