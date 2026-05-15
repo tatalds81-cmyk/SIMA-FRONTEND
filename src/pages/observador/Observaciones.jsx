@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Edit3, Eye, Plus, Save, X } from "lucide-react";
+import { Edit3, Eye, Plus, Save, Search, X } from "lucide-react";
 import "./Observaciones.css";
 
 const FILTROS_INICIALES = {
@@ -110,6 +110,7 @@ export default function Observaciones() {
 
   // Todos los filtros van como query params al backend
   const [filtros, setFiltros] = useState(FILTROS_INICIALES);
+  const [filtrosFormulario, setFiltrosFormulario] = useState(FILTROS_INICIALES);
 
   // Aprendices del grupo para poblar los dropdowns (sin paginar)
   const [aprendices, setAprendices] = useState([]);
@@ -222,9 +223,11 @@ export default function Observaciones() {
       if (!res.ok) throw new Error("Error cargando observaciones");
       const data = await res.json();
 
-      setObservaciones(data?.data?.observaciones || []);
-      setTotal(data?.data?.total || 0);
-      setObservacionesAbiertas(data?.data?.observaciones_abiertas ?? 0);
+      const payload = data?.data || data;
+      const lista = payload?.observaciones || payload?.data || payload?.results || (Array.isArray(payload) ? payload : []);
+      setObservaciones(Array.isArray(lista) ? lista : []);
+      setTotal(Number(payload?.total ?? lista.length) || 0);
+      setObservacionesAbiertas(Number(payload?.observaciones_abiertas ?? 0) || 0);
     } catch (error) {
       console.error(error);
       setObservaciones([]);
@@ -320,8 +323,15 @@ export default function Observaciones() {
 
   function limpiarFiltros() {
     setFiltros(FILTROS_INICIALES);
+    setFiltrosFormulario(FILTROS_INICIALES);
     setErrorFiltros("");
     setPagina(1);
+  }
+
+  function aplicarFiltros() {
+    setPagina(1);
+    setFiltros(filtrosFormulario);
+    fetchObservaciones({ filtros: filtrosFormulario, pagina: 1, grupo: grupoSeleccionado });
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / LIMIT));
@@ -380,6 +390,7 @@ export default function Observaciones() {
               setGrupoSeleccionado(e.target.value);
               setPagina(1);
               setFiltros((f) => ({ ...f, id_aprendiz: "" }));
+              setFiltrosFormulario((f) => ({ ...f, id_aprendiz: "" }));
             }}
           >
             <option value="">Seleccione ficha</option>
@@ -391,8 +402,8 @@ export default function Observaciones() {
           </select>
 
           <select
-            value={filtros.id_aprendiz}
-            onChange={(e) => { setFiltros({ ...filtros, id_aprendiz: e.target.value }); setPagina(1); }}
+            value={filtrosFormulario.id_aprendiz}
+            onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, id_aprendiz: e.target.value })}
           >
             <option value="">Todos los aprendices</option>
             {aprendices.map((a) => (
@@ -403,8 +414,8 @@ export default function Observaciones() {
           </select>
 
           <select
-            value={filtros.tipo}
-            onChange={(e) => { setFiltros({ ...filtros, tipo: e.target.value }); setPagina(1); }}
+            value={filtrosFormulario.tipo}
+            onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, tipo: e.target.value })}
           >
             <option value="">tipo</option>
             <option value="ACADEMICA">académica</option>
@@ -412,8 +423,8 @@ export default function Observaciones() {
           </select>
 
           <select
-            value={filtros.severidad}
-            onChange={(e) => { setFiltros({ ...filtros, severidad: e.target.value }); setPagina(1); }}
+            value={filtrosFormulario.severidad}
+            onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, severidad: e.target.value })}
           >
             <option value="">Severidad</option>
             <option value="LEVE">LEVE</option>
@@ -422,8 +433,8 @@ export default function Observaciones() {
           </select>
 
           <select
-            value={filtros.estado}
-            onChange={(e) => { setFiltros({ ...filtros, estado: e.target.value }); setPagina(1); }}
+            value={filtrosFormulario.estado}
+            onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, estado: e.target.value })}
           >
             <option value="">Estado</option>
             <option value="ABIERTA">ABIERTA</option>
@@ -434,28 +445,32 @@ export default function Observaciones() {
         <div className="obs-filters-dates">
           <div className="obs-date-field">
             <span className="obs-date-label">
-              Desde {filtros.fecha_desde && <strong>{formatFechaFiltro(filtros.fecha_desde)}</strong>}
+              Desde {filtrosFormulario.fecha_desde && <strong>{formatFechaFiltro(filtrosFormulario.fecha_desde)}</strong>}
             </span>
             <input
               type="date"
-              className={filtros.fecha_desde ? "has-value" : ""}
-              value={filtros.fecha_desde}
+              className={filtrosFormulario.fecha_desde ? "has-value" : ""}
+              value={filtrosFormulario.fecha_desde}
               max={hoy}
-              onChange={(e) => { setFiltros({ ...filtros, fecha_desde: e.target.value }); setPagina(1); }}
+              onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, fecha_desde: e.target.value })}
             />
           </div>
           <div className="obs-date-field">
             <span className="obs-date-label">
-              Hasta {filtros.fecha_hasta && <strong>{formatFechaFiltro(filtros.fecha_hasta)}</strong>}
+              Hasta {filtrosFormulario.fecha_hasta && <strong>{formatFechaFiltro(filtrosFormulario.fecha_hasta)}</strong>}
             </span>
             <input
               type="date"
-              className={filtros.fecha_hasta ? "has-value" : ""}
-              value={filtros.fecha_hasta}
+              className={filtrosFormulario.fecha_hasta ? "has-value" : ""}
+              value={filtrosFormulario.fecha_hasta}
               max={hoy}
-              onChange={(e) => { setFiltros({ ...filtros, fecha_hasta: e.target.value }); setPagina(1); }}
+              onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, fecha_hasta: e.target.value })}
             />
           </div>
+          <button className="obs-btn-primary" onClick={aplicarFiltros}>
+            <Search size={16} strokeWidth={2.4} />
+            Buscar
+          </button>
           <button className="obs-btn-secondary" onClick={limpiarFiltros}>
             Limpiar
           </button>
