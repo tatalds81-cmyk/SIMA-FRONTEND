@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, BarChart3, Edit3, Eye, Save, Users, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BarChart3, Edit3, Eye, FilterX, Save, Search, Users, X } from "lucide-react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../../services/api";
 import "./fichas.css";
@@ -42,6 +42,14 @@ const APRENDIZ_FORM_VACIO = {
   numero_documento: "",
   email: "",
   telefono: "",
+};
+
+const FILTROS_ALERTAS_INICIALES = {
+  busqueda: "",
+  tipo: "",
+  severidad: "",
+  estado: "",
+  fecha: "",
 };
 
 const ESTADOS_ALERTA_CERRADA = new Set(["CERRADA", "CERRADO", "RESUELTA"]);
@@ -216,6 +224,40 @@ function etiquetaSeveridad(valor) {
   return map[severidad] || "-";
 }
 
+function etiquetaTipoAlerta(valor) {
+  const tipo = textoPlano(valor);
+  const map = {
+    ACADEMICA: "Academica",
+    CONVIVENCIAL: "Convivencial",
+    INASISTENCIA_CONSECUTIVA: "Inasistencia consecutiva",
+    INASISTENCIA_ACUMULADA: "Inasistencia acumulada",
+    OBSERVACIONES_RECURRENTES: "Observaciones recurrentes",
+    RECURRENCIA_OBSERVACIONES: "Recurrencia observaciones",
+  };
+  return map[tipo] || (tipo ? tipo.replace(/_/g, " ") : "No registrado");
+}
+
+function etiquetaEstadoAlerta(valor) {
+  const estado = textoPlano(valor || "ACTIVA");
+  const map = {
+    ABIERTA: "Abierta",
+    ACTIVA: "Activa",
+    EN_SEGUIMIENTO: "En seguimiento",
+    CERRADA: "Cerrada",
+    CERRADO: "Cerrada",
+    RESUELTA: "Resuelta",
+  };
+  return map[estado] || estado;
+}
+
+function obtenerFechaAlerta(alerta) {
+  return alerta?.fecha_alerta || alerta?.fechaCreacion || alerta?.fecha_creacion || alerta?.createdAt || "";
+}
+
+function obtenerGrupoAlerta(alerta, fallback = "-") {
+  return alerta?.grupo?.numero_ficha || alerta?.grupoCodigo || alerta?.grupoId || alerta?.id_grupo || fallback;
+}
+
 function calcularTrimestreActual(grupo) {
   const totalTrimestres = Number(grupo?.trimestres) || 0;
   if (!grupo?.fecha_inicio || !totalTrimestres) return "-";
@@ -275,14 +317,27 @@ function normalizarAlertas(listaAlertas, aprendices) {
     inasistencias: abiertas.filter(alertaEsInasistencia).length,
     porSeveridad,
     porAprendiz,
-    lista: abiertas.map((alerta) => {
+    totalHistorial: filtradas.length,
+    lista: filtradas.map((alerta) => {
       const aprendiz = aprendicesPorId.get(String(obtenerIdAprendiz(alerta)));
+      const tipoValor = textoPlano(alerta.tipo_alerta || alerta.tipoAlerta || alerta.tipo);
+      const estadoRaw = textoPlano(alerta.estado || "ACTIVA");
+      const estadoValor = ESTADOS_ALERTA_CERRADA.has(estadoRaw) ? "CERRADA" : estadoRaw;
+      const severidadValor = textoPlano(alerta.severidad);
+      const fechaRaw = obtenerFechaAlerta(alerta);
       return {
         aprendiz: obtenerNombreAprendiz(aprendiz, `Aprendiz #${obtenerIdAprendiz(alerta) || ""}`.trim()),
+        grupo: obtenerGrupoAlerta(alerta),
+        tipo: etiquetaTipoAlerta(tipoValor),
+        tipoValor,
         detalle: alerta.descripcion || alerta.detalle || "-",
-        severidad: etiquetaSeveridad(alerta.severidad),
+        severidad: etiquetaSeveridad(severidadValor),
+        severidadValor,
+        estado: etiquetaEstadoAlerta(estadoValor),
+        estadoValor,
         fuente: textoPlano(alerta.origen || alerta.fuente || alerta.tipo_alerta) === "MANUAL" ? "Manual" : "Sistema",
-        fecha: formatearFecha(alerta.fecha_alerta || alerta.fechaCreacion || alerta.fecha_creacion),
+        fecha: formatearFecha(fechaRaw),
+        fechaRaw,
       };
     }),
   };
@@ -558,6 +613,7 @@ export default function GrupoDetalle() {
   const [perfilAprendiz, setPerfilAprendiz] = useState(null);
   const [cargandoPerfil, setCargandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState("");
+  const [filtrosAlertas, setFiltrosAlertas] = useState(FILTROS_ALERTAS_INICIALES);
 
   useEffect(() => {
     let activo = true;
@@ -571,8 +627,8 @@ export default function GrupoDetalle() {
 
         let alertasNormalizadas = normalizarAlertas([], listaAprendices);
         try {
-          const respAlertas = await api.get("/api/alerts");
-          const listaAlertas = extraerLista(payload(respAlertas.data));
+          const respAlertas = await api.get("/api/alerts", { params: { id_grupo: id } });
+          const listaAlertas = extraerLista(payload(respAlertas.data), "alertas");
           alertasNormalizadas = normalizarAlertas(listaAlertas, listaAprendices);
         } catch (errAlertas) {
           console.warn("No fue posible cargar alertas del grupo", errAlertas);
@@ -674,14 +730,41 @@ export default function GrupoDetalle() {
 
   const conteoTab = {
     aprendices: detalle?.aprendices ?? 0,
-    alertas: alertas?.total ?? 0,
+    alertas: alertas?.totalHistorial ?? alertas?.total ?? 0,
   };
+
+  const hayFiltrosAlertas = Object.values(filtrosAlertas).some(Boolean);
+
+  const alertasFiltradas = useMemo(() => {
+    const lista = alertas?.lista || [];
+    const textoBusqueda = normalizarTexto(filtrosAlertas.busqueda);
+
+    return lista.filter((alerta) => {
+      const coincideTexto = !textoBusqueda || normalizarTexto(
+        `${alerta.aprendiz} ${alerta.grupo} ${alerta.tipo} ${alerta.detalle}`
+      ).includes(textoBusqueda);
+      const coincideTipo = !filtrosAlertas.tipo || alerta.tipoValor === filtrosAlertas.tipo;
+      const coincideSeveridad = !filtrosAlertas.severidad || alerta.severidadValor === filtrosAlertas.severidad;
+      const coincideEstado = !filtrosAlertas.estado || alerta.estadoValor === filtrosAlertas.estado;
+      const coincideFecha = !filtrosAlertas.fecha || normalizarFechaInput(alerta.fechaRaw) === filtrosAlertas.fecha;
+
+      return coincideTexto && coincideTipo && coincideSeveridad && coincideEstado && coincideFecha;
+    });
+  }, [alertas, filtrosAlertas]);
 
   /* ── funciones de edición (existentes) ── */
   function cambiarForm(e) {
     const { name, value } = e.target;
     setErrorDetalle("");
     setDetalleForm(p => ({ ...p, [name]: value }));
+  }
+
+  function cambiarFiltroAlertas(campo, valor) {
+    setFiltrosAlertas((prev) => ({ ...prev, [campo]: valor }));
+  }
+
+  function limpiarFiltrosAlertas() {
+    setFiltrosAlertas({ ...FILTROS_ALERTAS_INICIALES });
   }
 
   function iniciarEdicionGrupo() {
@@ -1250,33 +1333,105 @@ export default function GrupoDetalle() {
         <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
           <h2>Alertas de la Ficha {detalle.ficha}</h2>
+          <span className="gd-count-chip">{alertasFiltradas.length} visibles</span>
+        </div>
+
+        <div className="gd-alertas-toolbar">
+          <div className="gd-alertas-search">
+            <Search size={16} />
+            <input
+              value={filtrosAlertas.busqueda}
+              onChange={(e) => cambiarFiltroAlertas("busqueda", e.target.value)}
+              placeholder="Buscar aprendiz o descripcion"
+            />
+          </div>
+
+          <select
+            value={filtrosAlertas.tipo}
+            onChange={(e) => cambiarFiltroAlertas("tipo", e.target.value)}
+            aria-label="Filtrar por tipo de alerta"
+          >
+            <option value="">Todos los tipos</option>
+            <option value="ACADEMICA">Academica</option>
+            <option value="CONVIVENCIAL">Convivencial</option>
+            <option value="INASISTENCIA_CONSECUTIVA">Inasistencia consecutiva</option>
+            <option value="INASISTENCIA_ACUMULADA">Inasistencia acumulada</option>
+            <option value="OBSERVACIONES_RECURRENTES">Observaciones recurrentes</option>
+            <option value="RECURRENCIA_OBSERVACIONES">Recurrencia observaciones</option>
+          </select>
+
+          <select
+            value={filtrosAlertas.severidad}
+            onChange={(e) => cambiarFiltroAlertas("severidad", e.target.value)}
+            aria-label="Filtrar por severidad"
+          >
+            <option value="">Todas las severidades</option>
+            <option value="LEVE">Leve</option>
+            <option value="MODERADA">Moderada</option>
+            <option value="GRAVE">Grave</option>
+            <option value="CRITICA">Critica</option>
+          </select>
+
+          <select
+            value={filtrosAlertas.estado}
+            onChange={(e) => cambiarFiltroAlertas("estado", e.target.value)}
+            aria-label="Filtrar por estado"
+          >
+            <option value="">Todos los estados</option>
+            <option value="ABIERTA">Abierta</option>
+            <option value="ACTIVA">Activa</option>
+            <option value="EN_SEGUIMIENTO">En seguimiento</option>
+            <option value="CERRADA">Cerrada</option>
+          </select>
+
+          <input
+            type="date"
+            value={filtrosAlertas.fecha}
+            onChange={(e) => cambiarFiltroAlertas("fecha", e.target.value)}
+            aria-label="Filtrar por fecha"
+          />
+
+          <button type="button" onClick={limpiarFiltrosAlertas}>
+            <FilterX size={15} />
+            Limpiar
+          </button>
         </div>
         <div className="gd-table-wrap">
           <table className="gd-table gd-alerts-table">
             <thead>
               <tr>
                 <th>Aprendiz</th>
+                <th>Grupo</th>
+                <th>Tipo</th>
                 <th>Detalle</th>
                 <th>Severidad</th>
+                <th>Estado</th>
                 <th>Fuente</th>
                 <th>Fecha</th>
               </tr>
             </thead>
             <tbody>
-              {alertas?.lista?.length > 0 ? alertas.lista.map((a, i) => {
+              {alertasFiltradas.length > 0 ? alertasFiltradas.map((a, i) => {
                 const esManual  = a.fuente === "Manual";
                 const esTardio  = typeof a.fecha === "string" && (a.fecha.toLowerCase().startsWith("hoy") || a.fecha.toLowerCase().startsWith("ayer"));
                 return (
                   <tr key={i}>
                     <td><strong>{a.aprendiz}</strong></td>
+                    <td>{a.grupo || detalle.ficha}</td>
+                    <td>{a.tipo}</td>
                     <td className={esManual ? "gd-td-link" : ""}>{a.detalle}</td>
                     <td><SeveridadLabel valor={a.severidad} /></td>
+                    <td>{a.estado}</td>
                     <td className={esManual ? "gd-td-link" : ""}>{a.fuente}</td>
                     <td className={esTardio ? "gd-td-link" : ""}>{a.fecha}</td>
                   </tr>
                 );
               }) : (
-                <tr><td colSpan={5} className="gd-empty">No hay alertas abiertas para esta ficha.</td></tr>
+                <tr>
+                  <td colSpan={8} className="gd-empty">
+                    {hayFiltrosAlertas ? "No hay alertas para los filtros aplicados." : "No hay alertas registradas para esta ficha."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

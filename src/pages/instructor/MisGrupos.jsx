@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
-  FilterX,
-  Layers,
-  Search,
-  UsersRound,
-} from "lucide-react";
+import { Eye, FilterX, Search } from "lucide-react";
 import "../fichas/fichas.css";
 
 const API_URL = "/api";
@@ -20,7 +12,7 @@ const ENDPOINTS_GRUPOS_INSTRUCTOR = [
   `${API_URL}/groups`,
 ];
 const FICHAS_OCULTAS = new Set(["2850312"]);
-const JORNADAS_BASE = ["Mañana", "Tarde", "Noche"];
+const JORNADAS_BASE = ["Manana", "Tarde", "Noche"];
 
 function getHeaders() {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
@@ -103,24 +95,6 @@ function prepararGrupoDetalle(grupo) {
   };
 }
 
-function obtenerMetricas(grupos) {
-  const total = grupos.length;
-  const activos = grupos.filter((grupo) => obtenerEstado(grupo) === "ACTIVO").length;
-  const suspendidos = grupos.filter(
-    (grupo) => obtenerEstado(grupo) === "SUSPENDIDO"
-  ).length;
-  const cerrados = grupos.filter((grupo) => obtenerEstado(grupo) === "CERRADO").length;
-  const jornadas = new Set(grupos.map((grupo) => grupo.jornada || "Sin jornada"));
-
-  return {
-    total,
-    activos,
-    suspendidos,
-    cerrados,
-    jornadas: jornadas.size,
-  };
-}
-
 function ordenarGruposImportantes(grupos) {
   return [...grupos].sort((a, b) => {
     const prioridadEstado = (grupo) => {
@@ -133,38 +107,6 @@ function ordenarGruposImportantes(grupos) {
     return prioridadEstado(a) - prioridadEstado(b) ||
       String(obtenerCodigo(a)).localeCompare(String(obtenerCodigo(b)), "es", { numeric: true });
   });
-}
-
-function GrupoCompacto({ grupo, index, onVer }) {
-  const estado = obtenerEstado(grupo);
-
-  return (
-    <article className="mis-grupo-card">
-      <div className="mis-grupo-card-top">
-        <span className={`grupos-status ${obtenerEstadoClase(estado)}`}>{estado}</span>
-      </div>
-
-      <strong>Ficha {obtenerCodigo(grupo)}</strong>
-      <p>{obtenerPrograma(grupo)}</p>
-
-      <div className="mis-grupo-card-meta">
-        <span>
-          <CalendarDays size={15} />
-          {grupo.jornada || "Sin jornada"}
-        </span>
-      </div>
-
-      <button
-        type="button"
-        className="mis-grupo-ver-btn"
-        onClick={onVer}
-        aria-label={`Ver ficha ${obtenerCodigo(grupo) || index}`}
-      >
-        <span>Abrir ficha</span>
-        <ChevronRight size={16} />
-      </button>
-    </article>
-  );
 }
 
 export default function MisGrupos() {
@@ -286,7 +228,6 @@ export default function MisGrupos() {
   );
   const desde = gruposFiltrados.length === 0 ? 0 : inicioPagina + 1;
   const hasta = Math.min(inicioPagina + GRUPOS_POR_PAGINA, gruposFiltrados.length);
-  const metricas = useMemo(() => obtenerMetricas(grupos), [grupos]);
 
   const jornadasDisponibles = useMemo(
     () => [...new Set([...JORNADAS_BASE, ...grupos.map((grupo) => grupo.jornada).filter(Boolean)])],
@@ -320,16 +261,11 @@ export default function MisGrupos() {
 
   return (
     <div className="grupos-page mis-grupos-page">
-      <header className="mis-grupos-header">
+      <header className="grupos-header">
         <div>
           <span className="grupos-eyebrow">Area del instructor</span>
           <h1>Mis grupos</h1>
-          <p>Tus fichas asignadas listas para consultar en un clic.</p>
-        </div>
-
-        <div className="mis-grupos-header-pill">
-          <UsersRound size={18} />
-          <span>{metricas.total} grupos asignados</span>
+          <p>Consulta las fichas asignadas y su seguimiento academico.</p>
         </div>
       </header>
 
@@ -339,131 +275,161 @@ export default function MisGrupos() {
         </div>
       )}
 
-      <section className="mis-grupos-kpis" aria-label="Resumen de grupos">
-        <article>
-          <UsersRound size={20} />
-          <span>Grupos</span>
-          <strong>{metricas.total}</strong>
-        </article>
+      <section className="grupos-toolbar">
+        <div className="grupos-search">
+          <Search size={19} />
+          <input
+            value={busqueda}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setPaginaActual(1);
+            }}
+            placeholder="Buscar por ficha, programa o jornada"
+          />
+        </div>
 
-        <article>
-          <CheckCircle2 size={20} />
-          <span>Activos</span>
-          <strong>{metricas.activos}</strong>
-        </article>
+        <select
+          className="grupos-select-filtro"
+          value={filtroJornada}
+          onChange={(e) => {
+            setFiltroJornada(e.target.value);
+            setPaginaActual(1);
+          }}
+        >
+          <option value="">Todas las jornadas</option>
+          {jornadasDisponibles.map((jornada) => (
+            <option key={jornada} value={jornada}>
+              {jornada}
+            </option>
+          ))}
+        </select>
 
-        <article>
-          <CalendarDays size={20} />
-          <span>Jornadas</span>
-          <strong>{metricas.jornadas}</strong>
-        </article>
+        <select
+          className="grupos-select-filtro"
+          value={filtroEstado}
+          onChange={(e) => {
+            setFiltroEstado(e.target.value);
+            setPaginaActual(1);
+          }}
+        >
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="SUSPENDIDO">Suspendido</option>
+          <option value="CERRADO">Cerrado</option>
+        </select>
+
+        <button type="button" className="ghost" onClick={limpiarFiltros}>
+          <FilterX size={16} />
+          Limpiar
+        </button>
       </section>
 
-      <section className="mis-grupos-listado">
-          <div className="mis-grupos-toolbar">
-            <div className="grupos-search">
-              <Search size={18} />
-              <input
-                value={busqueda}
-                onChange={(e) => {
-                  setBusqueda(e.target.value);
-                  setPaginaActual(1);
-                }}
-                placeholder="Buscar ficha, programa o jornada"
-              />
-            </div>
-
-            <select
-              className="grupos-select-filtro"
-              value={filtroJornada}
-              onChange={(e) => {
-                setFiltroJornada(e.target.value);
-                setPaginaActual(1);
-              }}
-            >
-              <option value="">Todas las jornadas</option>
-              {jornadasDisponibles.map((jornada) => (
-                <option key={jornada} value={jornada}>
-                  {jornada}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="grupos-select-filtro"
-              value={filtroEstado}
-              onChange={(e) => {
-                setFiltroEstado(e.target.value);
-                setPaginaActual(1);
-              }}
-            >
-              <option value="">Todos los estados</option>
-              <option value="ACTIVO">Activo</option>
-              <option value="SUSPENDIDO">Suspendido</option>
-              <option value="CERRADO">Cerrado</option>
-            </select>
-
-            <button type="button" className="ghost" onClick={limpiarFiltros}>
-              <FilterX size={16} />
-              Limpiar
-            </button>
+      <section className="grupos-card">
+        <div className="grupos-card-header">
+          <div>
+            <h2>Grupos asignados</h2>
+            <p>
+              Mostrando {desde}-{hasta} de {gruposFiltrados.length} grupos
+            </p>
           </div>
+        </div>
 
-          <div className="mis-grupos-list-head">
+        <div className="grupos-table-wrap">
+          <table className="grupos-table">
+            <thead>
+              <tr>
+                <th>Codigo</th>
+                <th>Programa</th>
+                <th>Jornada</th>
+                <th>Trimestres</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="grupos-empty">
+                    Cargando grupos...
+                  </td>
+                </tr>
+              ) : gruposPagina.length > 0 ? (
+                gruposPagina.map((grupo, index) => {
+                  const estado = obtenerEstado(grupo);
+
+                  return (
+                    <tr key={obtenerIdGrupo(grupo, inicioPagina + index)}>
+                      <td className="grupos-highlight">{obtenerCodigo(grupo)}</td>
+                      <td>{obtenerPrograma(grupo)}</td>
+                      <td>{grupo.jornada || "No registrada"}</td>
+                      <td>{grupo.trimestres ?? "-"}</td>
+                      <td>
+                        <span className={`grupos-status ${obtenerEstadoClase(estado)}`}>
+                          {estado}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="grupos-actions">
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => navegarGrupo(grupo, inicioPagina + index)}
+                            title="Ver detalle"
+                            aria-label={`Ver ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="6" className="grupos-empty">
+                    No hay grupos para mostrar
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {gruposFiltrados.length > GRUPOS_POR_PAGINA && (
+          <div className="grupos-pagination">
+            <span>
+              Pagina {paginaSegura} de {totalPaginas}
+            </span>
+
             <div>
-              <h2>Grupos asignados</h2>
-              <p>
-                Mostrando {desde}-{hasta} de {gruposFiltrados.length} grupos
-              </p>
-            </div>
-
-          </div>
-
-          {loading ? (
-            <div className="grupos-empty">Cargando grupos...</div>
-          ) : gruposPagina.length ? (
-            <div className="mis-grupos-card-grid">
-              {gruposPagina.map((grupo, index) => (
-                <GrupoCompacto
-                  key={obtenerIdGrupo(grupo, index)}
-                  grupo={grupo}
-                  index={index}
-                  onVer={() => navegarGrupo(grupo, inicioPagina + index)}
-                />
+              <button
+                type="button"
+                onClick={() => cambiarPagina(paginaSegura - 1)}
+                disabled={paginaSegura === 1}
+              >
+                Anterior
+              </button>
+              {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
+                <button
+                  key={pagina}
+                  type="button"
+                  className={pagina === paginaSegura ? "active" : ""}
+                  onClick={() => cambiarPagina(pagina)}
+                >
+                  {pagina}
+                </button>
               ))}
+              <button
+                type="button"
+                onClick={() => cambiarPagina(paginaSegura + 1)}
+                disabled={paginaSegura === totalPaginas}
+              >
+                Siguiente
+              </button>
             </div>
-          ) : (
-            <div className="mis-grupos-empty-inline">
-              <Layers size={28} />
-              <span>No hay grupos que coincidan con la busqueda.</span>
-            </div>
-          )}
-
-          {gruposFiltrados.length > GRUPOS_POR_PAGINA && (
-            <div className="grupos-pagination mis-grupos-pagination">
-              <span>
-                Pagina {paginaSegura} de {totalPaginas}
-              </span>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() => cambiarPagina(paginaSegura - 1)}
-                  disabled={paginaSegura === 1}
-                >
-                  Anterior
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cambiarPagina(paginaSegura + 1)}
-                  disabled={paginaSegura === totalPaginas}
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
+          </div>
+        )}
+      </section>
 
     </div>
   );

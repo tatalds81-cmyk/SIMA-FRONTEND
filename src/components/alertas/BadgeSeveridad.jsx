@@ -20,7 +20,6 @@ export default function BadgeSeveridad({ severidad }) {
 
   return (
     <span className={cfg.clase}>
-      <i className="badge-dot" aria-hidden="true" />
       {cfg.label}
     </span>
   );

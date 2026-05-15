@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Users, ShieldAlert, ChevronRight,
-  Search, ExternalLink, Calendar, Loader2, X, ArrowLeft
+  Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
 import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
@@ -11,6 +11,7 @@ import './alertasCoordinador.css';
 
 export default function AlertasCoordinador() {
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
   // Vista: 'GRUPOS' | 'APRENDICES'
   const [vistaActual, setVistaActual] = useState('GRUPOS');
@@ -29,8 +30,7 @@ export default function AlertasCoordinador() {
   const [busquedaAprendiz, setBusquedaAprendiz] = useState('');
   const [filtroSev, setFiltroSev] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
-  const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
-  const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
+  const [filtroFecha, setFiltroFecha] = useState('');
 
   // Cargar grupos al montar
   useEffect(() => { cargarGrupos(); }, []);
@@ -49,8 +49,7 @@ export default function AlertasCoordinador() {
     setBusquedaAprendiz('');
     setFiltroSev('');
     setFiltroTipo('');
-    setFiltroFechaDesde('');
-    setFiltroFechaHasta('');
+    setFiltroFecha('');
     setLoading(true);
     const { data } = await obtenerAlertasPorGrupo(grupo.idGrupo ?? grupo.grupoCodigo);
     if (data) setAprendices(data);
@@ -61,6 +60,7 @@ export default function AlertasCoordinador() {
     setVistaActual('GRUPOS');
     setGrupoSeleccionado(null);
     setAprendices([]);
+    setMostrarHistorial(false);
     cargarGrupos();
   };
 
@@ -112,15 +112,24 @@ export default function AlertasCoordinador() {
       const coincideTipo = !filtroTipo || a.tipoAlerta === filtroTipo;
 
       const fechaA = a.fechaCreacion ? new Date(a.fechaCreacion) : null;
-      const coincideDesde = !filtroFechaDesde || (fechaA && fechaA >= new Date(filtroFechaDesde));
-      const coincideHasta = !filtroFechaHasta || (fechaA && fechaA <= new Date(filtroFechaHasta + 'T23:59:59'));
+      let coincideFecha = true;
+      if (filtroFecha && fechaA) {
+        // Comprobar que sea el mismo día (ignorando la hora)
+        const d = new Date(filtroFecha + 'T00:00:00');
+        coincideFecha = fechaA.getFullYear() === d.getFullYear() &&
+                        fechaA.getMonth() === d.getMonth() &&
+                        fechaA.getDate() === d.getDate();
+      }
 
-      return coincideTexto && coincideSev && coincideTipo && coincideDesde && coincideHasta;
+      const coincideEstado = mostrarHistorial ? a.estado === 'CERRADA' : a.estado !== 'CERRADA';
+
+      return coincideTexto && coincideSev && coincideTipo && coincideFecha && coincideEstado;
     });
-  }, [aprendices, busquedaAprendiz, filtroSev, filtroTipo, filtroFechaDesde, filtroFechaHasta]);
+  }, [aprendices, busquedaAprendiz, filtroSev, filtroTipo, filtroFecha, mostrarHistorial]);
 
   const hayFiltrosGrupo = busquedaGrupo || filtroSevGrupo;
-  const hayFiltrosAprendiz = busquedaAprendiz || filtroSev || filtroTipo || filtroFechaDesde || filtroFechaHasta;
+  const hayFiltrosAprendiz = busquedaAprendiz || filtroSev || filtroTipo || filtroFecha;
+
 
   return (
     <div className="grupos-page">
@@ -206,6 +215,7 @@ export default function AlertasCoordinador() {
               <option value="LEVE">Leve</option>
               <option value="MODERADA">Moderada</option>
               <option value="GRAVE">Grave</option>
+              <option value="CRITICA">Crítica</option>
             </select>
 
             <select className="grupos-select-filtro" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
@@ -222,17 +232,9 @@ export default function AlertasCoordinador() {
                 type="date"
                 className="grupos-select-filtro"
                 style={{ width: 'auto' }}
-                title="Desde"
-                value={filtroFechaDesde}
-                onChange={e => setFiltroFechaDesde(e.target.value)}
-              />
-              <input
-                type="date"
-                className="grupos-select-filtro"
-                style={{ width: 'auto' }}
-                title="Hasta"
-                value={filtroFechaHasta}
-                onChange={e => setFiltroFechaHasta(e.target.value)}
+                title="Fecha"
+                value={filtroFecha}
+                onChange={e => setFiltroFecha(e.target.value)}
               />
               {hayFiltrosAprendiz && (
                 <button type="button" className="ghost" onClick={limpiarFiltrosAprendices}>
@@ -249,10 +251,12 @@ export default function AlertasCoordinador() {
 
       {/* ── Panel principal ── */}
       <section className="grupos-card">
-        <div className="grupos-card-header">
+        <div className="grupos-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h2>
-              {vistaActual === 'GRUPOS' ? 'Fichas registradas' : 'Aprendices con alertas activas'}
+              {vistaActual === 'GRUPOS' 
+                ? 'Fichas registradas' 
+                : mostrarHistorial ? 'Historial de alertas cerradas' : 'Aprendices con alertas activas'}
             </h2>
             {!loading && (
               <p>
@@ -262,6 +266,22 @@ export default function AlertasCoordinador() {
               </p>
             )}
           </div>
+          {vistaActual === 'APRENDICES' && (
+            <button 
+              type="button" 
+              onClick={() => setMostrarHistorial(!mostrarHistorial)}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', 
+                borderRadius: '6px', border: '1px solid #cbd5e1', 
+                backgroundColor: mostrarHistorial ? '#f8fafc' : '#ffffff', 
+                color: '#334155', fontWeight: 600, cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s'
+              }}
+            >
+              <History size={16} /> 
+              {mostrarHistorial ? 'Ver alertas activas' : 'Historial de cerradas'}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -355,7 +375,6 @@ export default function AlertasCoordinador() {
                     <tr key={a.id} className="ac-tr-clickable" onClick={() => setDetalleAlertaId(a.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <AvatarAprendiz nombre={a.aprendizNombre} size="md" />
                           <div className="ac-grupo-info">
                             <strong>{a.aprendizNombre}</strong>
                             <span>{a.aprendizDocumento}</span>
@@ -381,8 +400,11 @@ export default function AlertasCoordinador() {
                         </div>
                       </td>
                       <td>
-                        <button className="ac-action-btn-primary" onClick={(e) => { e.stopPropagation(); setDetalleAlertaId(a.id); }}>
-                          Revisar y Cerrar <ExternalLink size={14} />
+                        <button 
+                          className={mostrarHistorial ? "ac-action-btn" : "ac-action-btn-primary"} 
+                          onClick={(e) => { e.stopPropagation(); setDetalleAlertaId(a.id); }}
+                        >
+                          {mostrarHistorial ? 'Ver detalle' : 'Revisar y Cerrar'} <ExternalLink size={14} />
                         </button>
                       </td>
                     </tr>
@@ -409,6 +431,10 @@ export default function AlertasCoordinador() {
         isOpen={!!detalleAlertaId}
         onClose={() => setDetalleAlertaId(null)}
         alertaId={detalleAlertaId}
+        onAlertaCerrada={(id) => {
+          setAprendices(prev => prev.map(a => a.id === id ? { ...a, estado: 'CERRADA' } : a));
+          cargarGrupos();
+        }}
       />
     </div>
   );

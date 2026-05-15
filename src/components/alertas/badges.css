@@ -9,75 +9,52 @@
   display:        inline-flex;
   align-items:    center;
   gap:            5px;
-  padding:        3px 10px;
+  min-height:     30px;
+  padding:        0 14px;
   border-radius:  999px;
-  font-size:      11px;
-  font-weight:    800;
+  font-size:      12px;
+  font-weight:    900;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   white-space:    nowrap;
-  line-height:    1.6;
-}
-
-/* ── Punto de color (BadgeSeveridad) ────────────────────────── */
-.badge-dot {
-  width:         7px;
-  height:        7px;
-  border-radius: 50%;
-  display:       inline-block;
-  flex-shrink:   0;
+  border:         none;
 }
 
 /* ── BadgeSeveridad — LEVE ──────────────────────────────────── */
 .badge-sev--leve {
-  background: #FEF9C3;
-  color:      #854D0E;
-  border:     1px solid #FDE047;
-}
-.badge-sev--leve .badge-dot {
-  background: #22c55e; /* verde */
+  background: #edf9e7;
+  color:      #238500;
 }
 
 /* ── BadgeSeveridad — MODERADA ──────────────────────────────── */
 .badge-sev--moderada {
   background: #FEF3C7;
   color:      #92400E;
-  border:     1px solid #F59E0B;
-}
-.badge-sev--moderada .badge-dot {
-  background: #F59E0B; /* naranja */
 }
 
 /* ── BadgeSeveridad — GRAVE ─────────────────────────────────── */
 .badge-sev--grave {
   background: #FEE2E2;
   color:      #991B1B;
-  border:     1px solid #EF4444;
-}
-.badge-sev--grave .badge-dot {
-  background: #EF4444; /* rojo */
 }
 
 /* ── BadgeEstado — ABIERTA / ACTIVA ─────────────────────────── */
 .badge-est--abierta,
 .badge-est--activa {
-  background: #EFF6FF;
-  color:      #1E40AF;
-  border:     1px solid #BFDBFE;
+  background: #edf9e7;
+  color:      #238500;
 }
 
 /* ── BadgeEstado — CERRADA ──────────────────────────────────── */
 .badge-est--cerrada {
   background: #FEE2E2;
   color:      #991B1B;
-  border:     1px solid #FCA5A5;
 }
 
 /* ── BadgeEstado — EN_SEGUIMIENTO ───────────────────────────── */
 .badge-est--seguimiento {
   background: #DBEAFE;
   color:      #1E40AF;
-  border:     1px solid #93C5FD;
 }
 
 /* ═══════════════════════════════════════════════════════════════
