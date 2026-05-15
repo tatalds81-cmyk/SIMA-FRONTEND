@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { Edit3, Eye, Plus, Save, X } from "lucide-react";
 import "./Observaciones.css";
 
+const FILTROS_INICIALES = {
+  id_aprendiz: "",
+  tipo: "",
+  severidad: "",
+  estado: "",
+  fecha_desde: "",
+  fecha_hasta: "",
+};
+
 export default function Observaciones() {
   const API_URL = "/api";
 
@@ -81,6 +90,10 @@ export default function Observaciones() {
     return p ? `${p.nombres} ${p.apellidos}`.trim() : "Instructor";
   }
 
+  function getNumeroFicha(grupo) {
+    return grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo || grupo?.id_grupo || "";
+  }
+
   // ─── State ───────────────────────────────────────────────────────────────────
   const [fichas, setFichas] = useState([]);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState(
@@ -96,14 +109,7 @@ export default function Observaciones() {
   const LIMIT = 10;
 
   // Todos los filtros van como query params al backend
-  const [filtros, setFiltros] = useState({
-    id_aprendiz: "",
-    tipo: "",
-    severidad: "",
-    estado: "",
-    fecha_desde: "",
-    fecha_hasta: "",
-  });
+  const [filtros, setFiltros] = useState(FILTROS_INICIALES);
 
   // Aprendices del grupo para poblar los dropdowns (sin paginar)
   const [aprendices, setAprendices] = useState([]);
@@ -179,12 +185,18 @@ export default function Observaciones() {
   }
 
   // ─── Fetch observaciones (H18) ────────────────────────────────────────────────
-  async function fetchObservaciones() {
+  async function fetchObservaciones(opciones = {}) {
+    const filtrosConsulta = opciones.filtros || filtros;
+    const paginaConsulta = opciones.pagina || pagina;
+    const grupoConsulta = opciones.grupo || grupoSeleccionado;
+
+    if (!grupoConsulta) return;
+
     try {
       setLoading(true);
       setErrorFiltros("");
 
-      if (rangoFechasEsInvalido(filtros.fecha_desde, filtros.fecha_hasta)) {
+      if (rangoFechasEsInvalido(filtrosConsulta.fecha_desde, filtrosConsulta.fecha_hasta)) {
         setObservaciones([]);
         setTotal(0);
         setObservacionesAbiertas(0);
@@ -193,18 +205,18 @@ export default function Observaciones() {
       }
 
       const params = new URLSearchParams();
-      params.append("page", pagina);
+      params.append("page", paginaConsulta);
       params.append("limit", LIMIT);
 
-      if (filtros.id_aprendiz) params.append("id_aprendiz", filtros.id_aprendiz);
-      if (filtros.tipo)        params.append("tipo_observacion", filtros.tipo);
-      if (filtros.severidad)   params.append("severidad", filtros.severidad);
-      if (filtros.estado)      params.append("estado", filtros.estado);
-      if (filtros.fecha_desde) params.append("fecha_desde", normalizarFechaFiltro(filtros.fecha_desde));
-      if (filtros.fecha_hasta) params.append("fecha_hasta", normalizarFechaFiltro(filtros.fecha_hasta, true));
+      if (filtrosConsulta.id_aprendiz) params.append("id_aprendiz", filtrosConsulta.id_aprendiz);
+      if (filtrosConsulta.tipo)        params.append("tipo_observacion", filtrosConsulta.tipo);
+      if (filtrosConsulta.severidad)   params.append("severidad", filtrosConsulta.severidad);
+      if (filtrosConsulta.estado)      params.append("estado", filtrosConsulta.estado);
+      if (filtrosConsulta.fecha_desde) params.append("fecha_desde", normalizarFechaFiltro(filtrosConsulta.fecha_desde));
+      if (filtrosConsulta.fecha_hasta) params.append("fecha_hasta", normalizarFechaFiltro(filtrosConsulta.fecha_hasta, true));
 
       const res = await fetch(
-        `${API_URL}/observations/group/${grupoSeleccionado}?${params}`,
+        `${API_URL}/observations/group/${grupoConsulta}?${params}`,
         { headers: getHeaders() }
       );
       if (!res.ok) throw new Error("Error cargando observaciones");
@@ -276,7 +288,9 @@ export default function Observaciones() {
       if (!res.ok) throw new Error(data?.message || data?.error || "Error guardando observación");
 
       cerrarModal();
-      fetchObservaciones();
+      setFiltros(FILTROS_INICIALES);
+      setPagina(1);
+      await fetchObservaciones({ filtros: FILTROS_INICIALES, pagina: 1, grupo: grupoSeleccionado });
     } catch (error) {
       console.error(error);
       alert(error.message);
@@ -305,7 +319,7 @@ export default function Observaciones() {
   }
 
   function limpiarFiltros() {
-    setFiltros({ id_aprendiz: "", tipo: "", severidad: "", estado: "", fecha_desde: "", fecha_hasta: "" });
+    setFiltros(FILTROS_INICIALES);
     setErrorFiltros("");
     setPagina(1);
   }
@@ -321,6 +335,9 @@ export default function Observaciones() {
 
   const aprendizEnModal = aprendices.find(
     (a) => Number(a.id_aprendiz) === Number(form.id_aprendiz)
+  );
+  const grupoEnModal = fichas.find(
+    (g) => Number(g.id_grupo) === Number(grupoSeleccionado)
   );
 
   const aprendicesFiltradosModal = aprendices.filter((a) =>
@@ -568,6 +585,32 @@ export default function Observaciones() {
             <h2>{editando ? "Editar observación" : "Registrar observación"}</h2>
 
             <div className="modal-grid">
+              <div>
+                <label>Ficha</label>
+                <select
+                  value={grupoSeleccionado}
+                  disabled={!!editando}
+                  onChange={(e) => {
+                    setGrupoSeleccionado(e.target.value);
+                    setForm({ ...form, id_aprendiz: "" });
+                    setFiltros((actual) => ({ ...actual, id_aprendiz: "" }));
+                    setPagina(1);
+                  }}
+                >
+                  <option value="">Seleccione ficha</option>
+                  {fichas.map((g) => (
+                    <option key={g.id_grupo} value={g.id_grupo}>
+                      Ficha {getNumeroFicha(g)}
+                    </option>
+                  ))}
+                </select>
+                {grupoEnModal && (
+                  <small className="obs-modal-help">
+                    La observación se asociará a la ficha {getNumeroFicha(grupoEnModal)}.
+                  </small>
+                )}
+              </div>
+
               <div>
                 <label>Aprendiz</label>
                 <div className="multi-select">
