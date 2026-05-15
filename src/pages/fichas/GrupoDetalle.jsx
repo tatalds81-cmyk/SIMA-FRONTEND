@@ -87,6 +87,101 @@ function numeroSeguro(valor) {
   return Number.isFinite(numero) ? numero : null;
 }
 
+function numeroPositivo(valor) {
+  const numero = numeroSeguro(String(valor ?? "").replace(",", "."));
+  return numero && numero > 0 ? numero : null;
+}
+
+function trimestresDesdeTexto(valor) {
+  const texto = normalizarTexto(valor);
+  if (!texto) return null;
+
+  const coincidencia = texto.match(/\d+(?:[.,]\d+)?/);
+  if (!coincidencia) return null;
+
+  const numero = numeroPositivo(coincidencia[0]);
+  if (!numero) return null;
+
+  if (texto.includes("mes")) return Math.max(1, Math.ceil(numero / 3));
+  if (texto.includes("ano")) return Math.max(1, Math.ceil((numero * 12) / 3));
+
+  return Math.round(numero);
+}
+
+function trimestresDesdeMeses(valor) {
+  const meses = numeroPositivo(valor);
+  return meses ? Math.max(1, Math.ceil(meses / 3)) : null;
+}
+
+function trimestresDesdeFechas(fechaInicio, fechaFin) {
+  if (!fechaInicio || !fechaFin) return null;
+
+  const inicio = new Date(`${String(fechaInicio).split("T")[0]}T00:00:00`);
+  const fin = new Date(`${String(fechaFin).split("T")[0]}T00:00:00`);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin <= inicio) {
+    return null;
+  }
+
+  const meses =
+    (fin.getFullYear() - inicio.getFullYear()) * 12 +
+    (fin.getMonth() - inicio.getMonth()) +
+    (fin.getDate() >= inicio.getDate() ? 0 : -1);
+
+  return meses > 0 ? Math.max(1, Math.ceil(meses / 3)) : null;
+}
+
+function obtenerTrimestresGrupo(grupo) {
+  const candidatos = [
+    grupo?.trimestres,
+    grupo?.total_trimestres,
+    grupo?.numero_trimestres,
+    grupo?.cantidad_trimestres,
+    grupo?.duracion_trimestres,
+    grupo?.duracion_en_trimestres,
+    grupo?.programa_formacion?.trimestres,
+    grupo?.programa_formacion?.total_trimestres,
+    grupo?.programa_formacion?.numero_trimestres,
+    grupo?.programa_formacion?.cantidad_trimestres,
+    grupo?.programa_formacion?.duracion_trimestres,
+    grupo?.programa?.trimestres,
+    grupo?.programa?.duracion_trimestres,
+  ];
+
+  for (const candidato of candidatos) {
+    const valor = typeof candidato === "string"
+      ? trimestresDesdeTexto(candidato)
+      : numeroPositivo(candidato);
+    if (valor) return Math.round(valor);
+  }
+
+  const meses = [
+    grupo?.duracion_meses,
+    grupo?.meses,
+    grupo?.programa_formacion?.duracion_meses,
+    grupo?.programa_formacion?.meses,
+    grupo?.programa?.duracion_meses,
+    grupo?.programa?.meses,
+  ];
+
+  for (const candidato of meses) {
+    const valor = trimestresDesdeMeses(candidato);
+    if (valor) return valor;
+  }
+
+  const duracionesTexto = [
+    grupo?.duracion,
+    grupo?.programa_formacion?.duracion,
+    grupo?.programa?.duracion,
+  ];
+
+  for (const candidato of duracionesTexto) {
+    const valor = trimestresDesdeTexto(candidato);
+    if (valor) return valor;
+  }
+
+  return trimestresDesdeFechas(grupo?.fecha_inicio, grupo?.fecha_fin);
+}
+
 function obtenerIdAprendiz(item) {
   return item?.id_aprendiz ?? item?.idAprendiz ?? item?.aprendiz?.id_aprendiz ?? item?.aprendiz?.id ?? item?.id;
 }
@@ -185,6 +280,29 @@ function alertaEsInasistencia(alerta) {
   return textoPlano(alerta?.tipo_alerta || alerta?.tipoAlerta) === "ASISTENCIAL";
 }
 
+function observacionEstaAbierta(observacion) {
+  const estado = textoPlano(observacion?.estado || observacion?.estado_observacion || "ABIERTA");
+  return estado === "ABIERTA" || estado === "ABIERTO" || estado === "PENDIENTE";
+}
+
+function contarObservacionesAbiertas(data) {
+  const fuentesConteo = [
+    data?.observaciones_abiertas,
+    data?.total_observaciones_abiertas,
+    data?.total_abiertas,
+    data?.abiertas,
+    data?.meta?.observaciones_abiertas,
+  ];
+
+  for (const valor of fuentesConteo) {
+    const numero = numeroSeguro(valor);
+    if (numero !== null) return numero;
+  }
+
+  const lista = extraerLista(data, "observaciones");
+  return lista.filter(observacionEstaAbierta).length;
+}
+
 function formatearFecha(valor) {
   if (!valor) return "-";
   const fecha = new Date(valor);
@@ -256,7 +374,7 @@ function obtenerGrupoAlerta(alerta, fallback = "-") {
 }
 
 function calcularTrimestreActual(grupo) {
-  const totalTrimestres = Number(grupo?.trimestres) || 0;
+  const totalTrimestres = obtenerTrimestresGrupo(grupo) || 0;
   if (!grupo?.fecha_inicio || !totalTrimestres) return "-";
 
   const inicio = new Date(`${grupo.fecha_inicio}T00:00:00`);
@@ -531,7 +649,7 @@ function camposNoPersistidos(grupoBackend, cambios) {
   if (normalizarTexto(grupoBackend?.jornada) !== normalizarTexto(cambios.jornada)) {
     pendientes.push("jornada");
   }
-  if (Number.parseInt(grupoBackend?.trimestres, 10) !== cambios.trimestres) {
+  if (Number.parseInt(obtenerTrimestresGrupo(grupoBackend), 10) !== cambios.trimestres) {
     pendientes.push("duracion");
   }
   return pendientes;
@@ -631,6 +749,19 @@ export default function GrupoDetalle() {
           console.warn("No fue posible cargar alertas del grupo", errAlertas);
         }
 
+        try {
+          const respObservaciones = await api.get(`/api/observations/group/${id}`, {
+            params: { estado: "ABIERTA", limit: 1000 },
+          });
+          const totalObservacionesAbiertas = contarObservacionesAbiertas(payload(respObservaciones.data));
+          alertasNormalizadas = {
+            ...alertasNormalizadas,
+            observaciones: totalObservacionesAbiertas,
+          };
+        } catch (errObservaciones) {
+          console.warn("No fue posible cargar observaciones abiertas del grupo", errObservaciones);
+        }
+
         const metricasGrupo = calcularMetricasGrupo(listaAprendices, alertasNormalizadas, grupoSeleccionado);
         const asistenciaGrupo = construirAsistencia(metricasGrupo, listaAprendices, grupoSeleccionado);
 
@@ -643,7 +774,7 @@ export default function GrupoDetalle() {
           setDetalleForm({
             numero_ficha: grupoSeleccionado?.numero_ficha || "",
             jornada: grupoSeleccionado?.jornada || "",
-            trimestres: grupoSeleccionado?.trimestres || "",
+            trimestres: obtenerTrimestresGrupo(grupoSeleccionado) || "",
             fecha_inicio: normalizarFechaInput(grupoSeleccionado?.fecha_inicio),
           });
         }
@@ -659,7 +790,7 @@ export default function GrupoDetalle() {
           setDetalleForm({
             numero_ficha: grupoNavegacion?.numero_ficha || "",
             jornada: grupoNavegacion?.jornada || "",
-            trimestres: grupoNavegacion?.trimestres || "",
+            trimestres: obtenerTrimestresGrupo(grupoNavegacion) || "",
             fecha_inicio: normalizarFechaInput(grupoNavegacion?.fecha_inicio),
           });
         } else if (activo) {
@@ -692,7 +823,7 @@ export default function GrupoDetalle() {
       area: grupo.programa_formacion?.area?.nombre_area || (typeof areaDirecta === "string" ? areaDirecta : "") || "No especificada",
       programa: grupo.programa_formacion?.nombre_programa || (typeof programaDirecto === "string" ? programaDirecto : "") || "No especificado",
       jornada: grupo.jornada || "No especificada",
-      trimestres: grupo.trimestres || 0,
+      trimestres: obtenerTrimestresGrupo(grupo) || 0,
       fechaInicio: grupo.fecha_inicio || "No registrada",
       fechaFin: grupo.fecha_fin || "No registrada",
       inicioProductiva: grupo.inicio_etapa_productiva || "No registrada",
@@ -777,7 +908,7 @@ export default function GrupoDetalle() {
     setDetalleForm({
       numero_ficha: grupo?.numero_ficha || "",
       jornada: grupo?.jornada || "",
-      trimestres: grupo?.trimestres || "",
+      trimestres: obtenerTrimestresGrupo(grupo) || "",
       fecha_inicio: normalizarFechaInput(grupo?.fecha_inicio),
     });
   }
