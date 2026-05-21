@@ -1,81 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Users, ShieldAlert, ChevronRight,
-  Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History
+  Search, ExternalLink, Calendar, Loader2, ArrowLeft, History
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
-import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
 import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
 import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
+import SimaPagination from '../../components/common/SimaPagination';
 import './alertasCoordinador.css';
 
 const ITEMS_POR_PAGINA = 5;
 
-function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
+function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina, entidad = 'registros' }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
-  const paginas = [];
-  const inicio = Math.max(1, paginaActual - 2);
-  const fin = Math.min(totalPaginas, paginaActual + 2);
-
-  for (let pagina = inicio; pagina <= fin; pagina += 1) {
-    paginas.push(pagina);
-  }
+  const desde = total === 0 ? 0 : ((paginaActual - 1) * limite) + 1;
+  const hasta = Math.min(paginaActual * limite, total);
 
   return (
-    <div className="ca-pagination">
-      <div className="ca-pagination-izq">
-        <span className="ca-limite-label">Pagina {paginaActual} de {totalPaginas}</span>
-      </div>
-
-      <div className="ca-pagination-der">
-        <button
-          type="button"
-          className="ca-page-btn"
-          onClick={() => onCambiarPagina(paginaActual - 1)}
-          disabled={paginaActual === 1}
-          aria-label="Pagina anterior"
-        >
-          Anterior
-        </button>
-
-        {paginaActual > 3 && (
-          <>
-            <button type="button" className="ca-page-btn" onClick={() => onCambiarPagina(1)}>1</button>
-            {paginaActual > 4 && <span className="ca-page-dots">...</span>}
-          </>
-        )}
-
-        {paginas.map((pagina) => (
-          <button
-            key={pagina}
-            type="button"
-            className={`ca-page-btn${pagina === paginaActual ? ' ca-page-btn--active' : ''}`}
-            onClick={() => onCambiarPagina(pagina)}
-          >
-            {pagina}
-          </button>
-        ))}
-
-        {paginaActual < totalPaginas - 2 && (
-          <>
-            {paginaActual < totalPaginas - 3 && <span className="ca-page-dots">...</span>}
-            <button type="button" className="ca-page-btn" onClick={() => onCambiarPagina(totalPaginas)}>
-              {totalPaginas}
-            </button>
-          </>
-        )}
-
-        <button
-          type="button"
-          className="ca-page-btn"
-          onClick={() => onCambiarPagina(paginaActual + 1)}
-          disabled={paginaActual === totalPaginas}
-          aria-label="Pagina siguiente"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+    <SimaPagination
+      desde={desde}
+      hasta={hasta}
+      total={total}
+      entidad={entidad}
+      paginaActual={paginaActual}
+      totalPaginas={totalPaginas}
+      onCambiarPagina={onCambiarPagina}
+    />
   );
 }
 
@@ -536,6 +486,7 @@ export default function AlertasCoordinador() {
             paginaActual={paginaGrupos}
             total={gruposFiltrados.length}
             limite={ITEMS_POR_PAGINA}
+            entidad="grupos"
             onCambiarPagina={cambiarPaginaGrupos}
           />
         )}
@@ -545,6 +496,7 @@ export default function AlertasCoordinador() {
             paginaActual={paginaAprendices}
             total={aprendicesFiltrados.length}
             limite={ITEMS_POR_PAGINA}
+            entidad="aprendices"
             onCambiarPagina={cambiarPaginaAprendices}
           />
         )}

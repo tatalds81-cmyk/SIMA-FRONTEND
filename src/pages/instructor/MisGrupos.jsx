@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, FilterX, Search } from "lucide-react";
+import SimaPagination from "../../components/common/SimaPagination";
 import "../fichas/fichas.css";
 
 const API_URL = "/api";
@@ -500,38 +501,15 @@ export default function MisGrupos() {
         </div>
 
         {gruposFiltrados.length > 0 && (
-          <div className="grupos-pagination">
-            <span>
-              Pagina {paginaSegura} de {totalPaginas}
-            </span>
-
-            <div>
-              <button
-                type="button"
-                onClick={() => cambiarPagina(paginaSegura - 1)}
-                disabled={paginaSegura === 1}
-              >
-                Anterior
-              </button>
-              {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
-                <button
-                  key={pagina}
-                  type="button"
-                  className={pagina === paginaSegura ? "active" : ""}
-                  onClick={() => cambiarPagina(pagina)}
-                >
-                  {pagina}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => cambiarPagina(paginaSegura + 1)}
-                disabled={paginaSegura === totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
+          <SimaPagination
+            desde={desde}
+            hasta={hasta}
+            total={gruposFiltrados.length}
+            entidad="grupos"
+            paginaActual={paginaSegura}
+            totalPaginas={totalPaginas}
+            onCambiarPagina={cambiarPagina}
+          />
         )}
       </section>
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, BarChart3, Edit3, Eye, FilterX, Save, Search, Users, X } from "lucide-react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import SimaPagination from "../../components/common/SimaPagination";
 import api from "../../services/api";
 import "./fichas.css";
 
@@ -1481,27 +1482,15 @@ export default function GrupoDetalle() {
           </table>
         </div>
         {aprendicesGrupo.length > 0 && (
-          <div className="grupos-pagination">
-            <span>Pagina {paginaAprendicesSegura} de {totalPaginasAprendices}</span>
-            <div>
-              <button type="button" onClick={() => cambiarPaginaAprendices(paginaAprendicesSegura - 1)} disabled={paginaAprendicesSegura === 1}>
-                Anterior
-              </button>
-              {Array.from({ length: totalPaginasAprendices }, (_, index) => index + 1).map((pagina) => (
-                <button
-                  key={pagina}
-                  type="button"
-                  className={pagina === paginaAprendicesSegura ? "active" : ""}
-                  onClick={() => cambiarPaginaAprendices(pagina)}
-                >
-                  {pagina}
-                </button>
-              ))}
-              <button type="button" onClick={() => cambiarPaginaAprendices(paginaAprendicesSegura + 1)} disabled={paginaAprendicesSegura === totalPaginasAprendices}>
-                Siguiente
-              </button>
-            </div>
-          </div>
+          <SimaPagination
+            desde={desdeAprendices}
+            hasta={hastaAprendices}
+            total={aprendicesGrupo.length}
+            entidad="aprendices"
+            paginaActual={paginaAprendicesSegura}
+            totalPaginas={totalPaginasAprendices}
+            onCambiarPagina={cambiarPaginaAprendices}
+          />
         )}
       </article>
       )}
@@ -1612,27 +1601,15 @@ export default function GrupoDetalle() {
           </table>
         </div>
         {alertasFiltradas.length > 0 && (
-          <div className="grupos-pagination">
-            <span>Pagina {paginaAlertasSegura} de {totalPaginasAlertas}</span>
-            <div>
-              <button type="button" onClick={() => cambiarPaginaAlertas(paginaAlertasSegura - 1)} disabled={paginaAlertasSegura === 1}>
-                Anterior
-              </button>
-              {Array.from({ length: totalPaginasAlertas }, (_, index) => index + 1).map((pagina) => (
-                <button
-                  key={pagina}
-                  type="button"
-                  className={pagina === paginaAlertasSegura ? "active" : ""}
-                  onClick={() => cambiarPaginaAlertas(pagina)}
-                >
-                  {pagina}
-                </button>
-              ))}
-              <button type="button" onClick={() => cambiarPaginaAlertas(paginaAlertasSegura + 1)} disabled={paginaAlertasSegura === totalPaginasAlertas}>
-                Siguiente
-              </button>
-            </div>
-          </div>
+          <SimaPagination
+            desde={desdeAlertas}
+            hasta={hastaAlertas}
+            total={alertasFiltradas.length}
+            entidad="alertas"
+            paginaActual={paginaAlertasSegura}
+            totalPaginas={totalPaginasAlertas}
+            onCambiarPagina={cambiarPaginaAlertas}
+          />
         )}
         </article>
       )}
