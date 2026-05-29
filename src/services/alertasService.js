@@ -20,6 +20,23 @@ function limpiarParams(filtros = {}) {
   return p;
 }
 
+function extraerListaRespuesta(res, llaves = []) {
+  if (Array.isArray(res)) return res;
+  if (!res || typeof res !== 'object') return [];
+
+  for (const llave of llaves) {
+    if (Array.isArray(res[llave])) return res[llave];
+  }
+
+  if (res.data && res.data !== res) {
+    return extraerListaRespuesta(res.data, llaves);
+  }
+
+  if (Array.isArray(res.items)) return res.items;
+  if (Array.isArray(res.results)) return res.results;
+  return [];
+}
+
 function nombreCompletoPersona(persona) {
   if (!persona) return '';
   return `${persona.nombres || ''} ${persona.apellidos || ''}`.trim();
@@ -190,12 +207,10 @@ export async function cerrarAlerta(id, justificacion) {
 export async function obtenerGruposAlertasCoordinador() {
   try {
     const { data: respGrupos } = await api.get('/api/groups', { params: { limit: 1000 } });
-    let listaGrupos = respGrupos.data?.grupos || respGrupos.data || respGrupos;
-    if (!Array.isArray(listaGrupos)) listaGrupos = [];
+    const listaGrupos = extraerListaRespuesta(respGrupos, ['grupos', 'fichas']);
 
-    const { data: respAlertas } = await api.get('/api/alerts', { params: { estado: 'ACTIVA', limit: 1000 } });
-    let arrAlertas = respAlertas.data?.alertas || respAlertas.data || respAlertas;
-    if (!Array.isArray(arrAlertas)) arrAlertas = [];
+    const { data: respAlertas } = await api.get('/api/alerts', { params: { limit: 1000 } });
+    const arrAlertas = extraerListaRespuesta(respAlertas, ['alerts', 'alertas']);
 
     const resumen = {};
 

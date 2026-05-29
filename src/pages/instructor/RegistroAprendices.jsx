@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Edit3, Eye, FileSpreadsheet, Mail, Phone, Plus, Save, Search, Trash2, Upload } from "lucide-react";
+import SimaPagination from "../../components/common/SimaPagination";
 import "./registroAprendices.css";
 
 const detalleVacio = {
@@ -495,18 +496,15 @@ export default function Aprendices() {
         </div>
 
         {aprendicesFiltrados.length > 0 && (
-          <div className="aprendices-pagination">
-            <span>Pagina {paginaActual} de {totalPaginas}</span>
-            <div>
-              <button type="button" disabled={paginaActual === 1} onClick={() => cambiarPagina(paginaActual - 1)}>Anterior</button>
-              {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
-                <button key={pagina} type="button" className={pagina === paginaActual ? "active" : ""} onClick={() => cambiarPagina(pagina)}>
-                  {pagina}
-                </button>
-              ))}
-              <button type="button" disabled={paginaActual === totalPaginas} onClick={() => cambiarPagina(paginaActual + 1)}>Siguiente</button>
-            </div>
-          </div>
+          <SimaPagination
+            desde={desde}
+            hasta={hasta}
+            total={aprendicesFiltrados.length}
+            entidad="aprendices"
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            onCambiarPagina={cambiarPagina}
+          />
         )}
       </section>
 

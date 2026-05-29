@@ -1,81 +1,31 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Users, ShieldAlert,
-  Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History, ChevronRight
+  Users, ShieldAlert, ChevronRight,
+  Search, ExternalLink, Calendar, Loader2, ArrowLeft, History
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
-import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
 import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
 import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
+import SimaPagination from '../../components/common/SimaPagination';
 import './alertasCoordinador.css';
 
 const ITEMS_POR_PAGINA = 5;
 
-function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina }) {
+function PaginacionAlertas({ paginaActual, total, limite, onCambiarPagina, entidad = 'registros' }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
-  const paginas = [];
-  const inicio = Math.max(1, paginaActual - 2);
-  const fin = Math.min(totalPaginas, paginaActual + 2);
-
-  for (let pagina = inicio; pagina <= fin; pagina += 1) {
-    paginas.push(pagina);
-  }
+  const desde = total === 0 ? 0 : ((paginaActual - 1) * limite) + 1;
+  const hasta = Math.min(paginaActual * limite, total);
 
   return (
-    <div className="ca-pagination">
-      <div className="ca-pagination-izq">
-        <span className="ca-limite-label">Pagina {paginaActual} de {totalPaginas}</span>
-      </div>
-
-      <div className="ca-pagination-der">
-        <button
-          type="button"
-          className="ca-page-btn"
-          onClick={() => onCambiarPagina(paginaActual - 1)}
-          disabled={paginaActual === 1}
-          aria-label="Pagina anterior"
-        >
-          Anterior
-        </button>
-
-        {paginaActual > 3 && (
-          <>
-            <button type="button" className="ca-page-btn" onClick={() => onCambiarPagina(1)}>1</button>
-            {paginaActual > 4 && <span className="ca-page-dots">...</span>}
-          </>
-        )}
-
-        {paginas.map((pagina) => (
-          <button
-            key={pagina}
-            type="button"
-            className={`ca-page-btn${pagina === paginaActual ? ' ca-page-btn--active' : ''}`}
-            onClick={() => onCambiarPagina(pagina)}
-          >
-            {pagina}
-          </button>
-        ))}
-
-        {paginaActual < totalPaginas - 2 && (
-          <>
-            {paginaActual < totalPaginas - 3 && <span className="ca-page-dots">...</span>}
-            <button type="button" className="ca-page-btn" onClick={() => onCambiarPagina(totalPaginas)}>
-              {totalPaginas}
-            </button>
-          </>
-        )}
-
-        <button
-          type="button"
-          className="ca-page-btn"
-          onClick={() => onCambiarPagina(paginaActual + 1)}
-          disabled={paginaActual === totalPaginas}
-          aria-label="Pagina siguiente"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+    <SimaPagination
+      desde={desde}
+      hasta={hasta}
+      total={total}
+      entidad={entidad}
+      paginaActual={paginaActual}
+      totalPaginas={totalPaginas}
+      onCambiarPagina={onCambiarPagina}
+    />
   );
 }
 
@@ -104,15 +54,17 @@ export default function AlertasCoordinador() {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroFecha, setFiltroFecha] = useState('');
 
-  // Cargar grupos al montar
-  useEffect(() => { cargarGrupos(); }, []);
-
-  const cargarGrupos = async () => {
-    setLoading(true);
+  const cargarGrupos = useCallback(async (mostrarCarga = true) => {
+    if (mostrarCarga) setLoading(true);
     const { data } = await obtenerGruposAlertasCoordinador();
     if (data) setGrupos(data);
     setLoading(false);
-  };
+  }, []);
+
+  // Cargar grupos al montar
+  useEffect(() => {
+    void Promise.resolve().then(() => cargarGrupos(false));
+  }, [cargarGrupos]);
 
   const manejarSeleccionGrupo = async (grupo) => {
     setGrupoSeleccionado(grupo);
@@ -207,27 +159,21 @@ export default function AlertasCoordinador() {
 
   const totalPaginasGrupos = Math.max(1, Math.ceil(gruposFiltrados.length / ITEMS_POR_PAGINA));
   const totalPaginasAprendices = Math.max(1, Math.ceil(aprendicesFiltrados.length / ITEMS_POR_PAGINA));
-
-  useEffect(() => {
-    if (paginaGrupos > totalPaginasGrupos) setPaginaGrupos(totalPaginasGrupos);
-  }, [paginaGrupos, totalPaginasGrupos]);
-
-  useEffect(() => {
-    if (paginaAprendices > totalPaginasAprendices) setPaginaAprendices(totalPaginasAprendices);
-  }, [paginaAprendices, totalPaginasAprendices]);
+  const paginaGruposActual = Math.min(paginaGrupos, totalPaginasGrupos);
+  const paginaAprendicesActual = Math.min(paginaAprendices, totalPaginasAprendices);
 
   const gruposPaginados = useMemo(() => {
-    const inicio = (paginaGrupos - 1) * ITEMS_POR_PAGINA;
+    const inicio = (paginaGruposActual - 1) * ITEMS_POR_PAGINA;
     return gruposFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA);
-  }, [gruposFiltrados, paginaGrupos]);
+  }, [gruposFiltrados, paginaGruposActual]);
 
   const aprendicesPaginados = useMemo(() => {
-    const inicio = (paginaAprendices - 1) * ITEMS_POR_PAGINA;
+    const inicio = (paginaAprendicesActual - 1) * ITEMS_POR_PAGINA;
     return aprendicesFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA);
-  }, [aprendicesFiltrados, paginaAprendices]);
+  }, [aprendicesFiltrados, paginaAprendicesActual]);
 
   const totalVista = vistaActual === 'GRUPOS' ? gruposFiltrados.length : aprendicesFiltrados.length;
-  const paginaVista = vistaActual === 'GRUPOS' ? paginaGrupos : paginaAprendices;
+  const paginaVista = vistaActual === 'GRUPOS' ? paginaGruposActual : paginaAprendicesActual;
   const desdeVista = totalVista === 0 ? 0 : (paginaVista - 1) * ITEMS_POR_PAGINA + 1;
   const hastaVista = Math.min(paginaVista * ITEMS_POR_PAGINA, totalVista);
 
@@ -533,18 +479,20 @@ export default function AlertasCoordinador() {
 
         {!loading && vistaActual === 'GRUPOS' && gruposFiltrados.length > 0 && (
           <PaginacionAlertas
-            paginaActual={paginaGrupos}
+            paginaActual={paginaGruposActual}
             total={gruposFiltrados.length}
             limite={ITEMS_POR_PAGINA}
+            entidad="grupos"
             onCambiarPagina={cambiarPaginaGrupos}
           />
         )}
 
         {!loading && vistaActual === 'APRENDICES' && aprendicesFiltrados.length > 0 && (
           <PaginacionAlertas
-            paginaActual={paginaAprendices}
+            paginaActual={paginaAprendicesActual}
             total={aprendicesFiltrados.length}
             limite={ITEMS_POR_PAGINA}
+            entidad="aprendices"
             onCambiarPagina={cambiarPaginaAprendices}
           />
         )}

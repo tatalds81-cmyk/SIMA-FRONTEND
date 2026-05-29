@@ -8,6 +8,7 @@ import RegistroAprendices from "./pages/instructor/RegistroAprendices";
 import PanelInstructor from "./pages/instructor/PanelInstructor";
 import InstructorSeccion from "./pages/instructor/InstructorSeccion";
 import MisGrupos from "./pages/instructor/MisGrupos";
+import AsistenciaInstructor from "./pages/instructor/AsistenciaInstructor";
 import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
 import Perfil from "./pages/perfil/Perfil";
@@ -110,10 +111,7 @@ function App() {
               path="/instructor/asistencia"
               element={
                 <Dashboard onLogout={manejarLogout}>
-                  <InstructorSeccion
-                    titulo="Asistencia"
-                    descripcion="Aqui puedes registrar y revisar asistencia por grupo, fecha o sesion."
-                  />
+                  <AsistenciaInstructor />
                 </Dashboard>
               }
             />

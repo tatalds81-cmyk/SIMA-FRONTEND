@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
-  Download, Plus, Search, Eye, RefreshCw,
+  Plus, Search, Eye, RefreshCw,
   ChevronsUpDown
 } from 'lucide-react';
 import { useAlertas } from '../../hooks/useAlertas';
 import BadgeSeveridad from '../../components/alertas/BadgeSeveridad';
 import BadgeEstado from '../../components/alertas/BadgeEstado';
-import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
 import ModalCrearAlerta from '../../components/alertas/ModalCrearAlerta';
 import ModalDetalleAlerta from '../../components/alertas/ModalDetalleAlerta';
+import SimaPagination from '../../components/common/SimaPagination';
 import { obtenerAprendicesPorGrupo, obtenerGrupos } from '../../services/alertasService';
 import './consultarAlertas.css';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function formatFecha(isoStr) {
-  if (!isoStr) return { fecha: '—', hora: '' };
+  if (!isoStr) return { fecha: 'â€”', hora: '' };
   const d = new Date(isoStr);
   return {
     fecha: d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
@@ -50,73 +50,25 @@ function formatearTipoAlerta(tipo) {
   return etiquetas[tipo] || (tipo ?? '').replace(/_/g, ' ');
 }
 
-// ── Paginación ────────────────────────────────────────────────────────────────
+// â”€â”€ PaginaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Paginacion({ paginaActual, total, limite, onCambiarPagina }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
-
-  function paginas() {
-    const rango = [];
-    const delta = 2;
-    for (let i = Math.max(1, paginaActual - delta); i <= Math.min(totalPaginas, paginaActual + delta); i++) {
-      rango.push(i);
-    }
-    return rango;
-  }
+  const desde = total === 0 ? 0 : ((paginaActual - 1) * limite) + 1;
+  const hasta = Math.min(paginaActual * limite, total);
 
   return (
-    <div className="ca-pagination">
-      <div className="ca-pagination-izq">
-        <span className="ca-limite-label">Pagina {paginaActual} de {totalPaginas}</span>
-      </div>
-
-      <div className="ca-pagination-der">
-        <button
-          className="ca-page-btn"
-          onClick={() => onCambiarPagina(paginaActual - 1)}
-          disabled={paginaActual === 1}
-          aria-label="Página anterior"
-        >
-          Anterior
-        </button>
-
-        {paginaActual > 3 && (
-          <>
-            <button className="ca-page-btn" onClick={() => onCambiarPagina(1)}>1</button>
-            {paginaActual > 4 && <span className="ca-page-dots">…</span>}
-          </>
-        )}
-
-        {paginas().map(p => (
-          <button
-            key={p}
-            className={`ca-page-btn${p === paginaActual ? ' ca-page-btn--active' : ''}`}
-            onClick={() => onCambiarPagina(p)}
-          >
-            {p}
-          </button>
-        ))}
-
-        {paginaActual < totalPaginas - 2 && (
-          <>
-            {paginaActual < totalPaginas - 3 && <span className="ca-page-dots">…</span>}
-            <button className="ca-page-btn" onClick={() => onCambiarPagina(totalPaginas)}>{totalPaginas}</button>
-          </>
-        )}
-
-        <button
-          className="ca-page-btn"
-          onClick={() => onCambiarPagina(paginaActual + 1)}
-          disabled={paginaActual === totalPaginas}
-          aria-label="Página siguiente"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+    <SimaPagination
+      desde={desde}
+      hasta={hasta}
+      total={total}
+      entidad="alertas"
+      paginaActual={paginaActual}
+      totalPaginas={totalPaginas}
+      onCambiarPagina={onCambiarPagina}
+    />
   );
 }
-
-// ═════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export default function ConsultarAlertas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
@@ -129,12 +81,12 @@ export default function ConsultarAlertas() {
   const [mostrarSugerenciasAprendiz, setMostrarSugerenciasAprendiz] = useState(false);
 
   const { 
-    alertas, total, paginaActual, totalPaginas, loading, error, limite,
+    alertas, total, paginaActual, loading, error, limite,
     cambiarPagina, cambiarLimite, filtros, aplicarFiltrosCompletos, limpiarFiltros,
     cargarAlertas 
   } = useAlertas();
 
-  // ── Filtros locales (se aplican al hacer clic en Buscar) ──────────────────
+  // â”€â”€ Filtros locales (se aplican al hacer clic en Buscar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [filtrosLocales, setFiltrosLocales] = useState({ ...filtros });
 
   const aprendicesFiltrados = useMemo(() => {
@@ -240,15 +192,10 @@ export default function ConsultarAlertas() {
     limpiarFiltros();
   }
 
-  // ── Exportar (placeholder) ────────────────────────────────────────────────
-  function handleExportar() {
-    alert('Funcionalidad de exportación pendiente de integración con el backend.');
-  }
-
   return (
     <div className="ca-page">
 
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div className="ca-page-header">
         <div>
           <h1 className="ca-page-title">Consultar alertas</h1>
@@ -266,7 +213,7 @@ export default function ConsultarAlertas() {
         </div>
       </div>
 
-      {/* ── Filtros ── */}
+      {/* â”€â”€ Filtros â”€â”€ */}
       <div className="ca-filtros-card">
         <div className="ca-filtros-fila">
           {/* Buscar aprendiz */}
@@ -332,7 +279,7 @@ export default function ConsultarAlertas() {
               <option value="LEVE">Leve</option>
               <option value="MODERADA">Moderada</option>
               <option value="GRAVE">Grave</option>
-              <option value="CRITICA">Crítica</option>
+              <option value="CRITICA">CrÃ­tica</option>
             </select>
           </div>
 
@@ -407,7 +354,7 @@ export default function ConsultarAlertas() {
         </div>
       </div>
 
-      {/* ── Resultados ── */}
+      {/* â”€â”€ Resultados â”€â”€ */}
       <div className="ca-resultados-header">
         <span className="ca-resultados-count">
           Resultados <strong>({total})</strong>
@@ -435,7 +382,7 @@ export default function ConsultarAlertas() {
       {/* Sin resultados */}
       {!loading && !error && alertas.length === 0 && (
         <div className="ca-estado-vacio">
-          <div className="ca-vacio-icono">🔍</div>
+          <div className="ca-vacio-icono">ðŸ”</div>
           <p className="ca-vacio-titulo">No se encontraron alertas</p>
           <p className="ca-vacio-sub">Prueba ajustando los filtros aplicados</p>
         </div>
@@ -453,7 +400,7 @@ export default function ConsultarAlertas() {
                 <th>Severidad</th>
                 <th>Estado</th>
                 <th className="ca-th-sortable">
-                  Fecha creación <ChevronsUpDown size={13} />
+                  Fecha creaciÃ³n <ChevronsUpDown size={13} />
                 </th>
                 <th>Responsable</th>
                 <th aria-label="Acciones" />
@@ -463,7 +410,7 @@ export default function ConsultarAlertas() {
               {alertas.map(alerta => {
                 const { fecha, hora } = formatFecha(alerta.fechaCreacion ?? alerta.createdAt);
                 const esGrave = alerta.severidad === 'GRAVE';
-                const nombre  = alerta.aprendiz?.nombre ?? alerta.aprendizNombre ?? '—';
+                const nombre  = alerta.aprendiz?.nombre ?? alerta.aprendizNombre ?? 'â€”';
                 const doc     = alerta.aprendiz?.documento ?? alerta.aprendizDocumento ?? '';
 
                 return (
@@ -480,7 +427,7 @@ export default function ConsultarAlertas() {
                       </div>
                     </td>
                     <td className="ca-cell-texto">
-                      {alerta.grupo?.codigo ?? alerta.grupoCodigo ?? alerta.grupoId ?? '—'}
+                      {alerta.grupo?.codigo ?? alerta.grupoCodigo ?? alerta.grupoId ?? 'â€”'}
                     </td>
                     <td className="ca-cell-texto">
                       {formatearTipoAlerta(alerta.tipoAlerta)}
@@ -516,7 +463,7 @@ export default function ConsultarAlertas() {
         </div>
       )}
 
-      {/* Paginación */}
+      {/* PaginaciÃ³n */}
       {!loading && !error && total > 0 && (
         <Paginacion
           paginaActual={paginaActual}
@@ -543,3 +490,4 @@ export default function ConsultarAlertas() {
     </div>
   );
 }
+
