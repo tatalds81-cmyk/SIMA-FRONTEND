@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Users, ShieldAlert,
-  Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History
+  Search, ExternalLink, Calendar, Loader2, X, ArrowLeft, History, ChevronRight
 } from 'lucide-react';
 import { obtenerGruposAlertasCoordinador, obtenerAlertasPorGrupo } from '../../services/alertasService';
 import AvatarAprendiz from '../../components/alertas/AvatarAprendiz';
