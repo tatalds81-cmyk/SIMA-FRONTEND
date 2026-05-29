@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Layers, Plus, Search, Trash2, Upload } from "lucide-react";
+import SimaPagination from "../../components/common/SimaPagination";
 import "./fichas.css";
 
 export default function GruposFormativos() {
@@ -504,18 +505,15 @@ export default function GruposFormativos() {
         </div>
 
         {gruposFiltrados.length > 0 && (
-          <div className="grupos-pagination">
-            <span>Pagina {paginaActual} de {totalPaginas}</span>
-            <div>
-              <button type="button" onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
-              {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
-                <button key={pagina} type="button" className={pagina === paginaActual ? "active" : ""} onClick={() => cambiarPagina(pagina)}>
-                  {pagina}
-                </button>
-              ))}
-              <button type="button" onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas}>Siguiente</button>
-            </div>
-          </div>
+          <SimaPagination
+            desde={desde}
+            hasta={hasta}
+            total={gruposFiltrados.length}
+            entidad="grupos"
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            onCambiarPagina={cambiarPagina}
+          />
         )}
       </section>
 
