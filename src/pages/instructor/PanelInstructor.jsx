@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import "../coordinador/coordinador.css";
 import "./instructor.css";
+import SesionActivaModal from "./asistencia/components/SesionActivaModal";
 
 const obtenerNumero = (valor) => {
   if (typeof valor === "number") return valor;
@@ -231,6 +232,8 @@ export default function PanelInstructor() {
 
   return (
     <div className="coordinador-panel instructor-panel-v2">
+      <SesionActivaModal />
+
       {error && <div className="grupos-alert danger">{error}</div>}
 
       <section className="dashboard-welcome">

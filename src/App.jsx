@@ -39,7 +39,7 @@ function App() {
 
   const esInstructor = rol === "instructor";
   const rutaInicio = esInstructor
-    ? "/instructor/grupos"
+    ? "/instructor/dashboard"
     : "/dashboard";
 
   return (
