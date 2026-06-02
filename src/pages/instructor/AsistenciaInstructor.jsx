@@ -1,4 +1,3 @@
-export { default } from "./asistencia/AsistenciaInstructor";
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
