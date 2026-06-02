@@ -4,8 +4,6 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   MessageSquareWarning,
   PencilLine,
@@ -15,6 +13,7 @@ import {
 } from "lucide-react";
 import "../coordinador/coordinador.css";
 import "./instructor.css";
+import SesionActivaModal from "./asistencia/components/SesionActivaModal";
 
 const obtenerNumero = (valor) => {
   if (typeof valor === "number") return valor;
@@ -49,6 +48,19 @@ const finMesActual = () => {
   return new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).toISOString().slice(0, 10);
 };
 
+const inicioSemanaActual = () => {
+  const fecha = new Date();
+  const dia = fecha.getDay() || 7;
+  fecha.setDate(fecha.getDate() - dia + 1);
+  return fecha.toISOString().slice(0, 10);
+};
+
+const finSemanaActual = () => {
+  const fecha = new Date(`${inicioSemanaActual()}T12:00:00`);
+  fecha.setDate(fecha.getDate() + 4);
+  return fecha.toISOString().slice(0, 10);
+};
+
 const getHeaders = () => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
   const headers = { "Content-Type": "application/json" };
@@ -73,18 +85,59 @@ const extraerAlertas = (data) => {
   return Array.isArray(alertas) ? alertas : [];
 };
 
+const extraerSesiones = (data) => {
+  const sesiones = data?.sesiones || data?.data?.sesiones || data?.results || data;
+  return Array.isArray(sesiones) ? sesiones : [];
+};
+
+const extraerAsistencias = (data) => {
+  const asistencias = data?.asistencias || data?.data?.asistencias || data?.results || data;
+  return Array.isArray(asistencias) ? asistencias : [];
+};
+
+const extraerObservaciones = (data) => {
+  const observaciones = data?.observaciones || data?.data?.observaciones || data?.results || data;
+  return Array.isArray(observaciones) ? observaciones : [];
+};
+
 const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || grupo.programa || "Sin programa";
 const obtenerCodigo = (grupo) => grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "Sin ficha";
+const obtenerIdSesion = (sesion) => sesion.id_sesion_formacion || sesion.id;
+const obtenerIdGrupoSesion = (sesion) => sesion.id_grupo || sesion.grupo?.id_grupo;
+const obtenerPersona = (item) => item?.aprendiz?.usuario?.persona || item?.usuario?.persona || item?.persona || {};
+const obtenerNombreAprendiz = (item) => {
+  const persona = obtenerPersona(item);
+  const nombre = `${persona.nombres || ""} ${persona.apellidos || ""}`.trim();
+  return nombre || item?.aprendizNombre || item?.nombre || "Aprendiz";
+};
+const obtenerFicha = (item) => item?.grupo?.numero_ficha || item?.grupoCodigo || item?.id_grupo || "Sin ficha";
 const obtenerRol = (grupo) => {
   const idInstructor = localStorage.getItem("id_instructor");
   if (idInstructor && String(grupo.id_instructor_lider) === String(idInstructor)) return "Lider";
   return grupo.id_instructor_lider ? "Asignado" : "Instructor";
 };
 
+const combinarGrupos = (...listas) => {
+  const grupos = new Map();
+  listas.flat().forEach((grupo) => {
+    if (!grupo?.id_grupo) return;
+    grupos.set(String(grupo.id_grupo), grupo);
+  });
+  return [...grupos.values()];
+};
+
+const estadoCuentaComoAsistencia = (estado) => (
+  ["PRESENTE", "TARDE", "JUSTIFICADO", "JUSTIFICADA"].includes(String(estado || "").toUpperCase())
+);
+
 export default function PanelInstructor() {
   const navigate = useNavigate();
   const [grupos, setGrupos] = useState([]);
   const [alertas, setAlertas] = useState([]);
+  const [observacionesRecientes, setObservacionesRecientes] = useState([]);
+  const [sesionesSemana, setSesionesSemana] = useState([]);
+  const [asistenciaPromedioMes, setAsistenciaPromedioMes] = useState(null);
+  const [asistenciaPorGrupo, setAsistenciaPorGrupo] = useState({});
   const [totalAprendices, setTotalAprendices] = useState(0);
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
@@ -96,39 +149,79 @@ export default function PanelInstructor() {
     async function cargarDashboard() {
       try {
         setCargando(true);
-        const gruposData = await fetchJson("/api/groups?limit=100");
-        const gruposInstructor = extraerGrupos(gruposData);
+        const [
+          resumen,
+          alertasResultado,
+          sesionesMesResultado,
+          sesionesSemanaResultado
+        ] = await Promise.all([
+          fetchJson("/api/dashboard/instructor/resumen"),
+          fetchJson("/api/alerts?estado=ABIERTA&limit=50").catch(() => ({ alertas: [] })),
+          fetchJson(`/api/educational-sessions?fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] })),
+          fetchJson(`/api/educational-sessions?fecha_desde=${inicioSemanaActual()}&fecha_hasta=${finSemanaActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }))
+        ]);
 
-        const [alertasResultado, aprendicesResultados, observacionesResultados] = await Promise.all([
-          fetchJson("/api/alerts?limit=1000").catch(() => []),
+        if (!activo) return;
+
+        const gruposInstructor = combinarGrupos(
+          extraerGrupos(resumen?.grupos_liderados),
+          extraerGrupos(resumen?.grupos_asignados)
+        );
+        const sesionesMes = extraerSesiones(sesionesMesResultado);
+        const sesionesSemanaData = extraerSesiones(sesionesSemanaResultado);
+        const [asistenciasPorSesion, observacionesPorGrupo] = await Promise.all([
           Promise.allSettled(
-            gruposInstructor.map((grupo) =>
-              fetchJson(`/api/apprentices/grupo/${grupo.id_grupo}?limit=1`)
+            sesionesMes.map((sesion) =>
+              fetchJson(`/api/educational-sessions/${obtenerIdSesion(sesion)}/attendances`)
+                .then((data) => ({ sesion, asistencias: extraerAsistencias(data) }))
             )
           ),
           Promise.allSettled(
             gruposInstructor.map((grupo) =>
-              fetchJson(
-                `/api/observations/group/${grupo.id_grupo}?limit=1&fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}`
-              )
+              fetchJson(`/api/observations/group/${grupo.id_grupo}?estado=ABIERTA&limit=5`)
+                .then((data) => extraerObservaciones(data))
             )
           )
         ]);
 
         if (!activo) return;
 
+        const acumuladoAsistencia = asistenciasPorSesion.reduce((acc, result) => {
+          if (result.status !== "fulfilled") return acc;
+          const { sesion, asistencias } = result.value;
+          const idGrupo = obtenerIdGrupoSesion(sesion);
+          asistencias.forEach((asistencia) => {
+            const estado = asistencia.estado_ep05 || asistencia.estado_asistencia || asistencia.estado;
+            acc.total += 1;
+            if (estadoCuentaComoAsistencia(estado)) acc.asisten += 1;
+
+            if (idGrupo) {
+              const clave = String(idGrupo);
+              acc.porGrupo[clave] ||= { total: 0, asisten: 0 };
+              acc.porGrupo[clave].total += 1;
+              if (estadoCuentaComoAsistencia(estado)) acc.porGrupo[clave].asisten += 1;
+            }
+          });
+          return acc;
+        }, { total: 0, asisten: 0, porGrupo: {} });
+
         setGrupos(gruposInstructor);
         setAlertas(extraerAlertas(alertasResultado));
-        setTotalAprendices(
-          aprendicesResultados.reduce((total, result) => (
-            result.status === "fulfilled" ? total + (Number(result.value?.total) || 0) : total
-          ), 0)
+        setObservacionesRecientes(
+          observacionesPorGrupo
+            .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+            .sort((a, b) => new Date(b.fecha_observacion || 0) - new Date(a.fecha_observacion || 0))
+            .slice(0, 5)
         );
-        setTotalObservacionesMes(
-          observacionesResultados.reduce((total, result) => (
-            result.status === "fulfilled" ? total + (Number(result.value?.total) || 0) : total
-          ), 0)
+        setSesionesSemana(sesionesSemanaData);
+        setTotalAprendices(Number(resumen?.kpis?.total_aprendices_activos) || 0);
+        setTotalObservacionesMes(Number(resumen?.kpis?.total_observaciones_abiertas) || 0);
+        setAsistenciaPromedioMes(
+          acumuladoAsistencia.total
+            ? Math.round((acumuladoAsistencia.asisten / acumuladoAsistencia.total) * 100)
+            : null
         );
+        setAsistenciaPorGrupo(acumuladoAsistencia.porGrupo);
         setError("");
       } catch (err) {
         console.error("Error cargando dashboard del instructor:", err);
@@ -145,7 +238,7 @@ export default function PanelInstructor() {
   }, []);
 
   const alertasActivas = useMemo(
-    () => alertas.filter((alerta) => ["ACTIVA", "EN_SEGUIMIENTO"].includes(String(alerta.estado || "").toUpperCase())),
+    () => alertas.filter((alerta) => String(alerta.estado || "").toUpperCase() === "ABIERTA"),
     [alertas]
   );
 
@@ -166,13 +259,21 @@ export default function PanelInstructor() {
   }, [alertasActivas]);
 
   const barras = useMemo(() => (
-    grupos.slice(0, 3).map((grupo, index) => ({
-      grupo: obtenerCodigo(grupo),
-      programa: obtenerPrograma(grupo),
-      porcentaje: 0,
-      color: coloresBarras[index % coloresBarras.length]
-    }))
-  ), [grupos]);
+    grupos.slice(0, 3).map((grupo, index) => {
+      const asistenciaGrupo = asistenciaPorGrupo[String(grupo.id_grupo)] || { total: 0, asisten: 0 };
+      const porcentaje = asistenciaGrupo.total
+        ? Math.round((asistenciaGrupo.asisten / asistenciaGrupo.total) * 100)
+        : 0;
+
+      return {
+        grupo: obtenerCodigo(grupo),
+        programa: obtenerPrograma(grupo),
+        porcentaje,
+        tieneDatos: asistenciaGrupo.total > 0,
+        color: coloresBarras[index % coloresBarras.length]
+      };
+    })
+  ), [asistenciaPorGrupo, grupos]);
 
   const resumenCards = useMemo(() => ([
     {
@@ -185,9 +286,9 @@ export default function PanelInstructor() {
     },
     {
       titulo: "Asistencia promedio (este mes)",
-      valor: "N/D",
-      detalle: "Pendiente endpoint de asistencias",
-      meta: "No disponible con las rutas actuales",
+      valor: asistenciaPromedioMes === null ? "N/D" : `${asistenciaPromedioMes}%`,
+      detalle: "Calculada desde sesiones del mes",
+      meta: asistenciaPromedioMes === null ? "Sin sesiones con asistencia este mes" : "Sesiones del mes",
       icono: CheckCircle2,
       tono: "verde"
     },
@@ -203,12 +304,12 @@ export default function PanelInstructor() {
     {
       titulo: "Observaciones registradas",
       valor: totalObservacionesMes,
-      detalle: "Este mes",
-      meta: "Calculado por grupo asignado",
+      detalle: "Abiertas",
+      meta: "Resumen del backend",
       icono: PencilLine,
       tono: "cyan"
     }
-  ]), [alertasActivas.length, grupos.length, totalObservacionesMes]);
+  ]), [alertasActivas.length, asistenciaPromedioMes, grupos.length, totalObservacionesMes]);
 
   const maximoResumen = Math.max(
     ...resumenCards
@@ -221,6 +322,24 @@ export default function PanelInstructor() {
     progreso: calcularProgreso(card.valor, card.valor?.toString().includes("%") ? 100 : maximoResumen)
   }));
 
+  const calendarioSemana = useMemo(() => {
+    const dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
+    const inicio = new Date(`${inicioSemanaActual()}T12:00:00`);
+
+    return dias.map((dia, index) => {
+      const fecha = new Date(inicio);
+      fecha.setDate(inicio.getDate() + index);
+      const fechaISO = fecha.toISOString().slice(0, 10);
+      const sesionesDia = sesionesSemana.filter((sesion) => sesion.fecha_clase === fechaISO);
+
+      return {
+        dia,
+        fecha: fechaISO,
+        sesiones: sesionesDia
+      };
+    });
+  }, [sesionesSemana]);
+
   if (cargando) {
     return (
       <div className="coordinador-panel instructor-panel-v2">
@@ -231,6 +350,8 @@ export default function PanelInstructor() {
 
   return (
     <div className="coordinador-panel instructor-panel-v2">
+      <SesionActivaModal />
+
       {error && <div className="grupos-alert danger">{error}</div>}
 
       <section className="dashboard-welcome">
@@ -269,7 +390,6 @@ export default function PanelInstructor() {
         <article className="coordinador-card instructor-chart-card">
           <div className="coordinador-card-header">
             <h2>Asistencia promedio por grupo (este mes)</h2>
-            <button className="coordinador-select-btn" type="button">Este mes</button>
           </div>
 
           <div className="instructor-group-chart">
@@ -284,7 +404,7 @@ export default function PanelInstructor() {
             <div className="instructor-bars-wrap">
               {barras.map((item) => (
                 <div className="instructor-group-bar-item" key={item.grupo}>
-                  <span>Sin endpoint</span>
+                  <span>{item.tieneDatos ? `${item.porcentaje}%` : "Sin datos"}</span>
                   <div className="instructor-group-bar-track">
                     <span
                       className={`instructor-group-bar-fill ${item.color}`}
@@ -302,7 +422,6 @@ export default function PanelInstructor() {
         <article className="coordinador-card instructor-risk-card">
           <div className="coordinador-card-header">
             <h2>Alertas activas por causa</h2>
-            <button className="coordinador-select-btn" type="button">Este mes</button>
           </div>
 
           <div className="instructor-risk-layout">
@@ -397,19 +516,21 @@ export default function PanelInstructor() {
         <article className="coordinador-card instructor-calendar-card">
           <div className="coordinador-card-header">
             <h2>Calendario de sesiones</h2>
-            <div className="instructor-calendar-controls">
-              <button type="button" className="instructor-icon-btn"><ChevronLeft size={16} /></button>
-              <button type="button" className="instructor-icon-btn"><ChevronRight size={16} /></button>
-            </div>
           </div>
 
           <div className="instructor-calendar-grid">
-            {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"].map((dia) => (
-              <div key={dia} className="instructor-calendar-day">
+            {calendarioSemana.map((item) => (
+              <div key={item.dia} className="instructor-calendar-day">
                 <div className="instructor-calendar-head">
-                  <strong>{dia}</strong>
+                  <strong>{item.dia}</strong>
                 </div>
-                <p>Pendiente endpoint de sesiones/horarios</p>
+                {item.sesiones.length ? item.sesiones.slice(0, 2).map((sesion) => (
+                  <p key={obtenerIdSesion(sesion)}>
+                    {sesion.hora_inicio_programada?.slice(0, 5) || "--:--"} - Grupo {sesion.grupo?.numero_ficha || sesion.id_grupo}
+                  </p>
+                )) : (
+                  <p>Sin sesiones programadas</p>
+                )}
               </div>
             ))}
           </div>
@@ -435,16 +556,42 @@ export default function PanelInstructor() {
         <article className="coordinador-novedades instructor-mini-news">
           <h2>
             <PencilLine size={20} />
-            Novedades del sistema
+            Alertas y observaciones
           </h2>
           <div className="coordinador-novedades-list">
-            <div className="coordinador-novedad-item">
-              <PencilLine size={22} />
-              <div>
-                <strong>Nueva funcionalidad</strong>
-                <p>Ahora puedes registrar observaciones directamente desde el detalle del grupo.</p>
+            {alertasActivas.slice(0, 3).map((alerta) => (
+              <div className="coordinador-novedad-item" key={`alerta-${alerta.id_alerta || alerta.id}`}>
+                <AlertTriangle size={22} />
+                <div>
+                  <strong>{nombresRiesgo[alerta.tipo_alerta] || alerta.tipo_alerta || "Alerta abierta"}</strong>
+                  <p>
+                    {obtenerNombreAprendiz(alerta)} · Ficha {obtenerFicha(alerta)} · {alerta.severidad || "Sin severidad"}
+                  </p>
+                </div>
               </div>
-            </div>
+            ))}
+
+            {observacionesRecientes.slice(0, 3).map((observacion) => (
+              <div className="coordinador-novedad-item" key={`observacion-${observacion.id_observacion || observacion.id}`}>
+                <PencilLine size={22} />
+                <div>
+                  <strong>{observacion.tipo_observacion || "Observacion abierta"}</strong>
+                  <p>
+                    {obtenerNombreAprendiz(observacion)} · Ficha {obtenerFicha(observacion)} · {observacion.severidad || "Sin severidad"}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {!alertasActivas.length && !observacionesRecientes.length && (
+              <div className="coordinador-novedad-item">
+                <CheckCircle2 size={22} />
+                <div>
+                  <strong>Sin pendientes abiertos</strong>
+                  <p>No hay alertas ni observaciones abiertas para tus grupos.</p>
+                </div>
+              </div>
+            )}
           </div>
         </article>
       </section>

@@ -460,6 +460,112 @@
   font-family: "Segoe UI", Arial, sans-serif;
 }
 
+.asistencia-session-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.asistencia-session-modal {
+  position: relative;
+  width: min(420px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  border: 1px solid #dbe5f0;
+  border-radius: 10px;
+  padding: 28px 26px 24px;
+  background: #fff;
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.asistencia-session-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe5f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0b2442;
+  cursor: pointer;
+}
+
+.asistencia-session-icon {
+  width: 62px;
+  height: 62px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: #edf9e7;
+  color: #15803d;
+}
+
+.asistencia-session-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.asistencia-session-copy span {
+  width: max-content;
+  margin: 0 auto;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.asistencia-session-copy h2 {
+  margin: 4px 0 0;
+  color: #0b2442;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.asistencia-session-copy p,
+.asistencia-session-copy small {
+  margin: 0;
+  color: #38506b;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.asistencia-session-copy strong {
+  color: #0b2442;
+  font-weight: 900;
+}
+
+.asistencia-session-action {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #15803d;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: #15803d;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .asistencia-page-title {
   position: relative;
   z-index: 80;
@@ -1698,6 +1804,112 @@
   color: #15803d;
   font-size: 11px;
   font-weight: 800;
+}
+
+.asistencia-faltantes-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(92vw, 460px);
+  max-width: 460px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 28px 26px 24px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.asistencia-faltantes-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.asistencia-faltantes-icon {
+  width: 62px;
+  height: 62px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.asistencia-faltantes-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.asistencia-faltantes-copy span {
+  width: max-content;
+  margin: 0 auto;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.asistencia-faltantes-copy h2 {
+  margin: 0;
+  color: #0b2442;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.asistencia-faltantes-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.asistencia-faltantes-list {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.asistencia-faltantes-list div {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #0b2442;
+  text-align: left;
+}
+
+.asistencia-faltantes-list strong {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.asistencia-faltantes-list small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.asistencia-faltantes-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .asistencia-detalle-modal {
