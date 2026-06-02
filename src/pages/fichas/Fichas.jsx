@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Layers, Plus, Search, Trash2, Upload } from "lucide-react";
+import { CalendarClock, Eye, Layers, Plus, Search, Upload } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
+import {
+  ESTADOS_GRUPO,
+  GRUPOS_LIST_URL,
+  claseEstadoGrupo,
+  etiquetaEstadoGrupo,
+  normalizarEstadoGrupo,
+} from "../../services/gruposService";
+import HorarioGrupoModal from "./HorarioGrupoModal";
 import "./fichas.css";
 
 export default function GruposFormativos() {
@@ -29,6 +37,7 @@ export default function GruposFormativos() {
   const [errores, setErrores] = useState({});
   const [estadoNumero, setEstadoNumero] = useState(null);
   const [aprendicesPorGrupo, setAprendicesPorGrupo] = useState({});
+  const [grupoHorario, setGrupoHorario] = useState(null);
 
   const API_URL = "/api";
   const URL_GRUPOS = `${API_URL}/groups`;
@@ -54,7 +63,7 @@ export default function GruposFormativos() {
 
   async function cargarGrupos() {
     try {
-      const res = await fetch(URL_GRUPOS, { headers: getHeaders() });
+      const res = await fetch(GRUPOS_LIST_URL, { headers: getHeaders() });
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
@@ -216,7 +225,7 @@ export default function GruposFormativos() {
     }
 
     if (filtroEstado) {
-      filtrados = filtrados.filter(grupo => (grupo.estado || "ACTIVO") === filtroEstado);
+      filtrados = filtrados.filter((grupo) => normalizarEstadoGrupo(grupo.estado) === filtroEstado);
     }
 
     if (filtroJornada) {
@@ -309,35 +318,6 @@ export default function GruposFormativos() {
     }
   }
 
-  async function eliminarGrupo(grupo) {
-    const idGrupo = grupo.id_grupo || grupo.id;
-    if (!idGrupo) return;
-
-    const confirmar = window.confirm("Esta seguro de eliminar este grupo? Se marcara como cerrado.");
-    if (!confirmar) return;
-
-    try {
-      const res = await fetch(`${URL_GRUPOS}/${idGrupo}/estado`, {
-        method: "PATCH",
-        headers: getHeaders(),
-        body: JSON.stringify({ estado: "CERRADO" })
-      });
-
-      const responseData = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw responseData || { message: "No fue posible eliminar el grupo." };
-      }
-
-      setMensajeError(false);
-      setMensaje(`Grupo ${obtenerCodigo(grupo)} eliminado correctamente.`);
-      await cargarGrupos();
-    } catch (error) {
-      console.error("Error eliminando grupo:", error);
-      setMensajeError(true);
-      setMensaje(error?.message || error?.error || "No fue posible eliminar el grupo.");
-    }
-  }
-
   function obtenerPrograma(grupo) {
     return grupo.programa_formacion?.nombre_programa || grupo.programa || grupo.nombre_programa || "No especificado";
   }
@@ -347,9 +327,7 @@ export default function GruposFormativos() {
   }
 
   function obtenerEstadoClase(estado) {
-    if (estado === "CERRADO") return "cerrado";
-    if (estado === "SUSPENDIDO") return "suspendido";
-    return "activo";
+    return claseEstadoGrupo(estado);
   }
 
   function obtenerNombreInstructor(instructor) {
@@ -427,9 +405,9 @@ export default function GruposFormativos() {
           onChange={(e) => { setFiltroEstado(e.target.value); setPaginaActual(1); }}
         >
           <option value="">Todos los estados</option>
-          <option value="ACTIVO">Activo</option>
-          <option value="CERRADO">Cerrado</option>
-          <option value="SUSPENDIDO">Suspendido</option>
+          {ESTADOS_GRUPO.map((estado) => (
+            <option key={estado.value} value={estado.value}>{estado.label}</option>
+          ))}
         </select>
 
         <button
@@ -479,7 +457,7 @@ export default function GruposFormativos() {
                     <td>{grupo.trimestres ?? "-"}</td>
                     <td>
                       <span className={`grupos-status ${obtenerEstadoClase(grupo.estado)}`}>
-                        {grupo.estado || "ACTIVO"}
+                        {etiquetaEstadoGrupo(grupo.estado)}
                       </span>
                     </td>
                     <td>{obtenerNombreInstructor(grupo.instructor_lider)}</td>
@@ -488,8 +466,14 @@ export default function GruposFormativos() {
                         <button type="button" className="grupos-icon-btn" onClick={() => abrirDetalleGrupo(grupo, inicioPagina + index)} title="Ver detalle">
                           <Eye size={16} />
                         </button>
-                        <button type="button" className="grupos-icon-btn danger" onClick={() => eliminarGrupo(grupo)} title="Eliminar">
-                          <Trash2 size={16} />
+                        <button
+                          type="button"
+                          className="grupos-icon-btn horario"
+                          onClick={() => setGrupoHorario(grupo)}
+                          title="Ver horario"
+                          aria-label={`Ver horario del grupo ${obtenerCodigo(grupo)}`}
+                        >
+                          <CalendarClock size={16} />
                         </button>
                       </div>
                     </td>
@@ -566,7 +550,7 @@ export default function GruposFormativos() {
                   <span>Jornada academica</span>
                   <select value={jornada} onChange={(e) => setJornada(e.target.value)} className={errores.jornada ? "invalid" : ""}>
                     <option value="">Seleccione</option>
-                    <option value="Manana">Manana - 6:00 am a 12:00 m</option>
+                    <option value="Manana">Manana - 7:00 am a 1:00 pm</option>
                     <option value="Tarde">Tarde - 12:00 m a 6:00 pm</option>
                     <option value="Noche">Noche - 6:00 pm a 10:00 pm</option>
                   </select>
@@ -617,6 +601,15 @@ export default function GruposFormativos() {
             </form>
           </section>
         </div>
+      )}
+
+      {grupoHorario && (
+        <HorarioGrupoModal
+          grupo={grupoHorario}
+          onClose={() => setGrupoHorario(null)}
+          obtenerCodigo={obtenerCodigo}
+          obtenerPrograma={obtenerPrograma}
+        />
       )}
     </div>
   );
