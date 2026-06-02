@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, CalendarCheck, X } from "lucide-react";
-import { obtenerGruposInstructor } from "../asistencia.service";
+import {
+  obtenerGruposInstructor,
+  obtenerSesionAbiertaInstructor,
+  obtenerSesionAbiertaPorGrupo
+} from "../asistencia.service";
 import { formatearFecha, obtenerCodigo, obtenerIdGrupo, obtenerPrograma } from "../asistencia.utils";
 import "../../instructor.css";
 
@@ -11,36 +15,12 @@ function esInstructor() {
   return String(localStorage.getItem("rol") || "").toLowerCase() === "instructor";
 }
 
-function textoActivo(valor) {
-  return String(valor || "").trim().toUpperCase();
+function obtenerGrupoDesdeSesion(sesion) {
+  return sesion?.grupo || sesion?.grupo_formacion || sesion?.grupo_trimestre?.grupo || {};
 }
 
-function tieneSesionActiva(grupo) {
-  const valoresDirectos = [
-    grupo?.sesion_activa,
-    grupo?.seccion_activa,
-    grupo?.session_active,
-    grupo?.asistencia_activa,
-    grupo?.clase_activa,
-    grupo?.sesion?.activa,
-    grupo?.seccion?.activa,
-    grupo?.session?.active,
-  ];
-
-  if (valoresDirectos.some((valor) => valor === true || valor === 1 || valor === "1")) {
-    return true;
-  }
-
-  const estados = [
-    grupo?.estado_sesion,
-    grupo?.estado_seccion,
-    grupo?.session_status,
-    grupo?.sesion?.estado,
-    grupo?.seccion?.estado,
-    grupo?.session?.status,
-  ].map(textoActivo);
-
-  return estados.some((estado) => ["ACTIVA", "ACTIVO", "EN_CURSO", "ABIERTA"].includes(estado));
+function obtenerIdGrupoSesion(sesion) {
+  return sesion?.id_grupo || sesion?.grupo?.id_grupo || sesion?.grupo_formacion?.id_grupo || sesion?.grupo_trimestre?.id_grupo || "";
 }
 
 export default function SesionActivaModal() {
@@ -63,12 +43,37 @@ export default function SesionActivaModal() {
       const avisoCerrado = sessionStorage.getItem(`sima_aviso_asistencia_${fechaHoy}`);
       if (avisoCerrado === "cerrado") return;
 
-      const grupos = await obtenerGruposInstructor().catch(() => []);
+      const [sesionDirecta, grupos] = await Promise.all([
+        obtenerSesionAbiertaInstructor(fechaHoy).catch(() => null),
+        obtenerGruposInstructor().catch(() => [])
+      ]);
       if (!activo) return;
 
-      const sesion = grupos.find(tieneSesionActiva);
-      setGrupoActivo(sesion || null);
-      setVisible(Boolean(sesion));
+      let grupoConSesion = null;
+      if (sesionDirecta) {
+        const idGrupoSesion = String(obtenerIdGrupoSesion(sesionDirecta));
+        const grupoEnLista = grupos.find((grupo) => String(obtenerIdGrupo(grupo)) === idGrupoSesion);
+        grupoConSesion = {
+          ...obtenerGrupoDesdeSesion(sesionDirecta),
+          ...grupoEnLista,
+          id_grupo: idGrupoSesion || obtenerIdGrupo(grupoEnLista) || obtenerIdGrupo(obtenerGrupoDesdeSesion(sesionDirecta)),
+          sesion: sesionDirecta
+        };
+      }
+
+      for (const grupo of grupos) {
+        if (grupoConSesion) break;
+        const idGrupo = obtenerIdGrupo(grupo);
+        const sesion = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaHoy).catch(() => null);
+        if (sesion) {
+          grupoConSesion = { ...grupo, sesion };
+          break;
+        }
+      }
+
+      if (!activo) return;
+      setGrupoActivo(grupoConSesion);
+      setVisible(Boolean(grupoConSesion));
     }
 
     revisarSesionActiva();

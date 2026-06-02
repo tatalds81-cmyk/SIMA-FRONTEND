@@ -4,6 +4,7 @@ import { ESTADOS } from "../asistencia.constants";
 export default function TablaAsistencia({
   aprendices,
   cargando,
+  guardando,
   modoManual,
   onAbrirDetalle,
   onAbrirManual,
@@ -44,6 +45,7 @@ export default function TablaAsistencia({
                       <select
                         value={aprendiz.estado}
                         onChange={(e) => onCambiarEstado(aprendiz.id, e.target.value)}
+                        disabled={guardando}
                       >
                         <option value="presente">Presente</option>
                         <option value="ausente">Ausente</option>
@@ -60,6 +62,7 @@ export default function TablaAsistencia({
                     className="asistencia-icon-action"
                     aria-label={modoManual ? `Editar asistencia manual de ${aprendiz.nombre}` : `Ver asistencia de ${aprendiz.nombre}`}
                     onClick={() => (modoManual ? onAbrirManual(aprendiz) : onAbrirDetalle(aprendiz))}
+                    disabled={guardando}
                   >
                     {modoManual ? <Edit3 size={15} /> : <Eye size={15} />}
                   </button>

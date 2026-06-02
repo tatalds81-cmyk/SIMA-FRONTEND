@@ -36,10 +36,42 @@ export function obtenerIdGrupo(grupo) {
   return grupo?.id_grupo || grupo?.id || grupo?.codigo || grupo?.numero_ficha || "";
 }
 
+export function obtenerIdSesion(sesion) {
+  return sesion?.id_sesion_formacion || sesion?.id || "";
+}
+
 export function obtenerNombreAprendiz(aprendiz, index) {
   const persona = aprendiz?.usuario?.persona || aprendiz?.persona || aprendiz?.aprendiz?.usuario?.persona || {};
   const nombre = `${persona.nombres || ""} ${persona.apellidos || ""}`.trim();
   return nombre || aprendiz?.nombre || aprendiz?.aprendizNombre || aprendiz?.nombre_completo || `Sin nombre ${index + 1}`;
+}
+
+export function normalizarEstadoAsistencia(estado) {
+  const valor = normalizarTexto(estado).replaceAll(" ", "_");
+  const equivalencias = {
+    presente: "presente",
+    tarde: "retardado",
+    tardanza: "retardado",
+    retardado: "retardado",
+    inasistente: "ausente",
+    ausente: "ausente",
+    justificada: "justificado",
+    justificado: "justificado",
+    pendiente: ""
+  };
+  return equivalencias[valor] || valor;
+}
+
+export function normalizarMetodoAsistencia(metodo) {
+  const valor = normalizarTexto(metodo || "");
+  const equivalencias = {
+    biometrico: "Huella",
+    huella: "Huella",
+    manual: "Manual",
+    qr: "QR",
+    automatico_cierre: "Automatico"
+  };
+  return equivalencias[valor] || metodo || "-";
 }
 
 export function prepararAprendiz(aprendiz, index) {
@@ -50,11 +82,51 @@ export function prepararAprendiz(aprendiz, index) {
     id: aprendiz.id_aprendiz || aprendiz.id || index + 1,
     nombre: obtenerNombreAprendiz(aprendiz, index),
     hora: asistencia.hora_registro || asistencia.hora || aprendiz.hora_registro || aprendiz.hora || "-",
-    estado: String(estado).toLowerCase(),
-    metodo: asistencia.metodo_registro || asistencia.metodo || aprendiz.metodo_registro || aprendiz.metodo || "-",
-    fecha: asistencia.fecha || asistencia.fecha_registro || aprendiz.fecha || aprendiz.fecha_registro || "",
+    estado: normalizarEstadoAsistencia(estado),
+    metodo: normalizarMetodoAsistencia(asistencia.origen || asistencia.metodo_registro || asistencia.metodo || aprendiz.origen || aprendiz.metodo_registro || aprendiz.metodo || "-"),
+    fecha: asistencia.fecha_clase || asistencia.fecha || asistencia.fecha_registro || aprendiz.fecha_clase || aprendiz.fecha || aprendiz.fecha_registro || "",
     historial: aprendiz.historial || aprendiz.historial_asistencia || aprendiz.asistencias || []
   };
+}
+
+export function prepararAsistenciaSesion(asistencia, index) {
+  const aprendiz = asistencia?.aprendiz || {};
+  const sesion = asistencia?.sesion || {};
+  const fechaSesion = sesion?.fecha_clase || asistencia?.fecha_clase || asistencia?.fecha || "";
+
+  return {
+    id: asistencia.id_aprendiz || aprendiz.id_aprendiz || aprendiz.id || index + 1,
+    idAsistencia: asistencia.id_asistencia || asistencia.id || "",
+    idSesion: asistencia.id_sesion_formacion || sesion.id_sesion_formacion || "",
+    nombre: obtenerNombreAprendiz(aprendiz, index),
+    hora: asistencia.hora_registro || asistencia.hora || "-",
+    estado: normalizarEstadoAsistencia(asistencia.estado_ep05 || asistencia.estado_asistencia || asistencia.estado || ""),
+    metodo: normalizarMetodoAsistencia(asistencia.origen || asistencia.metodo_registro || asistencia.metodo || "-"),
+    fecha: fechaSesion,
+    historial: [asistencia]
+  };
+}
+
+export function combinarAprendicesConAsistencias(aprendicesGrupo = [], asistenciasSesion = []) {
+  const aprendicesPreparados = aprendicesGrupo.map(prepararAprendiz);
+  const asistenciasPreparadas = asistenciasSesion.map(prepararAsistenciaSesion);
+  const registrosPorAprendiz = new Map(
+    asistenciasPreparadas.map((asistencia) => [String(asistencia.id), asistencia])
+  );
+
+  const listaCombinada = aprendicesPreparados.map((aprendiz) => {
+    const asistencia = registrosPorAprendiz.get(String(aprendiz.id));
+    if (!asistencia) return aprendiz;
+    registrosPorAprendiz.delete(String(aprendiz.id));
+    return {
+      ...aprendiz,
+      ...asistencia,
+      nombre: asistencia.nombre || aprendiz.nombre,
+      historial: asistencia.historial?.length ? asistencia.historial : aprendiz.historial
+    };
+  });
+
+  return [...listaCombinada, ...registrosPorAprendiz.values()];
 }
 
 export function formatearFecha(fechaISO) {
@@ -87,10 +159,10 @@ export function construirHistorialAsistencia(aprendiz) {
 
   return historial.map((item, index) => ({
     id: item.id || item.id_asistencia || `${aprendiz?.id || "aprendiz"}-${index}`,
-    estado: String(item.estado_asistencia || item.estado || "").toLowerCase(),
-    fecha: item.fecha || item.fecha_registro || "",
+    estado: normalizarEstadoAsistencia(item.estado_asistencia || item.estado || ""),
+    fecha: item.fecha_clase || item.fecha || item.fecha_registro || "",
     hora: item.hora_registro || item.hora || "-",
-    metodo: item.metodo_registro || item.metodo || "-",
+    metodo: normalizarMetodoAsistencia(item.origen || item.metodo_registro || item.metodo || "-"),
     nota: item.nota || item.observacion || item.descripcion || ""
   }));
 }
