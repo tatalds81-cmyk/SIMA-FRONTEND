@@ -117,6 +117,11 @@ function App() {
             />
 
             <Route
+              path="/instructor/asistencias"
+              element={<Navigate to="/instructor/asistencia" replace />}
+            />
+
+            <Route
               path="/instructor/observaciones"
               element={
                 <Dashboard onLogout={manejarLogout}>

@@ -1375,10 +1375,12 @@ export default function GrupoDetalle() {
               <h2>Horario de la ficha</h2>
               <p className="gd-card-kicker">Ficha {detalle.ficha} - {detalle.jornada}</p>
             </div>
-            <button type="button" className="grupos-secondary-btn" onClick={cargarHorarioBackend} disabled={cargandoHorario}>
-              <RefreshCw size={15} />
-              {cargandoHorario ? "Actualizando..." : "Actualizar"}
-            </button>
+            <div className="gd-header-actions">
+              <button type="button" className="grupos-secondary-btn" onClick={cargarHorarioBackend} disabled={cargandoHorario}>
+                <RefreshCw size={15} />
+                {cargandoHorario ? "Actualizando..." : "Actualizar"}
+              </button>
+            </div>
           </div>
 
           {cargandoHorario && (

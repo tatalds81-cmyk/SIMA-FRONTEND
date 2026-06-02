@@ -311,7 +311,7 @@
 .grupos-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;

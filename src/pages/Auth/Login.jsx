@@ -18,6 +18,19 @@ export default function Login({ onLogin }) {
   const URL_LOGIN = "/api/auth/login";
   const URL_ME = "/api/auth/me";
 
+  function obtenerNombreRol(valor) {
+    if (!valor) return "";
+    if (typeof valor === "string") return valor;
+    return (
+      valor.nombre ||
+      valor.nombre_rol ||
+      valor.name ||
+      valor.role ||
+      valor.tipo ||
+      ""
+    );
+  }
+
   async function iniciarSesion(e) {
     if (e) e.preventDefault();
     setMensaje("");
@@ -82,7 +95,7 @@ export default function Login({ onLogin }) {
       const persona = usuarioFinal.persona || userLogin?.persona || {};
       const nombreCompleto = `${persona.nombres || ""} ${persona.apellidos || ""}`.trim();
       const nombreUsuario = nombreCompleto || usuarioFinal.email || username.trim();
-      const rol = usuarioFinal.rol || userLogin?.rol || loginData?.rol || "";
+      const rol = obtenerNombreRol(usuarioFinal.rol || userLogin?.rol || loginData?.rol);
 
       localStorage.setItem("username", nombreUsuario);
       localStorage.setItem("usuario", nombreUsuario);
