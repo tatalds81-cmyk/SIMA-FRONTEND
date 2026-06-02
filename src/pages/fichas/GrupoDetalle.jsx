@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, BarChart3, Edit3, Eye, FilterX, Save, Search, Users, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, ArrowLeft, BarChart3, CalendarClock, Edit3, Eye, FilterX, RefreshCw, Save, Search, Users, X } from "lucide-react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import SimaPagination from "../../components/common/SimaPagination";
 import api from "../../services/api";
+import { claseEstadoGrupo, etiquetaEstadoGrupo } from "../../services/gruposService";
+import { DIAS_SEMANA, consultarHorariosGrupo } from "./HorarioGrupoModal";
 import "./fichas.css";
 
 /* ── helpers ─────────────────────────────── */
@@ -31,6 +33,7 @@ const BARRAS_SEVERIDAD = [
 
 const TABS_DETALLE = [
   { id: "resumen", label: "General", Icono: BarChart3 },
+  { id: "horario", label: "Horario", Icono: CalendarClock },
   { id: "aprendices", label: "Aprendices", Icono: Users },
   { id: "alertas", label: "Alertas", Icono: AlertTriangle },
 ];
@@ -720,6 +723,9 @@ export default function GrupoDetalle() {
   /* ── estado para metricas del grupo ── */
   const [alertas, setAlertas] = useState(null);
   const [asistencia, setAsistencia] = useState(null);
+  const [horariosBackend, setHorariosBackend] = useState([]);
+  const [cargandoHorario, setCargandoHorario] = useState(false);
+  const [errorHorario, setErrorHorario] = useState("");
   const [metricas, setMetricas] = useState(null);
   const [periodoAsist, setPeriodoAsist] = useState("Hoy");
   const [tabDetalle, setTabDetalle] = useState("resumen");
@@ -808,11 +814,62 @@ export default function GrupoDetalle() {
     return () => { activo = false; };
   }, [id, grupoNavegacion]);
 
+  const cargarHorarioBackend = useCallback(async () => {
+    if (!grupo) {
+      setHorariosBackend([]);
+      setErrorHorario("");
+      return;
+    }
+
+    const idGrupo = obtenerIdGrupoBackend(grupo, id);
+    if (!idGrupo) {
+      setHorariosBackend([]);
+      setErrorHorario("");
+      return;
+    }
+
+    try {
+      setCargandoHorario(true);
+      setErrorHorario("");
+      const listaHorarios = await consultarHorariosGrupo(idGrupo);
+      setHorariosBackend(listaHorarios);
+    } catch (errorHorarioGrupo) {
+      console.error("Error cargando horario del grupo:", errorHorarioGrupo);
+      setHorariosBackend([]);
+      setErrorHorario(errorHorarioGrupo.message || "No fue posible cargar el horario guardado.");
+    } finally {
+      setCargandoHorario(false);
+    }
+  }, [grupo, id]);
+
+  useEffect(() => {
+    Promise.resolve().then(cargarHorarioBackend);
+  }, [cargarHorarioBackend]);
+
+  useEffect(() => {
+    if (tabDetalle === "horario") {
+      Promise.resolve().then(cargarHorarioBackend);
+    }
+  }, [tabDetalle, cargarHorarioBackend]);
+
+  useEffect(() => {
+    function refrescarHorario(evento) {
+      const idGrupo = obtenerIdGrupoBackend(grupo, id);
+      const idGrupoActualizado = evento.detail?.idGrupo;
+
+      if (!idGrupoActualizado || String(idGrupoActualizado) === String(idGrupo)) {
+        cargarHorarioBackend();
+      }
+    }
+
+    window.addEventListener("sima:horarios-actualizados", refrescarHorario);
+    return () => window.removeEventListener("sima:horarios-actualizados", refrescarHorario);
+  }, [grupo, id, cargarHorarioBackend]);
+
   const detalle = useMemo(() => {
     if (!grupo) return null;
-    const estado = `${grupo.estado || "ACTIVO"}`.toUpperCase();
-    const estadoTexto = estado === "SUSPENDIDO" ? "En espera" : estado === "CERRADO" ? "Cerrada" : "Activo";
-    const estadoClase = estado === "SUSPENDIDO" ? "suspendido" : estado === "CERRADO" ? "cerrado" : "activo";
+    const estadoTexto = etiquetaEstadoGrupo(grupo.estado);
+    const estadoClase = claseEstadoGrupo(grupo.estado);
     const persona = grupo.instructor_lider?.usuario?.persona;
     const instructor = persona
       ? `${persona.nombres} ${persona.apellidos}`
@@ -859,8 +916,19 @@ export default function GrupoDetalle() {
     () => TABS_DETALLE.filter((tab) => tab.id !== "alertas" || puedeVerAlertas),
     [puedeVerAlertas]
   );
+  const horarioDetalle = useMemo(
+    () => ({ horarios: horariosBackend, esMuestra: false }),
+    [horariosBackend]
+  );
+  const horariosPorDia = useMemo(() => {
+    return DIAS_SEMANA.reduce((acc, dia) => {
+      acc[dia] = horarioDetalle.horarios.filter((horario) => horario.dia === dia);
+      return acc;
+    }, {});
+  }, [horarioDetalle.horarios]);
 
   const conteoTab = {
+    horario: horarioDetalle.horarios.length,
     aprendices: detalle?.aprendices ?? 0,
     alertas: alertas?.totalHistorial ?? alertas?.total ?? 0,
   };
@@ -1300,6 +1368,48 @@ export default function GrupoDetalle() {
       )}
 
       {/* ── FICHA DETALLE / INFO GENERAL ── */}
+      {tabDetalle === "horario" && (
+        <article className="fichas-panel gd-tab-panel gd-horario-detail">
+          <div className="gd-card-header">
+            <div>
+              <h2>Horario de la ficha</h2>
+              <p className="gd-card-kicker">Ficha {detalle.ficha} - {detalle.jornada}</p>
+            </div>
+            <button type="button" className="grupos-secondary-btn" onClick={cargarHorarioBackend} disabled={cargandoHorario}>
+              <RefreshCw size={15} />
+              {cargandoHorario ? "Actualizando..." : "Actualizar"}
+            </button>
+          </div>
+
+          {cargandoHorario && (
+            <div className="grupos-horario-sample">
+              Cargando horario guardado...
+            </div>
+          )}
+
+          {errorHorario && <div className="grupos-horario-form-msg error">{errorHorario}</div>}
+
+          <div className="grupos-horario-week">
+            {DIAS_SEMANA.map((dia) => (
+              <article key={dia} className="grupos-horario-day">
+                <h3>{dia}</h3>
+                {horariosPorDia[dia]?.length ? (
+                  horariosPorDia[dia].map((horario) => (
+                    <div className="grupos-horario-slot" key={horario.id}>
+                      <strong>{horario.horaInicio} - {horario.horaFin}</strong>
+                      <span>{horario.actividad}</span>
+                      <small>{(horario.ambiente === "Ambiente por asignar" ? detalle.ambiente : horario.ambiente)} - {horario.instructor}</small>
+                    </div>
+                  ))
+                ) : (
+                  <p>Sin bloques</p>
+                )}
+              </article>
+            ))}
+          </div>
+        </article>
+      )}
+
       <article className="fichas-panel gd-legacy-hidden">
         <div className="gd-card-header" style={{ marginBottom: 18 }}>
           <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>

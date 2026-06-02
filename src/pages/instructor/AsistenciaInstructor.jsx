@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
+import { GRUPOS_LIST_URL } from "../../services/gruposService";
 import "../coordinador/coordinador.css";
 import "../fichas/fichas.css";
 import "../../components/alertas/modal.css";
@@ -195,29 +196,27 @@ export default function AsistenciaInstructor() {
 
     async function cargarGrupos() {
       try {
-        const endpoints = [
-          `${API_URL}/groups/mis-grupos`,
-          `${API_URL}/groups/instructor`,
-          `${API_URL}/groups`
-        ];
+        const res = await fetch(GRUPOS_LIST_URL, { headers: getHeaders() });
+        const data = await res.json().catch(() => null);
 
-        for (const endpoint of endpoints) {
-          const res = await fetch(endpoint, { headers: getHeaders() }).catch(() => null);
-          if (!res || !res.ok) continue;
+        if (!res.ok) {
+          throw new Error(data?.message || data?.error || "No fue posible cargar tus grupos.");
+        }
 
-          const data = await res.json().catch(() => null);
-          const lista = extraerLista(data, "grupos").length
-            ? extraerLista(data, "grupos")
-            : extraerLista(data, "fichas");
+        const lista = extraerLista(data, "grupos").length
+          ? extraerLista(data, "grupos")
+          : extraerLista(data, "fichas");
 
-          if (activo && lista.length) {
-            setGrupos(lista);
-            setGrupoSeleccionado(String(obtenerIdGrupo(lista[0])));
-            return;
-          }
+        if (activo) {
+          setGrupos(lista);
+          setGrupoSeleccionado(lista.length ? String(obtenerIdGrupo(lista[0])) : "");
         }
       } catch (error) {
         console.error("Error cargando grupos para asistencia:", error);
+        if (activo) {
+          setGrupos([]);
+          setGrupoSeleccionado("");
+        }
       }
     }
 
