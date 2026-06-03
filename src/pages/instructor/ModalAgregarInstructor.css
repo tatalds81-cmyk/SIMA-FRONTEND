@@ -1,0 +1,343 @@
+/* ═══════════════════════════════════════════════════════════════
+   ModalAgregarInstructor.css — no toca fichas.css
+   ═══════════════════════════════════════════════════════════════ */
+
+.mg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 22, 39, 0.50);
+  backdrop-filter: blur(3px);
+}
+
+.mg-modal-card {
+  width: min(100%, 540px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Encabezado ─────────────────────────────────────────────── */
+
+.mg-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mg-modal-tag {
+  display: block;
+  margin-bottom: 4px;
+  color: #238500;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mg-modal-title {
+  margin: 0;
+  color: #092444;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.mg-modal-subtitle {
+  margin: 4px 0 0;
+  color: #6f7d8d;
+  font-size: 13px;
+}
+
+.mg-modal-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dfe5ec;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #6f7d8d;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.mg-modal-close:hover {
+  background: #f3f7fb;
+  color: #092444;
+}
+
+/* ── Mensajes ────────────────────────────────────────────────── */
+
+.mg-modal-mensaje {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.mg-modal-mensaje.success {
+  background: #dcfce7;
+  border: 1px solid rgba(22, 101, 52, 0.2);
+  color: #166534;
+}
+
+.mg-modal-mensaje.error {
+  background: #fee2e2;
+  border: 1px solid rgba(153, 27, 27, 0.2);
+  color: #991b1b;
+}
+
+/* ── Secciones ──────────────────────────────────────────────── */
+
+.mg-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mg-seccion-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #092444;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mg-divider {
+  height: 1px;
+  background: #dfe5ec;
+}
+
+/* ── Lista instructores actuales ────────────────────────────── */
+
+.mg-actuales-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mg-actual-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #dfe5ec;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.mg-actual-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.mg-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mg-badge.activo  { background: #dcfce7; color: #166534; }
+.mg-badge.inactivo { background: #f1f5f9; color: #475569; }
+
+.mg-estado-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #dfe5ec;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 150ms ease;
+  font-family: inherit;
+}
+
+.mg-estado-btn.desactivar:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.mg-estado-btn.activar:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.mg-estado-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Buscador ───────────────────────────────────────────────── */
+
+.mg-modal-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #dfe5ec;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #6f7d8d;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.mg-modal-search-wrap:focus-within {
+  border-color: #39a900;
+  box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+}
+
+.mg-modal-search {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #092444;
+  font-family: inherit;
+}
+
+.mg-modal-search::placeholder { color: #9ca8b4; }
+
+/* ── Lista disponibles ──────────────────────────────────────── */
+
+.mg-modal-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.mg-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #dfe5ec;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.mg-modal-item:hover  { background: #f0fdf4; border-color: #86efac; }
+.mg-modal-item.selected { background: #dcfce7; border-color: #39a900; }
+
+.mg-modal-item input[type="radio"] {
+  accent-color: #39a900;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.mg-modal-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mg-modal-item-nombre {
+  font-size: 13px;
+  font-weight: 700;
+  color: #092444;
+}
+
+.mg-modal-item-esp {
+  font-size: 12px;
+  color: #6f7d8d;
+}
+
+.mg-modal-empty {
+  padding: 16px 0;
+  text-align: center;
+  color: #6f7d8d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Acciones ───────────────────────────────────────────────── */
+
+.mg-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.mg-btn-primary,
+.mg-btn-secondary {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mg-btn-primary {
+  border: none;
+  background: #39a900;
+  color: #ffffff;
+}
+
+.mg-btn-primary:hover:not(:disabled) { background: #238500; }
+.mg-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.mg-btn-secondary {
+  border: 1px solid #dfe5ec;
+  background: #ffffff;
+  color: #092444;
+}
+
+.mg-btn-secondary:hover { background: #f3f7fb; }
+
+/* Botón líder en la tabla */
+.mg-btn-lider { color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+.mg-btn-lider:hover { background: #eff6ff !important; border-color: #93c5fd !important; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 540px) {
+  .mg-modal-card { padding: 18px; }
+  .mg-modal-title { font-size: 18px; }
+  .mg-modal-actions { flex-direction: column; }
+  .mg-btn-primary, .mg-btn-secondary { width: 100%; justify-content: center; }
+}
