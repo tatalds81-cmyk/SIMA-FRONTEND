@@ -491,7 +491,7 @@ export default function MisGrupos() {
                               <UserPlus size={16}/>
 
                          </button>
-                          )} {/*HASTA aca */}
+                          )} {/*HASTA aca  */}
 
                         </div>
                       </td>

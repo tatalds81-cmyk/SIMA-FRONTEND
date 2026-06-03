@@ -258,7 +258,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
                   </div>
                 </div>
               ))}
-            </div>
+            </div>  
           ) : (
             <p className="mg-modal-empty">No hay instructores asignados aún.</p>
           )}
