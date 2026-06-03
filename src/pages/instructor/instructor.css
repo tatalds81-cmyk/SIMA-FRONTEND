@@ -289,7 +289,28 @@
 
 .instructor-calendar-controls {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 6px;
+}
+
+.instructor-calendar-today {
+  min-height: 28px;
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  color: #0b2442;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.instructor-calendar-today:hover,
+.instructor-icon-btn:hover {
+  border-color: #238500;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 .instructor-calendar-grid {
@@ -299,7 +320,10 @@
 }
 
 .instructor-calendar-day {
-  min-height: 160px;
+  min-height: 244px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px;
   border: 1px solid #e1e8f0;
   border-radius: 12px;
@@ -316,7 +340,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 2px;
 }
 
 .instructor-calendar-head strong {
@@ -326,21 +350,109 @@
 }
 
 .instructor-calendar-head span {
-  min-width: 30px;
+  min-width: 44px;
   height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #248400;
-  color: #fff;
+  background: #edf2f7;
+  color: #38506b;
   font-size: 10px;
   font-weight: 800;
 }
 
-.instructor-calendar-day p {
-  margin: 0 0 10px;
+.instructor-calendar-session {
+  width: 100%;
+  min-height: 112px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #dbe5f0;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #f8fafc;
+  color: #0b2442;
+  text-align: left;
+  cursor: pointer;
+}
+
+.instructor-calendar-session:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+.instructor-calendar-session.activa {
+  border-left-color: #238500;
+  background: #f0fdf4;
+}
+
+.instructor-calendar-session.proxima {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.instructor-calendar-session.cerrada {
+  border-left-color: #2563eb;
+  background: #eff6ff;
+}
+
+.instructor-calendar-session.cancelada {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.instructor-calendar-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: #38506b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.instructor-calendar-session strong {
+  color: #0b2442;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.instructor-calendar-session small {
+  color: #38506b;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.instructor-calendar-session em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #fff;
+  color: #0b2442;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.instructor-calendar-empty {
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #38506b;
+  text-align: center;
+}
+
+.instructor-calendar-empty p {
+  margin: 0;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.35;
@@ -377,8 +489,12 @@
   background: #f59e0b;
 }
 
-.instructor-calendar-legend i.sin {
-  background: #b8c5d6;
+.instructor-calendar-legend i.cerrada {
+  background: #2563eb;
+}
+
+.instructor-calendar-legend i.cancelada {
+  background: #ef4444;
 }
 
 .instructor-mini-grid {
@@ -909,6 +1025,10 @@
 
 .asistencia-pill.warning {
   background: #f59e0b;
+}
+
+.asistencia-pill.danger {
+  background: #ef4444;
 }
 
 .asistencia-layout {
@@ -1493,6 +1613,18 @@
   border-color: #7c3aed;
   background: #ede9fe;
   box-shadow: inset 0 0 0 1px #7c3aed;
+}
+
+.asistencia-method:disabled {
+  border-color: #d8e0ea;
+  background: #f3f6fa;
+  color: #7b8794;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.asistencia-method:disabled small {
+  color: #7b8794;
 }
 
 .asistencia-method span {

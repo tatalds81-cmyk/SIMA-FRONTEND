@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
+  Clock,
   Eye,
   MessageSquareWarning,
   PencilLine,
@@ -38,28 +42,43 @@ const nombresRiesgo = {
   MANUAL: "Manual"
 };
 
-const inicioMesActual = () => {
-  const fecha = new Date();
+const inicioMesActual = (fechaBase = new Date()) => {
+  const fecha = new Date(fechaBase);
   return new Date(fecha.getFullYear(), fecha.getMonth(), 1).toISOString().slice(0, 10);
 };
 
-const finMesActual = () => {
-  const fecha = new Date();
+const finMesActual = (fechaBase = new Date()) => {
+  const fecha = new Date(fechaBase);
   return new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).toISOString().slice(0, 10);
 };
 
-const inicioSemanaActual = () => {
-  const fecha = new Date();
+const inicioSemanaActual = (fechaBase = new Date()) => {
+  const fecha = new Date(fechaBase);
   const dia = fecha.getDay() || 7;
   fecha.setDate(fecha.getDate() - dia + 1);
   return fecha.toISOString().slice(0, 10);
 };
 
-const finSemanaActual = () => {
-  const fecha = new Date(`${inicioSemanaActual()}T12:00:00`);
+const finSemanaActual = (fechaBase = new Date()) => {
+  const fecha = new Date(`${inicioSemanaActual(fechaBase)}T12:00:00`);
   fecha.setDate(fecha.getDate() + 4);
   return fecha.toISOString().slice(0, 10);
 };
+
+const desplazarFecha = (fechaISO, dias) => {
+  const fecha = new Date(`${fechaISO}T12:00:00`);
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha.toISOString().slice(0, 10);
+};
+
+const formatearFechaCorta = (fechaISO) => {
+  if (!fechaISO) return "";
+  const fecha = new Date(`${fechaISO}T12:00:00`);
+  if (Number.isNaN(fecha.getTime())) return "";
+  return fecha.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
+};
+
+const normalizarHora = (valor) => String(valor || "").slice(0, 5) || "--:--";
 
 const getHeaders = () => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
@@ -104,6 +123,18 @@ const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || 
 const obtenerCodigo = (grupo) => grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "Sin ficha";
 const obtenerIdSesion = (sesion) => sesion.id_sesion_formacion || sesion.id;
 const obtenerIdGrupoSesion = (sesion) => sesion.id_grupo || sesion.grupo?.id_grupo;
+const obtenerFichaSesion = (sesion) => sesion.grupo?.numero_ficha || sesion.numero_ficha || sesion.id_grupo || "Sin ficha";
+const obtenerCompetenciaSesion = (sesion) =>
+  sesion.competencia?.nombre_competencia ||
+  sesion.competencia?.nombre ||
+  sesion.nombre_competencia ||
+  sesion.bloque_jornada?.nombre_bloque ||
+  "Sesion de formacion";
+const obtenerAmbienteSesion = (sesion) =>
+  sesion.ambiente?.nombre_ambiente ||
+  sesion.ambiente?.nombre ||
+  sesion.nombre_ambiente ||
+  "Ambiente asignado";
 const obtenerPersona = (item) => item?.aprendiz?.usuario?.persona || item?.usuario?.persona || item?.persona || {};
 const obtenerNombreAprendiz = (item) => {
   const persona = obtenerPersona(item);
@@ -130,6 +161,15 @@ const estadoCuentaComoAsistencia = (estado) => (
   ["PRESENTE", "TARDE", "JUSTIFICADO", "JUSTIFICADA"].includes(String(estado || "").toUpperCase())
 );
 
+const claseEstadoSesion = (estado) => {
+  const valor = String(estado || "").toUpperCase();
+  if (valor === "ABIERTA") return "activa";
+  if (valor === "PROGRAMADA") return "proxima";
+  if (valor === "CERRADA") return "cerrada";
+  if (valor === "CANCELADA") return "cancelada";
+  return "sin";
+};
+
 export default function PanelInstructor() {
   const navigate = useNavigate();
   const [grupos, setGrupos] = useState([]);
@@ -142,6 +182,10 @@ export default function PanelInstructor() {
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [semanaReferencia, setSemanaReferencia] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const inicioSemana = useMemo(() => inicioSemanaActual(semanaReferencia), [semanaReferencia]);
+  const finSemana = useMemo(() => finSemanaActual(semanaReferencia), [semanaReferencia]);
 
   useEffect(() => {
     let activo = true;
@@ -158,7 +202,7 @@ export default function PanelInstructor() {
           fetchJson("/api/dashboard/instructor/resumen"),
           fetchJson("/api/alerts?estado=ABIERTA&limit=50").catch(() => ({ alertas: [] })),
           fetchJson(`/api/educational-sessions?fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] })),
-          fetchJson(`/api/educational-sessions?fecha_desde=${inicioSemanaActual()}&fecha_hasta=${finSemanaActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }))
+          fetchJson(`/api/educational-sessions?fecha_desde=${inicioSemana}&fecha_hasta=${finSemana}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }))
         ]);
 
         if (!activo) return;
@@ -235,7 +279,7 @@ export default function PanelInstructor() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [finSemana, inicioSemana]);
 
   const alertasActivas = useMemo(
     () => alertas.filter((alerta) => String(alerta.estado || "").toUpperCase() === "ABIERTA"),
@@ -324,13 +368,17 @@ export default function PanelInstructor() {
 
   const calendarioSemana = useMemo(() => {
     const dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
-    const inicio = new Date(`${inicioSemanaActual()}T12:00:00`);
+    const inicio = new Date(`${inicioSemana}T12:00:00`);
 
     return dias.map((dia, index) => {
       const fecha = new Date(inicio);
       fecha.setDate(inicio.getDate() + index);
       const fechaISO = fecha.toISOString().slice(0, 10);
-      const sesionesDia = sesionesSemana.filter((sesion) => sesion.fecha_clase === fechaISO);
+      const sesionesDia = sesionesSemana
+        .filter((sesion) => sesion.fecha_clase === fechaISO)
+        .sort((a, b) =>
+          String(a.hora_inicio_programada || "").localeCompare(String(b.hora_inicio_programada || ""))
+        );
 
       return {
         dia,
@@ -338,7 +386,27 @@ export default function PanelInstructor() {
         sesiones: sesionesDia
       };
     });
-  }, [sesionesSemana]);
+  }, [inicioSemana, sesionesSemana]);
+
+  const totalSesionesSemana = useMemo(
+    () => calendarioSemana.reduce((total, item) => total + item.sesiones.length, 0),
+    [calendarioSemana]
+  );
+
+  function cambiarSemana(dias) {
+    setSemanaReferencia((actual) => desplazarFecha(inicioSemanaActual(actual), dias));
+  }
+
+  function irASemanaActual() {
+    setSemanaReferencia(new Date().toISOString().slice(0, 10));
+  }
+
+  function abrirAsistenciaSesion(sesion) {
+    if (sesion?.id_grupo) {
+      sessionStorage.setItem("sima_asistencia_grupo_activo", String(sesion.id_grupo));
+    }
+    navigate("/instructor/asistencia");
+  }
 
   if (cargando) {
     return (
@@ -515,21 +583,50 @@ export default function PanelInstructor() {
 
         <article className="coordinador-card instructor-calendar-card">
           <div className="coordinador-card-header">
-            <h2>Calendario de sesiones</h2>
+            <div>
+              <h2>Horario semanal</h2>
+              <p>{formatearFechaCorta(inicioSemana)} - {formatearFechaCorta(finSemana)} · {totalSesionesSemana} sesiones</p>
+            </div>
+            <div className="instructor-calendar-controls">
+              <button type="button" className="instructor-icon-btn" onClick={() => cambiarSemana(-7)} aria-label="Semana anterior">
+                <ChevronLeft size={16} />
+              </button>
+              <button type="button" className="instructor-calendar-today" onClick={irASemanaActual}>
+                Hoy
+              </button>
+              <button type="button" className="instructor-icon-btn" onClick={() => cambiarSemana(7)} aria-label="Semana siguiente">
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="instructor-calendar-grid">
             {calendarioSemana.map((item) => (
-              <div key={item.dia} className="instructor-calendar-day">
+              <div key={item.dia} className={`instructor-calendar-day ${item.sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "activa") ? "activa" : ""}`}>
                 <div className="instructor-calendar-head">
                   <strong>{item.dia}</strong>
+                  <span>{formatearFechaCorta(item.fecha)}</span>
                 </div>
-                {item.sesiones.length ? item.sesiones.slice(0, 2).map((sesion) => (
-                  <p key={obtenerIdSesion(sesion)}>
-                    {sesion.hora_inicio_programada?.slice(0, 5) || "--:--"} - Grupo {sesion.grupo?.numero_ficha || sesion.id_grupo}
-                  </p>
+                {item.sesiones.length ? item.sesiones.map((sesion) => (
+                  <button
+                    type="button"
+                    className={`instructor-calendar-session ${claseEstadoSesion(sesion.estado)}`}
+                    key={obtenerIdSesion(sesion)}
+                    onClick={() => abrirAsistenciaSesion(sesion)}
+                  >
+                    <span className="instructor-calendar-time">
+                      <Clock size={13} />
+                      {normalizarHora(sesion.hora_inicio_programada)} - {normalizarHora(sesion.hora_fin_programada)}
+                    </span>
+                    <strong>{obtenerCompetenciaSesion(sesion)}</strong>
+                    <small>Ficha {obtenerFichaSesion(sesion)} · {obtenerAmbienteSesion(sesion)}</small>
+                    <em>{sesion.estado || "PROGRAMADA"}</em>
+                  </button>
                 )) : (
-                  <p>Sin sesiones programadas</p>
+                  <div className="instructor-calendar-empty">
+                    <CalendarClock size={18} />
+                    <p>Sin sesiones programadas</p>
+                  </div>
                 )}
               </div>
             ))}
@@ -538,7 +635,8 @@ export default function PanelInstructor() {
           <div className="instructor-calendar-legend">
             <span><i className="activa"></i> Sesion activa</span>
             <span><i className="proxima"></i> Proxima sesion</span>
-            <span><i className="sin"></i> Sin sesion</span>
+            <span><i className="cerrada"></i> Cerrada</span>
+            <span><i className="cancelada"></i> Cancelada</span>
           </div>
         </article>
       </section>

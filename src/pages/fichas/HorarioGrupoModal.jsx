@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from "react";
 import { ChevronDown, Plus, RefreshCw, X } from "lucide-react";
+import api from "../../services/api";
 
 const API_URL = "/api";
 export const DIAS_SEMANA = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
@@ -9,6 +10,19 @@ const OPCIONES_INICIALES = {
   competencias: [],
   instructores: [],
   bloques: [],
+};
+const BLOQUES_JORNADA_RESPALDO = {
+  MANANA: [
+    { id_bloque_jornada: 1, jornada: "MAÑANA", nombre_bloque: "Bloque mañana 1", orden: 1, hora_inicio: "07:00:00", hora_fin: "09:30:00" },
+    { id_bloque_jornada: 2, jornada: "MAÑANA", nombre_bloque: "Bloque mañana 2", orden: 2, hora_inicio: "10:00:00", hora_fin: "12:30:00" },
+  ],
+  TARDE: [
+    { id_bloque_jornada: 3, jornada: "TARDE", nombre_bloque: "Bloque tarde 1", orden: 1, hora_inicio: "14:00:00", hora_fin: "16:30:00" },
+    { id_bloque_jornada: 4, jornada: "TARDE", nombre_bloque: "Bloque tarde 2", orden: 2, hora_inicio: "17:00:00", hora_fin: "19:00:00" },
+  ],
+  NOCHE: [
+    { id_bloque_jornada: 5, jornada: "NOCHE", nombre_bloque: "Bloque noche 1", orden: 1, hora_inicio: "20:00:00", hora_fin: "22:00:00" },
+  ],
 };
 const HORARIO_FORM_INICIAL = {
   id_grupo_trimestre: "",
@@ -19,13 +33,6 @@ const HORARIO_FORM_INICIAL = {
   semanas: "16",
   tolerancia_minutos: "15",
 };
-
-function getHeaders() {
-  const token = localStorage.getItem("access") || localStorage.getItem("token");
-  const headers = { "Content-Type": "application/json" };
-  if (token && token !== "undefined") headers.Authorization = `Bearer ${token}`;
-  return headers;
-}
 
 export function extraerListaHorarios(data) {
   const lista =
@@ -121,8 +128,29 @@ function normalizarBusqueda(valor) {
     .toLowerCase();
 }
 
+function normalizarJornada(valor) {
+  const texto = normalizarBusqueda(valor).toUpperCase();
+  if (texto.includes("MAÑANA")) return "MAÑANA";
+  if (texto.includes("TARDE")) return "TARDE";
+  if (texto.includes("NOCHE")) return "NOCHE";
+  if (texto.includes("SABADO")) return "SABADO";
+  return texto;
+}
+
 function normalizarTextoFormulario(valor) {
   return String(valor || "").trim().replace(/\s+/g, " ");
+}
+
+function completarOpcionesDesdeGrupo(opciones, grupo) {
+  const jornada = normalizarJornada(grupo?.jornada);
+  const bloques = opciones.bloques.length
+    ? opciones.bloques
+    : BLOQUES_JORNADA_RESPALDO[jornada] || [];
+
+  return {
+    ...opciones,
+    bloques,
+  };
 }
 
 function obtenerTextoBusquedaInstructor(item) {
@@ -306,29 +334,19 @@ export async function consultarHorariosGrupo(idGrupo) {
   return data.horarios;
 }
 
-export async function consultarHorarioGrupoData(idGrupo) {
+export async function consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones = true } = {}) {
   if (!idGrupo) return { horarios: [], opciones: OPCIONES_INICIALES };
 
-  const endpoints = [
-    `${API_URL}/groups/${encodeURIComponent(idGrupo)}/horarios`,
-    `${API_URL}/educational-sessions?id_grupo=${encodeURIComponent(idGrupo)}&limit=100`,
-  ];
+  const endpoints = [`${API_URL}/groups/${encodeURIComponent(idGrupo)}/horarios`];
+  if (usarFallbackSesiones) {
+    endpoints.push(`${API_URL}/educational-sessions?id_grupo=${encodeURIComponent(idGrupo)}&limit=100`);
+  }
 
   let ultimoError = null;
 
   for (const endpoint of endpoints) {
     try {
-      const res = await fetch(endpoint, { headers: getHeaders() });
-      const data = await res.json().catch(() => null);
-
-      if (res.status === 404) {
-        ultimoError = new Error(data?.message || `Ruta no disponible: ${endpoint}`);
-        continue;
-      }
-
-      if (!res.ok) {
-        throw new Error(data?.message || data?.error || "No fue posible cargar el horario.");
-      }
+      const { data } = await api.get(endpoint);
 
       return {
         horarios: extraerListaHorarios(data)
@@ -337,7 +355,13 @@ export async function consultarHorarioGrupoData(idGrupo) {
         opciones: extraerOpcionesHorario(data),
       };
     } catch (error) {
-      ultimoError = error;
+      const data = error?.response?.data;
+      if (error?.response?.status === 404) {
+        ultimoError = new Error(data?.message || `Ruta no disponible: ${endpoint}`);
+        continue;
+      }
+
+      ultimoError = new Error(data?.message || data?.error || error?.message || "No fue posible cargar el horario.");
     }
   }
 
@@ -376,10 +400,11 @@ export default function HorarioGrupoModal({
       setCargando(true);
 
       try {
-        const dataHorario = await consultarHorarioGrupoData(idGrupo);
+        const dataHorario = await consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones: false });
         if (!activo) return;
-        setOpciones(dataHorario.opciones);
-        setFormHorario((actual) => completarFormHorario(actual, dataHorario.opciones));
+        const opcionesCompletas = completarOpcionesDesdeGrupo(dataHorario.opciones, grupo);
+        setOpciones(opcionesCompletas);
+        setFormHorario((actual) => completarFormHorario(actual, opcionesCompletas));
         setError("");
       } catch (err) {
         console.error("Error cargando horario:", err);
@@ -454,7 +479,6 @@ export default function HorarioGrupoModal({
     const bloquesActuales = Array.isArray(actual.id_bloques_jornada) ? actual.id_bloques_jornada.map(String) : [];
     const bloquesDisponibles = opcionesActuales.bloques.map((bloque) => String(bloque.id_bloque_jornada));
     const bloquesValidos = bloquesActuales.filter((idBloque) => bloquesDisponibles.includes(idBloque));
-    const primerBloque = opcionesActuales.bloques[0];
 
     return {
       ...actual,
@@ -466,11 +490,7 @@ export default function HorarioGrupoModal({
         "",
       id_instructor_grupo: actual.id_instructor_grupo || opcionesActuales.instructores[0]?.id_instructor_grupo || "",
       dias_semana: Array.isArray(actual.dias_semana) && actual.dias_semana.length ? actual.dias_semana : ["1"],
-      id_bloques_jornada: bloquesValidos.length
-        ? bloquesValidos
-        : primerBloque
-          ? [String(primerBloque.id_bloque_jornada)]
-          : [],
+      id_bloques_jornada: bloquesValidos.length ? bloquesValidos : bloquesDisponibles,
       semanas: actual.semanas || "16",
       tolerancia_minutos: actual.tolerancia_minutos || "15",
     };
@@ -569,9 +589,10 @@ export default function HorarioGrupoModal({
   }
 
   async function recargarHorario(idGrupo) {
-    const dataHorario = await consultarHorarioGrupoData(idGrupo);
-    setOpciones(dataHorario.opciones);
-    setFormHorario((actual) => completarFormHorario(actual, dataHorario.opciones));
+    const dataHorario = await consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones: false });
+    const opcionesCompletas = completarOpcionesDesdeGrupo(dataHorario.opciones, grupo);
+    setOpciones(opcionesCompletas);
+    setFormHorario((actual) => completarFormHorario(actual, opcionesCompletas));
     return dataHorario;
   }
 
@@ -639,21 +660,18 @@ export default function HorarioGrupoModal({
           if (horaInicio !== "-") payload.hora_inicio = horaInicio;
           if (horaFin !== "-") payload.hora_fin = horaFin;
 
-          const res = await fetch(`${API_URL}/groups/${encodeURIComponent(idGrupo)}/horarios`, {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify(payload),
-          });
-
-          const data = await res.json().catch(() => null);
-          const mensaje = data?.message || data?.error || "No fue posible crear el horario.";
-
-          if (res.ok) {
+          try {
+            await api.post(`${API_URL}/groups/${encodeURIComponent(idGrupo)}/horarios`, payload);
             creados += 1;
-          } else if (res.status === 409 || mensaje.toLowerCase().includes("existe")) {
-            duplicados.push(descripcion);
-          } else {
-            fallidos.push(`${descripcion}: ${mensaje}`);
+          } catch (error) {
+            const data = error?.response?.data;
+            const mensaje = data?.message || data?.error || error?.message || "No fue posible crear el horario.";
+
+            if (error?.response?.status === 409 || mensaje.toLowerCase().includes("existe")) {
+              duplicados.push(descripcion);
+            } else {
+              fallidos.push(`${descripcion}: ${mensaje}`);
+            }
           }
         }
       }
