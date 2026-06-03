@@ -12,7 +12,6 @@ function getHeaders() {
   return headers;
 }
 
-// ─── Nombre desde estructura instructor del backend ───────────────────────────
 // instructor.usuario.persona.{nombres, apellidos}
 function getNombre(instructor) {
   const p = instructor?.usuario?.persona;
@@ -27,27 +26,23 @@ function normalizarTexto(valor) {
     .toLowerCase();
 }
 
-// ─── Componente ───────────────────────────────────────────────────────────────
 export default function ModalAgregarInstructor({ grupo, onCerrar }) {
-  // Instructores disponibles — GET /api/groups/instructores-disponibles
   const [disponibles, setDisponibles] = useState([]);
-  // Instructores actuales del grupo — GET /api/instructor-groups/grupo/:idGrupo
-  const [actuales, setActuales] = useState([]);
+  const [actuales, setActuales]       = useState([]);
 
   const [loadingDisponibles, setLoadingDisponibles] = useState(false);
-  const [loadingActuales, setLoadingActuales] = useState(false);
+  const [loadingActuales, setLoadingActuales]       = useState(false);
 
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda]         = useState("");
   const [seleccionado, setSeleccionado] = useState(null);
 
-  const [asignando, setAsignando] = useState(false);
-  const [cambiandoEstado, setCambiandoEstado] = useState(null); // id_instructor en proceso
-  const [mensajeExito, setMensajeExito] = useState("");
-  const [mensajeError, setMensajeError] = useState("");
+  const [asignando, setAsignando]             = useState(false);
+  const [cambiandoEstado, setCambiandoEstado] = useState(null);
+  const [mensajeExito, setMensajeExito]       = useState("");
+  const [mensajeError, setMensajeError]       = useState("");
 
   const idGrupo = grupo?.id_grupo || grupo?.id;
 
-  // ─── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!idGrupo) return;
     fetchDisponibles();
@@ -55,7 +50,6 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
   }, [idGrupo]);
 
   // GET /api/groups/instructores-disponibles
-  // Devuelve: array de Instructor con usuario.persona.{nombres, apellidos}
   async function fetchDisponibles() {
     setLoadingDisponibles(true);
     try {
@@ -74,7 +68,6 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
   }
 
   // GET /api/instructor-groups/grupo/:idGrupo
-  // Devuelve: array de InstructorGroup con instructor.usuario.persona
   async function fetchActuales() {
     setLoadingActuales(true);
     try {
@@ -92,7 +85,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
     }
   }
 
-  // POST /api/instructor-groups/grupo/:idGrupo  — body: { id_instructor }
+  // POST /api/instructor-groups/grupo/:idGrupo — body: { id_instructor }
   async function handleAgregar() {
     if (!seleccionado) return;
     setAsignando(true);
@@ -111,7 +104,6 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
       setMensajeExito(`Instructor "${getNombre(seleccionado)}" asignado correctamente.`);
       setSeleccionado(null);
       setBusqueda("");
-      // Recarga la lista de actuales para reflejar el cambio
       fetchActuales();
     } catch (error) {
       setMensajeError(error.message);
@@ -122,15 +114,17 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
 
   // PATCH /api/instructor-groups/grupo/:idGrupo/instructor/:idInstructor
   // body: { estado: 'ACTIVO' | 'INACTIVO' }
-  async function handleCambiarEstado(id_instructor, estadoActual) { //se cambia y se pone id_instructor_lider
+  // ─── BUG CORREGIDO: parámetro y URL usan el mismo nombre ─────────────────────
+  async function handleCambiarEstado(id_instructor, estadoActual) {
     const nuevoEstado = estadoActual === "ACTIVO" ? "INACTIVO" : "ACTIVO";
-    setCambiandoEstado(id_instructor);// antes tenia en el parametro idInstructor 
+    setCambiandoEstado(id_instructor);
     setMensajeExito("");
     setMensajeError("");
 
     try {
       const res = await fetch(
-        `${API_URL}/instructor-groups/grupo/${idGrupo}/instructor/${idInstructor}`,
+        `${API_URL}/instructor-groups/grupo/${idGrupo}/instructor/${id_instructor}`,
+        //                                                               ↑ corregido — antes decía ${idInstructor} (variable inexistente)
         {
           method: "PATCH",
           headers: getHeaders(),
@@ -149,13 +143,16 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
     }
   }
 
-  // Instructores disponibles filtrados por búsqueda
-  // Excluye los que ya están activos en el grupo y al líder
   const idLider = Number(grupo?.id_instructor_lider);
   const idsActivos = new Set(
     actuales
       .filter((a) => a.estado === "ACTIVO")
       .map((a) => Number(a.id_instructor))
+  );
+
+  // El líder no se gestiona como instructor de apoyo (H16 + backend lo rechaza con 400)
+  const actualesSinLider = actuales.filter(
+    (a) => Number(a.id_instructor) !== idLider
   );
 
   const disponiblesFiltrados = disponibles.filter((i) => {
@@ -169,7 +166,6 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
     );
   });
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="mg-modal-overlay" onClick={onCerrar} role="presentation">
       <div
@@ -221,9 +217,9 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
 
           {loadingActuales ? (
             <p className="mg-modal-empty">Cargando...</p>
-          ) : actuales.length > 0 ? (
+          ) : actualesSinLider.length > 0 ? (
             <div className="mg-actuales-lista">
-              {actuales.map((item) => (
+              {actualesSinLider.map((item) => (
                 <div key={item.id_instructor_grupo} className="mg-actual-item">
                   <div className="mg-modal-item-info">
                     <span className="mg-modal-item-nombre">
@@ -241,10 +237,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
                       type="button"
                       className={`mg-estado-btn ${item.estado === "ACTIVO" ? "desactivar" : "activar"}`}
                       disabled={cambiandoEstado === item.id_instructor}
-                      //onClick={() => handleCambiarEstado(item.id_instructor, item.estado)} la vieja
-                        onClick={() => 
-                          handleCambiarEstado(item.id_instructor, item.estado)
-                         } // la nueva
+                      onClick={() => handleCambiarEstado(item.id_instructor, item.estado)}
                       title={item.estado === "ACTIVO" ? "Desactivar" : "Activar"}
                     >
                       {cambiandoEstado === item.id_instructor ? (
@@ -258,7 +251,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
                   </div>
                 </div>
               ))}
-            </div>  
+            </div>
           ) : (
             <p className="mg-modal-empty">No hay instructores asignados aún.</p>
           )}
@@ -309,7 +302,9 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
               ))
             ) : (
               <p className="mg-modal-empty">
-                {busqueda ? "Sin resultados" : "Todos los instructores disponibles ya están en el grupo."}
+                {busqueda
+                  ? "Sin resultados"
+                  : "Todos los instructores disponibles ya están en el grupo."}
               </p>
             )}
           </div>
