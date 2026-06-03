@@ -13,8 +13,8 @@ const OPCIONES_INICIALES = {
 };
 const BLOQUES_JORNADA_RESPALDO = {
   MANANA: [
-    { id_bloque_jornada: 1, jornada: "MANANA", nombre_bloque: "Bloque manana 1", orden: 1, hora_inicio: "07:00:00", hora_fin: "09:30:00" },
-    { id_bloque_jornada: 2, jornada: "MANANA", nombre_bloque: "Bloque manana 2", orden: 2, hora_inicio: "10:00:00", hora_fin: "12:30:00" },
+    { id_bloque_jornada: 1, jornada: "MAÑANA", nombre_bloque: "Bloque mañana 1", orden: 1, hora_inicio: "07:00:00", hora_fin: "09:30:00" },
+    { id_bloque_jornada: 2, jornada: "MAÑANA", nombre_bloque: "Bloque mañana 2", orden: 2, hora_inicio: "10:00:00", hora_fin: "12:30:00" },
   ],
   TARDE: [
     { id_bloque_jornada: 3, jornada: "TARDE", nombre_bloque: "Bloque tarde 1", orden: 1, hora_inicio: "14:00:00", hora_fin: "16:30:00" },
@@ -130,7 +130,7 @@ function normalizarBusqueda(valor) {
 
 function normalizarJornada(valor) {
   const texto = normalizarBusqueda(valor).toUpperCase();
-  if (texto.includes("MANANA")) return "MANANA";
+  if (texto.includes("MAÑANA")) return "MAÑANA";
   if (texto.includes("TARDE")) return "TARDE";
   if (texto.includes("NOCHE")) return "NOCHE";
   if (texto.includes("SABADO")) return "SABADO";

@@ -1027,6 +1027,10 @@
   background: #f59e0b;
 }
 
+.asistencia-pill.danger {
+  background: #ef4444;
+}
+
 .asistencia-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.85fr);
@@ -1609,6 +1613,18 @@
   border-color: #7c3aed;
   background: #ede9fe;
   box-shadow: inset 0 0 0 1px #7c3aed;
+}
+
+.asistencia-method:disabled {
+  border-color: #d8e0ea;
+  background: #f3f6fa;
+  color: #7b8794;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.asistencia-method:disabled small {
+  color: #7b8794;
 }
 
 .asistencia-method span {

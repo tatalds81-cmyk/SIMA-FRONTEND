@@ -47,7 +47,6 @@ import {
   obtenerIdSesion,
   obtenerPrograma,
   prepararAsistenciaSesion,
-  prepararAprendiz,
   textoBusquedaFecha
 } from "./asistencia.utils";
 
@@ -149,9 +148,20 @@ export default function AsistenciaInstructor() {
     let activo = true;
 
     async function cargarAsistenciaSesion() {
-      if (!grupoSeleccionado) return;
+      if (!grupoSeleccionado) {
+        setSesionActiva(null);
+        setAprendices([]);
+        return;
+      }
       setCargando(true);
       setQrSesion(null);
+      setQrAbierto(false);
+      setQrPantallaCompleta(false);
+      setResumenGrande(false);
+      setModalHuellaAbierto(false);
+      setAprendizDetalle(null);
+      setAprendizManual(null);
+      setModoManual(false);
 
       try {
         const sesion = await obtenerSesionAbiertaPorGrupo(grupoSeleccionado, fecha);
@@ -170,27 +180,25 @@ export default function AsistenciaInstructor() {
             : detalle.asistencias.map(prepararAsistenciaSesion);
           setSesionActiva(detalle.sesion || sesion);
           setAprendices(lista);
+          setPaginaActual(1);
           setMensajeError(false);
           setMensaje(lista.length ? "" : "La sesion abierta no tiene aprendices para mostrar.");
           return;
         }
 
-        const lista = await obtenerAprendicesPorGrupo(grupoActual || grupoSeleccionado);
         if (activo) {
           setSesionActiva(null);
-          setAprendices(lista.map(prepararAprendiz));
+          setAprendices([]);
+          setPaginaActual(1);
           setMensajeError(true);
-          setMensaje(
-            lista.length
-              ? "No hay una sesion de asistencia abierta para esta ficha hoy. Abre una sesion en el backend para guardar registros."
-              : "No hay aprendices registrados en la ficha seleccionada."
-          );
+          setMensaje("No hay una sesion de asistencia abierta para esta ficha hoy. Abre una sesion en el backend para guardar registros.");
         }
       } catch (error) {
         console.error("Error cargando aprendices para asistencia:", error);
         if (activo) {
           setSesionActiva(null);
           setAprendices([]);
+          setPaginaActual(1);
           setMensajeError(true);
           setMensaje(error.message || "No fue posible cargar los aprendices de la ficha seleccionada.");
         }
@@ -205,12 +213,16 @@ export default function AsistenciaInstructor() {
     };
   }, [fecha, grupoActual, grupoSeleccionado]);
 
+  const haySesionActiva = Boolean(obtenerIdSesion(sesionActiva));
+
   const aprendicesRegistrados = useMemo(() => {
+    if (!haySesionActiva) return [];
     const estadosValidos = Object.keys(ESTADOS);
     return aprendices.filter((aprendiz) => estadosValidos.includes(aprendiz.estado));
-  }, [aprendices]);
+  }, [aprendices, haySesionActiva]);
 
   const aprendicesFiltrados = useMemo(() => {
+    if (!haySesionActiva) return [];
     const texto = normalizarTexto(busqueda);
     const listaBase = modoManual ? aprendices : aprendicesRegistrados;
     
@@ -235,7 +247,7 @@ export default function AsistenciaInstructor() {
       
       return coincideBusqueda && coincideEstado && coincideMetodo && coincideFecha;
     });
-  }, [aprendices, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, modoManual]);
+  }, [aprendices, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, haySesionActiva, modoManual]);
 
   const opcionesAnios = useMemo(() => {
     const anioBase = new Date(`${fecha}T12:00:00`).getFullYear();
@@ -251,6 +263,7 @@ export default function AsistenciaInstructor() {
 
   const resumen = useMemo(() => {
     const base = { presente: 0, ausente: 0, retardado: 0, justificado: 0 };
+    if (!haySesionActiva) return base;
     const listaBase = modoManual ? aprendices : aprendicesRegistrados;
     listaBase.forEach((aprendiz) => {
       if (Object.prototype.hasOwnProperty.call(base, aprendiz.estado)) {
@@ -258,7 +271,7 @@ export default function AsistenciaInstructor() {
       }
     });
     return base;
-  }, [aprendices, aprendicesRegistrados, modoManual]);
+  }, [aprendices, aprendicesRegistrados, haySesionActiva, modoManual]);
 
   const totalAprendices = (modoManual ? aprendices.length : aprendicesRegistrados.length) || 1;
   const segmentosDonut = useMemo(() => {
@@ -283,6 +296,7 @@ export default function AsistenciaInstructor() {
   );
   const mostrarAvisoFaltantes =
     !cargando &&
+    haySesionActiva &&
     aprendices.length > 0 &&
     aprendicesSinRegistro.length > 0 &&
     aprendicesSinRegistro.length <= 3 &&
@@ -308,7 +322,11 @@ export default function AsistenciaInstructor() {
 
   async function recargarAsistenciasSesion(sesion = sesionActiva) {
     const idSesion = obtenerIdSesion(sesion);
-    if (!idSesion) return;
+    if (!idSesion) {
+      setSesionActiva(null);
+      setAprendices([]);
+      return;
+    }
 
     const [detalle, aprendicesGrupo] = await Promise.all([
       obtenerAsistenciasSesion(idSesion),
@@ -399,6 +417,7 @@ export default function AsistenciaInstructor() {
   }
 
   function abrirEdicionManual(aprendiz) {
+    if (!haySesionActiva) return;
     setAprendizManual(aprendiz);
     setFormManual({
       estado: aprendiz.estado || "presente",
@@ -433,6 +452,11 @@ export default function AsistenciaInstructor() {
   }
 
   function abrirModalHuella() {
+    if (!haySesionActiva) {
+      setMensajeError(true);
+      setMensaje("No hay una sesion abierta para registrar asistencia por huella.");
+      return;
+    }
     const anchoModal = 340;
     const x = Math.min(Math.max(12, window.innerWidth - anchoModal - 28), 580);
     setPosicionHuella({ x, y: 190 });
@@ -702,7 +726,9 @@ export default function AsistenciaInstructor() {
           </div>
           <div>
             <span>Estado de sesion:</span>
-            <strong className="asistencia-pill success">Activa</strong>
+            <strong className={`asistencia-pill ${haySesionActiva ? "success" : "danger"}`}>
+              {haySesionActiva ? "Activa" : "Sin sesion"}
+            </strong>
           </div>
           <div>
             <span>Ficha:</span>
@@ -881,11 +907,16 @@ export default function AsistenciaInstructor() {
             </div>
 
             <div className="asistencia-methods-grid">
-              <button type="button" className="asistencia-method huella" onClick={abrirModalHuella}>
+              <button
+                type="button"
+                className="asistencia-method huella"
+                onClick={abrirModalHuella}
+                disabled={!haySesionActiva}
+              >
                 <Fingerprint size={22} />
                 <span>
                   <strong>Registro por huella</strong>
-                  <small>Dispositivo conectado</small>
+                  <small>{haySesionActiva ? "Dispositivo conectado" : "Sin sesion abierta"}</small>
                 </span>
               </button>
 
@@ -893,12 +924,12 @@ export default function AsistenciaInstructor() {
                 type="button"
                 className={`asistencia-method qr ${qrAbierto ? "active" : ""}`}
                 onClick={alternarQr}
-                disabled={!sesionActiva}
+                disabled={!haySesionActiva}
               >
                 <QrCode size={22} />
                 <span>
                   <strong>Registro por QR</strong>
-                  <small>{qrAbierto ? "Cerrar QR" : sesionActiva ? "Generar QR" : "Sin sesion abierta"}</small>
+                  <small>{qrAbierto ? "Cerrar QR" : haySesionActiva ? "Generar QR" : "Sin sesion abierta"}</small>
                 </span>
               </button>
             </div>
