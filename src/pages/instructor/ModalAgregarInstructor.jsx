@@ -122,9 +122,9 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
 
   // PATCH /api/instructor-groups/grupo/:idGrupo/instructor/:idInstructor
   // body: { estado: 'ACTIVO' | 'INACTIVO' }
-  async function handleCambiarEstado(idInstructor, estadoActual) {
+  async function handleCambiarEstado(id_instructor, estadoActual) { //se cambia y se pone id_instructor_lider
     const nuevoEstado = estadoActual === "ACTIVO" ? "INACTIVO" : "ACTIVO";
-    setCambiandoEstado(idInstructor);
+    setCambiandoEstado(id_instructor);// antes tenia en el parametro idInstructor 
     setMensajeExito("");
     setMensajeError("");
 
@@ -241,7 +241,10 @@ export default function ModalAgregarInstructor({ grupo, onCerrar }) {
                       type="button"
                       className={`mg-estado-btn ${item.estado === "ACTIVO" ? "desactivar" : "activar"}`}
                       disabled={cambiandoEstado === item.id_instructor}
-                      onClick={() => handleCambiarEstado(item.id_instructor, item.estado)}
+                      //onClick={() => handleCambiarEstado(item.id_instructor, item.estado)} la vieja
+                        onClick={() => 
+                          handleCambiarEstado(item.id_instructor, item.estado)
+                         } // la nueva
                       title={item.estado === "ACTIVO" ? "Desactivar" : "Activar"}
                     >
                       {cambiandoEstado === item.id_instructor ? (
