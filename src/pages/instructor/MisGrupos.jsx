@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, ClipboardList, Eye, FilterX, Search } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -496,6 +496,15 @@ export default function MisGrupos() {
                             aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
                           >
                             <CalendarClock size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
+                            title="Filtrar asistencias"
+                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <ClipboardList size={16} />
                           </button>
                         </div>
                       </td>
