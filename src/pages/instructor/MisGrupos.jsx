@@ -185,6 +185,44 @@ function obtenerIdGrupo(grupo, index = 0) {
   return grupo.id_grupo || grupo.id || grupo.codigo || grupo.numero_ficha || index;
 }
 
+function agregarValor(set, valor) {
+  if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
+}
+
+function leerUsuarioActual() {
+  try {
+    return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function obtenerIdsInstructorActual() {
+  const usuario = leerUsuarioActual();
+  const instructor = usuario.instructor || usuario.informacion_rol?.instructor || {};
+  const ids = new Set();
+
+  [
+    localStorage.getItem("id_instructor"),
+    usuario.id_instructor,
+    instructor.id_instructor,
+    usuario.informacion_rol?.id_instructor,
+  ].forEach((valor) => agregarValor(ids, valor));
+
+  return ids;
+}
+
+function esInstructorLiderGrupo(grupo) {
+  const idsInstructor = obtenerIdsInstructorActual();
+  const candidatos = [
+    grupo?.id_instructor_lider,
+    grupo?.instructor_lider?.id_instructor,
+    grupo?.instructor?.id_instructor,
+  ].filter(Boolean).map(String);
+
+  return candidatos.some((id) => idsInstructor.has(id));
+}
+
 function prepararGrupoDetalle(grupo) {
   const trimestres = obtenerTrimestres(grupo);
 
@@ -454,6 +492,7 @@ export default function MisGrupos() {
               ) : gruposPagina.length > 0 ? (
                 gruposPagina.map((grupo, index) => {
                   const estado = obtenerEstado(grupo);
+                  const esLider = esInstructorLiderGrupo(grupo);
 
                   return (
                     <tr key={obtenerIdGrupo(grupo, inicioPagina + index)}>
@@ -477,15 +516,17 @@ export default function MisGrupos() {
                           >
                             <Eye size={16} />
                           </button>
-                          <button
-                            type="button"
-                            className="grupos-icon-btn horario"
-                            onClick={() => setGrupoHorario(grupo)}
-                            title="Asignar horario"
-                            aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
-                          >
-                            <CalendarClock size={16} />
-                          </button>
+                          {esLider && (
+                            <button
+                              type="button"
+                              className="grupos-icon-btn horario"
+                              onClick={() => setGrupoHorario(grupo)}
+                              title="Asignar horario"
+                              aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
+                            >
+                              <CalendarClock size={16} />
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="grupos-icon-btn"
@@ -495,15 +536,17 @@ export default function MisGrupos() {
                           >
                             <ClipboardList size={16} />
                           </button>
-                          <button
-                            type="button"
-                            className="grupos-icon-btn"
-                            onClick={() => setGrupoModal(grupo)}
-                            title="Gestionar instructores"
-                            aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}
-                          >
-                            <UserPlus size={16} />
-                          </button>
+                          {esLider && (
+                            <button
+                              type="button"
+                              className="grupos-icon-btn"
+                              onClick={() => setGrupoModal(grupo)}
+                              title="Gestionar instructores"
+                              aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}
+                            >
+                              <UserPlus size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -533,7 +576,7 @@ export default function MisGrupos() {
         )}
       </section>
 
-      {grupoHorario && (
+      {grupoHorario && esInstructorLiderGrupo(grupoHorario) && (
         <HorarioGrupoModal
           grupo={grupoHorario}
           onClose={() => setGrupoHorario(null)}
@@ -542,7 +585,7 @@ export default function MisGrupos() {
         />
       )}
 
-      {grupoModal && (
+      {grupoModal && esInstructorLiderGrupo(grupoModal) && (
         <ModalAgregarInstructor
           grupo={grupoModal}
           onCerrar={() => setGrupoModal(null)}

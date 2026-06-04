@@ -40,27 +40,34 @@ const nombresRiesgo = {
   MANUAL: "Manual"
 };
 
+const formatearFechaISO = (fecha) => {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+};
+
 const inicioMesActual = (fechaBase = new Date()) => {
   const fecha = new Date(fechaBase);
-  return new Date(fecha.getFullYear(), fecha.getMonth(), 1).toISOString().slice(0, 10);
+  return formatearFechaISO(new Date(fecha.getFullYear(), fecha.getMonth(), 1));
 };
 
 const finMesActual = (fechaBase = new Date()) => {
   const fecha = new Date(fechaBase);
-  return new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).toISOString().slice(0, 10);
+  return formatearFechaISO(new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0));
 };
 
 const inicioSemanaActual = (fechaBase = new Date()) => {
   const fecha = new Date(fechaBase);
   const dia = fecha.getDay() || 7;
   fecha.setDate(fecha.getDate() - dia + 1);
-  return fecha.toISOString().slice(0, 10);
+  return formatearFechaISO(fecha);
 };
 
 const finSemanaActual = (fechaBase = new Date()) => {
   const fecha = new Date(`${inicioSemanaActual(fechaBase)}T12:00:00`);
   fecha.setDate(fecha.getDate() + 4);
-  return fecha.toISOString().slice(0, 10);
+  return formatearFechaISO(fecha);
 };
 
 const formatearFechaCorta = (fechaISO) => {
@@ -101,6 +108,23 @@ const extraerSesiones = (data) => {
   return Array.isArray(sesiones) ? sesiones : [];
 };
 
+const extraerHorarios = (data) => {
+  const horarios =
+    data?.horarios ||
+    data?.horario ||
+    data?.schedule ||
+    data?.schedules ||
+    data?.sesiones ||
+    data?.results ||
+    data;
+  return Array.isArray(horarios) ? horarios : [];
+};
+
+const extraerAsignacionesInstructor = (data) => {
+  const asignaciones = data?.data || data?.instructores || data?.items || data?.results || data;
+  return Array.isArray(asignaciones) ? asignaciones : [];
+};
+
 const extraerAsistencias = (data) => {
   const asistencias = data?.asistencias || data?.data?.asistencias || data?.results || data;
   return Array.isArray(asistencias) ? asistencias : [];
@@ -115,10 +139,47 @@ const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || 
 const obtenerCodigo = (grupo) => grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "Sin ficha";
 const obtenerIdSesion = (sesion) => sesion.id_sesion_formacion || sesion.id;
 const obtenerIdGrupoSesion = (sesion) => sesion.id_grupo || sesion.grupo?.id_grupo;
+const obtenerFechaSesion = (sesion) => {
+  const valor = String(sesion.fecha_clase || sesion.fecha || sesion.fecha_sesion || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor : "";
+};
+const normalizarDiaSemana = (valor) => {
+  const texto = String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  const equivalencias = {
+    "1": "lunes",
+    "2": "martes",
+    "3": "miercoles",
+    "4": "jueves",
+    "5": "viernes",
+    lunes: "lunes",
+    martes: "martes",
+    miercoles: "miercoles",
+    jueves: "jueves",
+    viernes: "viernes"
+  };
+  return equivalencias[texto] || "";
+};
+const obtenerDiaSemanaSesion = (sesion) =>
+  normalizarDiaSemana(
+    sesion.dia_semana ||
+    sesion.nombre_dia ||
+    sesion.dia_nombre ||
+    sesion.dia ||
+    sesion.numero_dia ||
+    sesion.bloque_jornada?.dia_semana ||
+    sesion.horario?.dia_semana ||
+    sesion.horario?.dia
+  );
 const obtenerFichaSesion = (sesion) => sesion.grupo?.numero_ficha || sesion.numero_ficha || sesion.id_grupo || "Sin ficha";
 const obtenerCompetenciaSesion = (sesion) =>
   sesion.competencia?.nombre_competencia ||
   sesion.competencia?.nombre ||
+  sesion.clase_competencia?.competencia?.nombre_competencia ||
+  sesion.clase_competencia?.nombre_competencia ||
   sesion.nombre_competencia ||
   sesion.bloque_jornada?.nombre_bloque ||
   "Sesion de formacion";
@@ -127,6 +188,97 @@ const obtenerAmbienteSesion = (sesion) =>
   sesion.ambiente?.nombre ||
   sesion.nombre_ambiente ||
   "Ambiente asignado";
+const obtenerHoraInicioSesion = (sesion) =>
+  sesion.hora_inicio_programada || sesion.hora_inicio || sesion.horaInicio || sesion.inicio || sesion.bloque_jornada?.hora_inicio || "";
+const obtenerHoraFinSesion = (sesion) =>
+  sesion.hora_fin_programada || sesion.hora_fin || sesion.horaFin || sesion.fin || sesion.bloque_jornada?.hora_fin || "";
+const agregarValor = (set, valor) => {
+  if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
+};
+const leerUsuarioActual = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
+  } catch {
+    return {};
+  }
+};
+const obtenerIdentidadInstructorActual = () => {
+  const usuario = leerUsuarioActual();
+  const persona = usuario.persona || {};
+  const instructor = usuario.instructor || usuario.informacion_rol?.instructor || {};
+  const idsInstructor = new Set();
+  const idsUsuario = new Set();
+  const documentos = new Set();
+  const emails = new Set();
+
+  [
+    localStorage.getItem("id_instructor"),
+    usuario.id_instructor,
+    instructor.id_instructor,
+    usuario.informacion_rol?.id_instructor
+  ].forEach((valor) => agregarValor(idsInstructor, valor));
+
+  [usuario.id_usuario, usuario.id, instructor.usuario?.id_usuario].forEach((valor) => agregarValor(idsUsuario, valor));
+  [persona.numero_documento, usuario.numero_documento, localStorage.getItem("user_documento")].forEach((valor) => agregarValor(documentos, valor));
+  [usuario.email, instructor.usuario?.email, localStorage.getItem("user_email")].forEach((valor) => agregarValor(emails, valor));
+
+  return { idsInstructor, idsUsuario, documentos, emails };
+};
+const itemPerteneceInstructorActual = (item, identidad = obtenerIdentidadInstructorActual()) => {
+  const persona = item?.usuario?.persona || item?.persona || item?.instructor?.usuario?.persona || item?.instructor_grupo?.instructor?.usuario?.persona || {};
+  const idsInstructor = [
+    item?.id_instructor,
+    item?.instructor?.id_instructor,
+    item?.instructor_grupo?.id_instructor,
+    item?.instructor_grupo?.instructor?.id_instructor
+  ].filter(Boolean).map(String);
+  const idsUsuario = [
+    item?.id_usuario,
+    item?.usuario?.id_usuario,
+    item?.instructor?.usuario?.id_usuario,
+    item?.instructor_grupo?.instructor?.usuario?.id_usuario
+  ].filter(Boolean).map(String);
+  const documentos = [
+    item?.numero_documento,
+    persona?.numero_documento
+  ].filter(Boolean).map(String);
+  const emails = [
+    item?.email,
+    item?.usuario?.email,
+    item?.instructor?.usuario?.email,
+    item?.instructor_grupo?.instructor?.usuario?.email
+  ].filter(Boolean).map(String);
+
+  return (
+    idsInstructor.some((valor) => identidad.idsInstructor.has(valor)) ||
+    idsUsuario.some((valor) => identidad.idsUsuario.has(valor)) ||
+    documentos.some((valor) => identidad.documentos.has(valor)) ||
+    emails.some((valor) => identidad.emails.has(valor))
+  );
+};
+const obtenerIdsAsignacionInstructorActual = (asignaciones = [], identidad = obtenerIdentidadInstructorActual()) => {
+  return new Set(
+    asignaciones
+      .filter((item) => itemPerteneceInstructorActual(item, identidad))
+      .map((item) => item.id_instructor_grupo)
+      .filter(Boolean)
+      .map(String)
+  );
+};
+const horarioPerteneceInstructorActual = (horario, idsAsignacionActual, identidad = obtenerIdentidadInstructorActual()) => {
+  const idAsignacion = horario.id_instructor_grupo || horario.instructor_grupo?.id_instructor_grupo;
+  if (idAsignacion) return idsAsignacionActual.has(String(idAsignacion));
+
+  const tieneInstructor =
+    horario.id_instructor ||
+    horario.instructor?.id_instructor ||
+    horario.instructor_grupo?.id_instructor ||
+    horario.instructor_grupo?.instructor?.id_instructor ||
+    horario.usuario?.id_usuario ||
+    horario.instructor?.usuario?.id_usuario;
+
+  return tieneInstructor ? itemPerteneceInstructorActual(horario, identidad) : true;
+};
 const obtenerPersona = (item) => item?.aprendiz?.usuario?.persona || item?.usuario?.persona || item?.persona || {};
 const obtenerNombreAprendiz = (item) => {
   const persona = obtenerPersona(item);
@@ -134,9 +286,18 @@ const obtenerNombreAprendiz = (item) => {
   return nombre || item?.aprendizNombre || item?.nombre || "Aprendiz";
 };
 const obtenerFicha = (item) => item?.grupo?.numero_ficha || item?.grupoCodigo || item?.id_grupo || "Sin ficha";
+const esInstructorLiderGrupo = (grupo) => {
+  const identidad = obtenerIdentidadInstructorActual();
+  const idsLider = [
+    grupo?.id_instructor_lider,
+    grupo?.instructor_lider?.id_instructor,
+    grupo?.instructor?.id_instructor
+  ].filter(Boolean).map(String);
+
+  return idsLider.some((idInstructor) => identidad.idsInstructor.has(idInstructor));
+};
 const obtenerRol = (grupo) => {
-  const idInstructor = localStorage.getItem("id_instructor");
-  if (idInstructor && String(grupo.id_instructor_lider) === String(idInstructor)) return "Lider";
+  if (esInstructorLiderGrupo(grupo)) return "Lider";
   return grupo.id_instructor_lider ? "Asignado" : "Instructor";
 };
 
@@ -162,6 +323,49 @@ const claseEstadoSesion = (estado) => {
   return "sin";
 };
 
+const obtenerClaseDiaCalendario = (sesiones = []) => {
+  if (!sesiones.length) return "sin-sesiones";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "activa")) return "activa";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "proxima")) return "proxima";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "cerrada")) return "cerrada";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "cancelada")) return "cancelada";
+  return "con-sesiones";
+};
+
+const normalizarHorarioComoSesion = (horario, grupo) => ({
+  ...horario,
+  id: horario.id_horario || horario.id_sesion_formacion || horario.id,
+  id_grupo: horario.id_grupo || grupo?.id_grupo,
+  grupo: horario.grupo || grupo,
+  numero_ficha: horario.numero_ficha || grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo,
+  estado: horario.estado || "PROGRAMADA",
+  dia_semana: horario.dia_semana || horario.dia || horario.nombre_dia || horario.day,
+  hora_inicio_programada: obtenerHoraInicioSesion(horario),
+  hora_fin_programada: obtenerHoraFinSesion(horario),
+  competencia: horario.competencia || horario.clase_competencia?.competencia || horario.clase_competencia,
+  ambiente: horario.ambiente || horario.bloque_jornada?.ambiente
+});
+
+const obtenerClaveSesionCalendario = (sesion) => [
+  obtenerFechaSesion(sesion) || obtenerDiaSemanaSesion(sesion),
+  obtenerHoraInicioSesion(sesion),
+  obtenerHoraFinSesion(sesion),
+  obtenerIdGrupoSesion(sesion) || sesion.id_grupo,
+  obtenerCompetenciaSesion(sesion)
+].join("|");
+
+const combinarSesionesCalendario = (...listas) => {
+  const sesiones = new Map();
+  listas.flat().forEach((sesion) => {
+    const clave = obtenerClaveSesionCalendario(sesion);
+    if (!clave.replaceAll("|", "")) return;
+    if (!sesiones.has(clave) || obtenerFechaSesion(sesion)) {
+      sesiones.set(clave, sesion);
+    }
+  });
+  return [...sesiones.values()];
+};
+
 export default function PanelInstructor() {
   const navigate = useNavigate();
   const [grupos, setGrupos] = useState([]);
@@ -174,7 +378,7 @@ export default function PanelInstructor() {
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [semanaReferencia] = useState(() => new Date().toISOString().slice(0, 10));
+  const [semanaReferencia] = useState(() => formatearFechaISO(new Date()));
 
   const inicioSemana = useMemo(() => inicioSemanaActual(semanaReferencia), [semanaReferencia]);
   const finSemana = useMemo(() => finSemanaActual(semanaReferencia), [semanaReferencia]);
@@ -188,12 +392,10 @@ export default function PanelInstructor() {
         const [
           resumen,
           alertasResultado,
-          sesionesMesResultado,
           sesionesSemanaResultado
         ] = await Promise.all([
           fetchJson("/api/dashboard/instructor/resumen"),
           fetchJson("/api/alerts?estado=ABIERTA&limit=50").catch(() => ({ alertas: [] })),
-          fetchJson(`/api/educational-sessions?fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] })),
           fetchJson(`/api/educational-sessions?fecha_desde=${inicioSemana}&fecha_hasta=${finSemana}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }))
         ]);
 
@@ -203,8 +405,47 @@ export default function PanelInstructor() {
           extraerGrupos(resumen?.grupos_liderados),
           extraerGrupos(resumen?.grupos_asignados)
         );
-        const sesionesMes = extraerSesiones(sesionesMesResultado);
         const sesionesSemanaData = extraerSesiones(sesionesSemanaResultado);
+
+        setGrupos(gruposInstructor);
+        setAlertas(extraerAlertas(alertasResultado));
+        setSesionesSemana(sesionesSemanaData);
+        setTotalAprendices(Number(resumen?.kpis?.total_aprendices_activos) || 0);
+        setTotalObservacionesMes(Number(resumen?.kpis?.total_observaciones_abiertas) || 0);
+        setError("");
+        setCargando(false);
+
+        const identidadInstructor = obtenerIdentidadInstructorActual();
+        const horariosPorGrupo = await Promise.allSettled(
+          gruposInstructor.map(async (grupo) => {
+            const idGrupoSeguro = encodeURIComponent(grupo.id_grupo);
+            const [horariosData, asignacionesData] = await Promise.all([
+              fetchJson(`/api/educational-schedules/group/${idGrupoSeguro}`).catch(() => []),
+              fetchJson(`/api/instructor-groups/grupo/${idGrupoSeguro}`).catch(() => [])
+            ]);
+            const idsAsignacionActual = obtenerIdsAsignacionInstructorActual(
+              extraerAsignacionesInstructor(asignacionesData),
+              identidadInstructor
+            );
+
+            return extraerHorarios(horariosData)
+              .filter((horario) => horarioPerteneceInstructorActual(horario, idsAsignacionActual, identidadInstructor))
+              .map((horario) => normalizarHorarioComoSesion(horario, grupo));
+          })
+        );
+        if (!activo) return;
+
+        const horariosInstructor = horariosPorGrupo.flatMap((result) =>
+          result.status === "fulfilled" ? result.value : []
+        );
+        if (horariosInstructor.length) {
+          setSesionesSemana((actual) => combinarSesionesCalendario(actual, horariosInstructor));
+        }
+
+        const sesionesMesResultado = await fetchJson(`/api/educational-sessions?fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }));
+        if (!activo) return;
+
+        const sesionesMes = extraerSesiones(sesionesMesResultado);
         const [asistenciasPorSesion, observacionesPorGrupo] = await Promise.all([
           Promise.allSettled(
             sesionesMes.map((sesion) =>
@@ -241,24 +482,18 @@ export default function PanelInstructor() {
           return acc;
         }, { total: 0, asisten: 0, porGrupo: {} });
 
-        setGrupos(gruposInstructor);
-        setAlertas(extraerAlertas(alertasResultado));
         setObservacionesRecientes(
           observacionesPorGrupo
             .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
             .sort((a, b) => new Date(b.fecha_observacion || 0) - new Date(a.fecha_observacion || 0))
             .slice(0, 5)
         );
-        setSesionesSemana(sesionesSemanaData);
-        setTotalAprendices(Number(resumen?.kpis?.total_aprendices_activos) || 0);
-        setTotalObservacionesMes(Number(resumen?.kpis?.total_observaciones_abiertas) || 0);
         setAsistenciaPromedioMes(
           acumuladoAsistencia.total
             ? Math.round((acumuladoAsistencia.asisten / acumuladoAsistencia.total) * 100)
             : null
         );
         setAsistenciaPorGrupo(acumuladoAsistencia.porGrupo);
-        setError("");
       } catch (err) {
         console.error("Error cargando dashboard del instructor:", err);
         if (activo) setError(err.message || "No fue posible cargar el dashboard del instructor");
@@ -365,16 +600,22 @@ export default function PanelInstructor() {
     return dias.map((dia, index) => {
       const fecha = new Date(inicio);
       fecha.setDate(inicio.getDate() + index);
-      const fechaISO = fecha.toISOString().slice(0, 10);
+      const fechaISO = formatearFechaISO(fecha);
+      const diaNormalizado = normalizarDiaSemana(dia);
       const sesionesDia = sesionesSemana
-        .filter((sesion) => sesion.fecha_clase === fechaISO)
+        .filter((sesion) => {
+          const fechaSesion = obtenerFechaSesion(sesion);
+          const diaSesion = obtenerDiaSemanaSesion(sesion);
+          return fechaSesion === fechaISO || (!fechaSesion && diaSesion === diaNormalizado);
+        })
         .sort((a, b) =>
-          String(a.hora_inicio_programada || "").localeCompare(String(b.hora_inicio_programada || ""))
+          String(obtenerHoraInicioSesion(a)).localeCompare(String(obtenerHoraInicioSesion(b)))
         );
 
       return {
         dia,
         fecha: fechaISO,
+        clase: obtenerClaseDiaCalendario(sesionesDia),
         sesiones: sesionesDia
       };
     });
@@ -569,19 +810,19 @@ export default function PanelInstructor() {
 
           <div className="instructor-calendar-grid">
             {calendarioSemana.map((item) => (
-              <div key={item.dia} className={`instructor-calendar-day ${item.sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "activa") ? "activa" : ""}`}>
+              <div key={item.dia} className={`instructor-calendar-day ${item.clase}`}>
                 <div className="instructor-calendar-head">
                   <strong>{item.dia}</strong>
                   <span>{formatearFechaCorta(item.fecha)}</span>
                 </div>
-                {item.sesiones.length ? item.sesiones.map((sesion) => (
+                {item.sesiones.length ? item.sesiones.slice(0, 2).map((sesion, index) => (
                   <div
                     className={`instructor-calendar-session ${claseEstadoSesion(sesion.estado)}`}
-                    key={obtenerIdSesion(sesion)}
+                    key={obtenerIdSesion(sesion) || `${item.dia}-${obtenerClaveSesionCalendario(sesion)}-${index}`}
                   >
                     <span className="instructor-calendar-time">
                       <Clock size={13} />
-                      {normalizarHora(sesion.hora_inicio_programada)} - {normalizarHora(sesion.hora_fin_programada)}
+                      {normalizarHora(obtenerHoraInicioSesion(sesion))} - {normalizarHora(obtenerHoraFinSesion(sesion))}
                     </span>
                     <strong>{obtenerCompetenciaSesion(sesion)}</strong>
                     <small>Ficha {obtenerFichaSesion(sesion)} · {obtenerAmbienteSesion(sesion)}</small>
@@ -605,7 +846,6 @@ export default function PanelInstructor() {
           </div>
         </article>
       </section>
-
       <section className="instructor-mini-grid">
         <article className="coordinador-card instructor-mini-card">
           <h2>Indicadores rapidos</h2>

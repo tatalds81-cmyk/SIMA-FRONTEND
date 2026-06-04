@@ -382,6 +382,19 @@ export default function AsistenciaInstructor() {
     );
   }
 
+  useEffect(() => {
+    if (!haySesionActiva || guardandoAsistencia || aprendizManual) return undefined;
+
+    const intervalo = window.setInterval(() => {
+      if (document.hidden) return;
+      recargarAsistenciasSesion(sesionActiva).catch((error) => {
+        console.error("Error refrescando asistencia automaticamente:", error);
+      });
+    }, 15000);
+
+    return () => window.clearInterval(intervalo);
+  }, [aprendizManual, guardandoAsistencia, grupoActual, grupoSeleccionado, haySesionActiva, sesionActiva]);
+
   async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion) {
     if (!sesionActiva) {
       throw new Error("No hay una sesion abierta para registrar asistencia.");

@@ -693,6 +693,44 @@ function construirPerfilAprendiz(aprendiz, detalleGrupo, resumenAlertas = {}) {
   };
 }
 
+function agregarValor(set, valor) {
+  if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
+}
+
+function leerUsuarioActualStorage() {
+  try {
+    return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function obtenerIdsInstructorActual() {
+  const usuario = leerUsuarioActualStorage();
+  const instructor = usuario.instructor || usuario.informacion_rol?.instructor || {};
+  const ids = new Set();
+
+  [
+    localStorage.getItem("id_instructor"),
+    usuario.id_instructor,
+    instructor.id_instructor,
+    usuario.informacion_rol?.id_instructor,
+  ].forEach((valor) => agregarValor(ids, valor));
+
+  return ids;
+}
+
+function esInstructorLiderGrupo(grupo) {
+  const idsInstructor = obtenerIdsInstructorActual();
+  const candidatos = [
+    grupo?.id_instructor_lider,
+    grupo?.instructor_lider?.id_instructor,
+    grupo?.instructor?.id_instructor,
+  ].filter(Boolean).map(String);
+
+  return candidatos.some((idInstructor) => idsInstructor.has(idInstructor));
+}
+
 export default function GrupoDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -738,6 +776,7 @@ export default function GrupoDetalle() {
   const [cargandoPerfil, setCargandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState("");
   const [filtrosAlertas, setFiltrosAlertas] = useState(FILTROS_ALERTAS_INICIALES);
+  const puedeGestionarHorario = puedeEditarGrupo || (esInstructor && esInstructorLiderGrupo(grupo));
   const [paginaAprendices, setPaginaAprendices] = useState(1);
   const [paginaAlertas, setPaginaAlertas] = useState(1);
 
@@ -1377,7 +1416,7 @@ export default function GrupoDetalle() {
               <p className="gd-card-kicker">Ficha {detalle.ficha} - {detalle.jornada}</p>
             </div>
             <div className="gd-header-actions">
-              {esInstructor && (
+              {puedeGestionarHorario && (
                 <button type="button" className="grupos-primary-btn" onClick={() => setGrupoHorario(grupo)}>
                   <CalendarClock size={15} />
                   Asignar horario
@@ -1897,7 +1936,7 @@ export default function GrupoDetalle() {
         </div>
       )}
 
-      {grupoHorario && (
+      {grupoHorario && puedeGestionarHorario && (
         <HorarioGrupoModal
           grupo={grupoHorario}
           onClose={() => setGrupoHorario(null)}
