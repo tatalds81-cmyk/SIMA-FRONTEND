@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, ClipboardList, Eye, FilterX, Search } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -12,6 +12,7 @@ import {
 } from "../../services/gruposService";
 import HorarioGrupoModal from "../fichas/HorarioGrupoModal";
 import "../fichas/fichas.css";
+import "./instructor.css";
 
 const GRUPOS_POR_PAGINA = 5;
 const FICHAS_OCULTAS = new Set(["2850312"]);
@@ -340,6 +341,19 @@ export default function MisGrupos() {
     navigate(`/instructor/grupos/${idGrupo}`, { state: { grupo: grupoDetalle } });
   }
 
+  function navegarHistorialAsistencia(grupo, index = 0) {
+    const idGrupo = obtenerIdGrupo(grupo, index);
+    const grupoDetalle = prepararGrupoDetalle(grupo);
+
+    try {
+      sessionStorage.setItem(`sima_grupo_detalle_${idGrupo}`, JSON.stringify(grupoDetalle));
+    } catch {
+      // La navegacion sigue funcionando aunque el navegador bloquee sessionStorage.
+    }
+
+    navigate(`/instructor/grupos/${idGrupo}/asistencias`, { state: { grupo: grupoDetalle } });
+  }
+
   return (
     <div className="grupos-page mis-grupos-page">
       <header className="grupos-header">
@@ -466,10 +480,19 @@ export default function MisGrupos() {
                             type="button"
                             className="grupos-icon-btn horario"
                             onClick={() => setGrupoHorario(grupo)}
-                            title="Ver horario"
-                            aria-label={`Ver horario de la ficha ${obtenerCodigo(grupo)}`}
+                            title="Asignar horario"
+                            aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
                           >
                             <CalendarClock size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
+                            title="Filtrar asistencias"
+                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <ClipboardList size={16} />
                           </button>
                         </div>
                       </td>
@@ -508,6 +531,7 @@ export default function MisGrupos() {
           obtenerPrograma={obtenerPrograma}
         />
       )}
+
     </div>
   );
 }

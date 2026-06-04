@@ -62,12 +62,17 @@ export function extraerListaHorarios(data) {
 }
 
 function extraerOpcionesHorario(data) {
-  const opciones = data?.data?.opciones || data?.opciones || {};
+  const payload = data?.data || data || {};
+  const opciones = payload.opciones || payload || {};
 
   return {
     trimestres: Array.isArray(opciones.trimestres) ? opciones.trimestres : [],
     competencias: Array.isArray(opciones.competencias) ? opciones.competencias : [],
-    instructores: Array.isArray(opciones.instructores) ? opciones.instructores : [],
+    instructores: Array.isArray(opciones.instructores_responsables)
+      ? opciones.instructores_responsables
+      : Array.isArray(opciones.instructores)
+        ? opciones.instructores
+        : [],
     bloques: Array.isArray(opciones.bloques) ? opciones.bloques : [],
   };
 }
@@ -139,6 +144,27 @@ function normalizarJornada(valor) {
 
 function normalizarTextoFormulario(valor) {
   return String(valor || "").trim().replace(/\s+/g, " ");
+}
+
+function fechaIso(fecha) {
+  return fecha.toISOString().slice(0, 10);
+}
+
+function obtenerFechaInicioSesiones(grupo) {
+  const hoy = new Date();
+  const inicioGrupo = grupo?.fecha_inicio ? new Date(`${String(grupo.fecha_inicio).split("T")[0]}T00:00:00`) : null;
+
+  if (inicioGrupo && !Number.isNaN(inicioGrupo.getTime()) && inicioGrupo > hoy) {
+    return fechaIso(inicioGrupo);
+  }
+
+  return fechaIso(hoy);
+}
+
+function obtenerFechaFinSesiones(fechaInicio, semanas) {
+  const fecha = new Date(`${fechaInicio}T00:00:00`);
+  fecha.setDate(fecha.getDate() + (semanas * 7) - 1);
+  return fechaIso(fecha);
 }
 
 function completarOpcionesDesdeGrupo(opciones, grupo) {
@@ -227,6 +253,45 @@ export function normalizarHorario(item, index = 0) {
 
 export function obtenerIdGrupo(grupo) {
   return grupo?.id_grupo || grupo?.id || grupo?.codigo || grupo?.numero_ficha || grupo?.numero_grupo;
+}
+
+function extraerListaGruposHorario(data) {
+  const lista =
+    data?.data?.grupos ||
+    data?.data?.items ||
+    data?.data ||
+    data?.grupos ||
+    data?.items ||
+    data;
+
+  return Array.isArray(lista) ? lista : [];
+}
+
+async function resolverIdGrupoHorario(grupo) {
+  if (grupo?.id_grupo) return grupo.id_grupo;
+
+  const candidato = grupo?.id;
+  if (candidato) {
+    try {
+      const { data } = await api.get(`${API_URL}/groups/${encodeURIComponent(candidato)}`);
+      const detalle = data?.data || data || {};
+      if (detalle?.id_grupo) return detalle.id_grupo;
+    } catch {
+      // Puede ser numero de ficha; se resuelve con el listado.
+    }
+  }
+
+  const ficha = String(grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo || grupo?.ficha || candidato || "");
+  if (ficha) {
+    const { data } = await api.get(`${API_URL}/groups?limit=1000`);
+    const encontrado = extraerListaGruposHorario(data).find((item) =>
+      String(item.id_grupo || "") === ficha ||
+      String(item.numero_ficha || item.numero_grupo || item.codigo || item.ficha || "") === ficha
+    );
+    if (encontrado?.id_grupo) return encontrado.id_grupo;
+  }
+
+  return obtenerIdGrupo(grupo);
 }
 
 export function obtenerHorariosEmbebidos(grupo) {
@@ -337,35 +402,27 @@ export async function consultarHorariosGrupo(idGrupo) {
 export async function consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones = true } = {}) {
   if (!idGrupo) return { horarios: [], opciones: OPCIONES_INICIALES };
 
-  const endpoints = [`${API_URL}/groups/${encodeURIComponent(idGrupo)}/horarios`];
-  if (usarFallbackSesiones) {
-    endpoints.push(`${API_URL}/educational-sessions?id_grupo=${encodeURIComponent(idGrupo)}&limit=100`);
+  const idGrupoSeguro = encodeURIComponent(idGrupo);
+  const [horariosRespuesta, catalogosRespuesta] = await Promise.all([
+    api.get(`${API_URL}/educational-schedules/group/${idGrupoSeguro}`),
+    api.get(`${API_URL}/educational-schedules/catalogs?id_grupo=${idGrupoSeguro}`),
+  ]);
+
+  let horarios = extraerListaHorarios(horariosRespuesta.data)
+    .map(normalizarHorario)
+    .filter((horario) => horario.dia);
+
+  if (!horarios.length && usarFallbackSesiones) {
+    const { data } = await api.get(`${API_URL}/educational-sessions?id_grupo=${idGrupoSeguro}&limit=100`);
+    horarios = extraerListaHorarios(data)
+      .map(normalizarHorario)
+      .filter((horario) => horario.dia);
   }
 
-  let ultimoError = null;
-
-  for (const endpoint of endpoints) {
-    try {
-      const { data } = await api.get(endpoint);
-
-      return {
-        horarios: extraerListaHorarios(data)
-          .map(normalizarHorario)
-          .filter((horario) => horario.dia),
-        opciones: extraerOpcionesHorario(data),
-      };
-    } catch (error) {
-      const data = error?.response?.data;
-      if (error?.response?.status === 404) {
-        ultimoError = new Error(data?.message || `Ruta no disponible: ${endpoint}`);
-        continue;
-      }
-
-      ultimoError = new Error(data?.message || data?.error || error?.message || "No fue posible cargar el horario.");
-    }
-  }
-
-  throw ultimoError || new Error("No fue posible cargar el horario.");
+  return {
+    horarios,
+    opciones: extraerOpcionesHorario(catalogosRespuesta.data),
+  };
 }
 
 export default function HorarioGrupoModal({
@@ -385,6 +442,7 @@ export default function HorarioGrupoModal({
   const [diasAbiertos, setDiasAbiertos] = useState(false);
   const [mensajeForm, setMensajeForm] = useState("");
   const [mensajeFormTipo, setMensajeFormTipo] = useState("success");
+  const [idGrupoCatalogo, setIdGrupoCatalogo] = useState("");
 
   useEffect(() => {
     let activo = true;
@@ -400,9 +458,11 @@ export default function HorarioGrupoModal({
       setCargando(true);
 
       try {
-        const dataHorario = await consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones: false });
+        const idGrupoReal = await resolverIdGrupoHorario(grupo);
+        const dataHorario = await consultarHorarioGrupoData(idGrupoReal, { usarFallbackSesiones: false });
         if (!activo) return;
         const opcionesCompletas = completarOpcionesDesdeGrupo(dataHorario.opciones, grupo);
+        setIdGrupoCatalogo(idGrupoReal);
         setOpciones(opcionesCompletas);
         setFormHorario((actual) => completarFormHorario(actual, opcionesCompletas));
         setError("");
@@ -467,7 +527,7 @@ export default function HorarioGrupoModal({
   const totalHorariosAcrear = diasSeleccionados.length * bloquesSeleccionados.length;
   const puedeGuardarHorario = Boolean(
     formHorario.id_grupo_trimestre &&
-      (formHorario.id_clase_competencia || nombreCompetenciaIngresada) &&
+      formHorario.id_clase_competencia &&
       formHorario.id_instructor_grupo &&
       diasSeleccionados.length &&
       bloquesSeleccionados.length &&
@@ -598,13 +658,13 @@ export default function HorarioGrupoModal({
 
   async function guardarBloqueHorario(evento) {
     evento.preventDefault();
-    const idGrupo = obtenerIdGrupo(grupo);
+    const idGrupo = idGrupoCatalogo || await resolverIdGrupoHorario(grupo);
 
     if (!idGrupo) return;
 
-    if (!formHorario.id_clase_competencia && !nombreCompetenciaIngresada) {
+    if (!formHorario.id_clase_competencia) {
       setMensajeFormTipo("error");
-      setMensajeForm("Selecciona o ingresa una competencia.");
+      setMensajeForm("Selecciona una competencia existente del programa.");
       return;
     }
 
@@ -632,8 +692,12 @@ export default function HorarioGrupoModal({
       setMensajeFormTipo("success");
 
       let creados = 0;
+      let sesionesGeneradas = 0;
       const duplicados = [];
       const fallidos = [];
+      const sesionesFallidas = [];
+      const fechaDesde = obtenerFechaInicioSesiones(grupo);
+      const fechaHasta = obtenerFechaFinSesiones(fechaDesde, semanasHorario);
 
       for (const dia of diasSeleccionados) {
         for (const bloque of bloquesSeleccionados) {
@@ -642,27 +706,36 @@ export default function HorarioGrupoModal({
           const horaFin = normalizarHora(bloque.hora_fin);
           const payload = {
             id_grupo_trimestre: Number(formHorario.id_grupo_trimestre),
+            id_clase_competencia: Number(formHorario.id_clase_competencia),
             id_instructor_grupo: Number(formHorario.id_instructor_grupo),
             id_bloque_jornada: Number(bloque.id_bloque_jornada),
             dia_semana: Number(dia),
-            semanas: semanasHorario,
-            generar_sesiones: true,
-            tolerancia_minutos: 15,
+            tolerancia_minutos: Number(formHorario.tolerancia_minutos || 15),
           };
-
-          if (formHorario.id_clase_competencia) {
-            payload.id_clase_competencia = Number(formHorario.id_clase_competencia);
-          } else {
-            payload.nombre_competencia = nombreCompetenciaIngresada;
-            payload.tipo_competencia = "FORMATIVA";
-          }
 
           if (horaInicio !== "-") payload.hora_inicio = horaInicio;
           if (horaFin !== "-") payload.hora_fin = horaFin;
 
           try {
-            await api.post(`${API_URL}/groups/${encodeURIComponent(idGrupo)}/horarios`, payload);
+            const { data: horarioRespuesta } = await api.post(`${API_URL}/educational-schedules`, payload);
+            const horarioCreado = horarioRespuesta?.data || horarioRespuesta || {};
             creados += 1;
+
+            if (horarioCreado.id_horario) {
+              try {
+                const { data: sesionesRespuesta } = await api.post(`${API_URL}/educational-sessions/generate`, {
+                  id_grupo_trimestre: Number(formHorario.id_grupo_trimestre),
+                  id_horario: Number(horarioCreado.id_horario),
+                  fecha_desde: fechaDesde,
+                  fecha_hasta: fechaHasta,
+                });
+                sesionesGeneradas += Number(sesionesRespuesta?.data?.creadas || sesionesRespuesta?.creadas || 0);
+              } catch (errorSesiones) {
+                const data = errorSesiones?.response?.data;
+                const mensaje = data?.message || data?.error || errorSesiones?.message || "No fue posible generar sesiones.";
+                sesionesFallidas.push(`${descripcion}: ${mensaje}`);
+              }
+            }
           } catch (error) {
             const data = error?.response?.data;
             const mensaje = data?.message || data?.error || error?.message || "No fue posible crear el horario.";
@@ -677,17 +750,6 @@ export default function HorarioGrupoModal({
       }
 
       const dataHorarioActualizado = await recargarHorario(idGrupo);
-      const competenciaUsada = dataHorarioActualizado.opciones.competencias.find((item) =>
-        normalizarBusqueda(obtenerNombreCompetencia(item)) === normalizarBusqueda(nombreCompetenciaIngresada)
-      );
-
-      if (competenciaUsada) {
-        setBusquedaCompetencia(obtenerNombreCompetencia(competenciaUsada));
-        setFormHorario((actual) => ({
-          ...actual,
-          id_clase_competencia: String(obtenerIdCompetencia(competenciaUsada)),
-        }));
-      }
 
       window.dispatchEvent(
         new CustomEvent("sima:horarios-actualizados", {
@@ -701,10 +763,12 @@ export default function HorarioGrupoModal({
 
       const partesMensaje = [];
       if (creados) partesMensaje.push(`${creados} horario${creados === 1 ? "" : "s"} creado${creados === 1 ? "" : "s"}.`);
+      if (sesionesGeneradas) partesMensaje.push(`${sesionesGeneradas} sesion${sesionesGeneradas === 1 ? "" : "es"} generada${sesionesGeneradas === 1 ? "" : "s"}.`);
       if (duplicados.length) partesMensaje.push(`${duplicados.length} ya existia${duplicados.length === 1 ? "" : "n"} y se omitio${duplicados.length === 1 ? "" : "eron"}.`);
       if (fallidos.length) partesMensaje.push(`${fallidos.length} no se pudo${fallidos.length === 1 ? "" : "ieron"} crear.`);
+      if (sesionesFallidas.length) partesMensaje.push(`${sesionesFallidas.length} horario${sesionesFallidas.length === 1 ? "" : "s"} no generaron sesiones.`);
 
-      setMensajeFormTipo(fallidos.length || (!creados && duplicados.length) ? "warning" : "success");
+      setMensajeFormTipo(fallidos.length || sesionesFallidas.length || (!creados && duplicados.length) ? "warning" : "success");
       setMensajeForm(partesMensaje.join(" ") || "No se crearon horarios nuevos.");
     } catch (err) {
       setMensajeFormTipo("error");
@@ -751,6 +815,11 @@ export default function HorarioGrupoModal({
                       </option>
                     ))}
                   </select>
+                  {!opciones.trimestres.length && (
+                    <small className="grupos-horario-field-hint">
+                      No hay trimestres programados o activos para esta ficha.
+                    </small>
+                  )}
                 </label>
 
                 <div className="grupos-horario-form-field grupos-horario-form-wide">
@@ -796,7 +865,7 @@ export default function HorarioGrupoModal({
                           })}
                           {nombreCompetenciaIngresada && !competenciaExacta && (
                             <div className="grupos-horario-instructor-empty">
-                              Nueva competencia: {nombreCompetenciaIngresada}
+                              Selecciona una competencia existente para poder guardar.
                             </div>
                           )}
                         </div>

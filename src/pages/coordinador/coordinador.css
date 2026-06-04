@@ -210,25 +210,34 @@
 }
 
 .coordinador-select-btn {
-  height: 34px;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 13px;
+  gap: 6px;
+  padding: 6px 10px;
   border: 1px solid var(--sima-border);
-  border-radius: 8px;
-  background: #f8fafc;
-  color: var(--sima-text);
+  border-radius: 7px;
+  background: #ffffff;
+  color: #334155;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
+  line-height: 1.15;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: none;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
 }
 
 .coordinador-select-btn.active {
-  border-color: #d5e2ef;
-  background: #ffffff;
+  border-color: #b9ddaa;
+  background: #f6fbf3;
+  color: var(--sima-green-dark);
+}
+
+.coordinador-select-btn:hover {
+  border-color: #b9ddaa;
+  color: var(--sima-green-dark);
 }
 
 .coordinador-filter-actions {
@@ -383,12 +392,12 @@
   margin-top: 14px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: 0;
   background: transparent;
   color: var(--sima-green-dark);
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -662,9 +671,9 @@
 }
 
 .coordinador-select-btn {
-  height: 28px;
+  min-height: 28px;
   gap: 5px;
-  padding: 0 10px;
+  padding: 5px 8px;
   font-size: 10px;
 }
 

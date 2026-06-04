@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, Eye, Layers, Plus, Search, Upload } from "lucide-react";
+import { Eye, Layers, Plus, Search, Upload } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -9,7 +9,6 @@ import {
   etiquetaEstadoGrupo,
   normalizarEstadoGrupo,
 } from "../../services/gruposService";
-import HorarioGrupoModal from "./HorarioGrupoModal";
 import "./fichas.css";
 
 export default function GruposFormativos() {
@@ -37,7 +36,6 @@ export default function GruposFormativos() {
   const [errores, setErrores] = useState({});
   const [estadoNumero, setEstadoNumero] = useState(null);
   const [aprendicesPorGrupo, setAprendicesPorGrupo] = useState({});
-  const [grupoHorario, setGrupoHorario] = useState(null);
 
   const API_URL = "/api";
   const URL_GRUPOS = `${API_URL}/groups`;
@@ -466,15 +464,6 @@ export default function GruposFormativos() {
                         <button type="button" className="grupos-icon-btn" onClick={() => abrirDetalleGrupo(grupo, inicioPagina + index)} title="Ver detalle">
                           <Eye size={16} />
                         </button>
-                        <button
-                          type="button"
-                          className="grupos-icon-btn horario"
-                          onClick={() => setGrupoHorario(grupo)}
-                          title="Ver horario"
-                          aria-label={`Ver horario del grupo ${obtenerCodigo(grupo)}`}
-                        >
-                          <CalendarClock size={16} />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -603,14 +592,6 @@ export default function GruposFormativos() {
         </div>
       )}
 
-      {grupoHorario && (
-        <HorarioGrupoModal
-          grupo={grupoHorario}
-          onClose={() => setGrupoHorario(null)}
-          obtenerCodigo={obtenerCodigo}
-          obtenerPrograma={obtenerPrograma}
-        />
-      )}
     </div>
   );
 }

@@ -6,10 +6,13 @@ export default function TablaAsistencia({
   cargando,
   guardando,
   modoManual,
+  soloLectura = false,
   onAbrirDetalle,
   onAbrirManual,
   onCambiarEstado
 }) {
+  const totalColumnas = 4 + (modoManual ? 1 : 0) + (soloLectura ? 0 : 1);
+
   return (
     <div className="asistencia-table-wrap">
       <table className={`asistencia-table ${modoManual ? "manual-active" : ""}`}>
@@ -20,13 +23,13 @@ export default function TablaAsistencia({
             <th>Estado</th>
             <th>Metodo</th>
             {modoManual && <th>Asistencia manual</th>}
-            <th>Acciones</th>
+            {!soloLectura && <th>Acciones</th>}
           </tr>
         </thead>
         <tbody>
           {cargando ? (
             <tr>
-              <td colSpan={modoManual ? 6 : 5} className="grupos-empty">Cargando aprendices...</td>
+              <td colSpan={totalColumnas} className="grupos-empty">Cargando aprendices...</td>
             </tr>
           ) : aprendices.length ? (
             aprendices.map((aprendiz) => (
@@ -56,7 +59,8 @@ export default function TablaAsistencia({
                     </label>
                   </td>
                 )}
-                <td>
+                {!soloLectura && (
+                  <td>
                   <button
                     type="button"
                     className="asistencia-icon-action"
@@ -66,12 +70,13 @@ export default function TablaAsistencia({
                   >
                     {modoManual ? <Edit3 size={15} /> : <Eye size={15} />}
                   </button>
-                </td>
+                  </td>
+                )}
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={modoManual ? 6 : 5} className="grupos-empty">No hay aprendices con esos filtros.</td>
+              <td colSpan={totalColumnas} className="grupos-empty">No hay aprendices con esos filtros.</td>
             </tr>
           )}
         </tbody>
