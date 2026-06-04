@@ -218,19 +218,6 @@ export default function MisGrupos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [grupoHorario, setGrupoHorario] = useState(null);
-  // agrego esta linea  
-  const [grupoModal, setGrupoModal] = useState(null);
-  const instructorIdActual = (() => {
-    try {
-      const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
-      return userData?.id_instructor || userData?.instructor?.id_instructor || null; 
-    }  catch { return null; }
-  })();  
-
-  function esLiderDeGrupo(grupo) {
-    if (!instructorIdActual) return false;
-    return Number(grupo.id_instructor_lider) === Number(instructorIdActual);
-  }  //HASTA ACA */}
 
   useEffect(() => {
     let activo = true;
