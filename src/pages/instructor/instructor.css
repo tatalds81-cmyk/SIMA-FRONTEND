@@ -330,9 +330,34 @@
   background: #fff;
 }
 
+.instructor-calendar-day.sin-sesiones {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
 .instructor-calendar-day.activa {
   background: linear-gradient(180deg, #eef8ef 0%, #f9fff7 100%);
   border-color: #d7ecd8;
+}
+
+.instructor-calendar-day.proxima {
+  background: linear-gradient(180deg, #fff7e6 0%, #fffbeb 100%);
+  border-color: #f8d79a;
+}
+
+.instructor-calendar-day.cerrada {
+  background: linear-gradient(180deg, #eef6ff 0%, #f8fbff 100%);
+  border-color: #bfdbfe;
+}
+
+.instructor-calendar-day.cancelada {
+  background: linear-gradient(180deg, #fff1f2 0%, #fffafa 100%);
+  border-color: #fecdd3;
+}
+
+.instructor-calendar-day.con-sesiones {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-color: #cbd5e1;
 }
 
 .instructor-calendar-head {
