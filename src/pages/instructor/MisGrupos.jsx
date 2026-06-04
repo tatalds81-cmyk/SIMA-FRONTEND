@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, Eye, FilterX, Search, UserPlus } from "lucide-react"; // add userplus
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -12,6 +12,7 @@ import {
 } from "../../services/gruposService";
 import HorarioGrupoModal from "../fichas/HorarioGrupoModal";
 import "../fichas/fichas.css";
+ import ModalAgregarInstructor from "./ModalAgregarInstructor"; // add ruta modal instructor
 
 const GRUPOS_POR_PAGINA = 5;
 const FICHAS_OCULTAS = new Set(["2850312"]);
@@ -218,6 +219,19 @@ export default function MisGrupos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [grupoHorario, setGrupoHorario] = useState(null);
+  // agrego esta linea  
+  const [grupoModal, setGrupoModal] = useState(null);
+  const instructorIdActual = (() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+      return userData?.id_instructor || userData?.instructor?.id_instructor || null; 
+    }  catch { return null; }
+  })();  
+
+  function esLiderDeGrupo(grupo) {
+    if (!instructorIdActual) return false;
+    return Number(grupo.id_instructor_lider) === Number(instructorIdActual);
+  }  //HASTA ACA */}
 
   useEffect(() => {
     let activo = true;
@@ -471,6 +485,14 @@ export default function MisGrupos() {
                           >
                             <CalendarClock size={16} />
                           </button>
+                          {/* add esto*/}
+                          {esLiderDeGrupo(grupo) && (
+                            <button type="button" className="grupos-icon-btn mg-btn-lider" onClick={() => setGrupoModal(grupo)} title="Gestionar instructores de apoyo" aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}>
+                              <UserPlus size={16}/>
+
+                         </button>
+                          )} {/*HASTA aca  */}
+
                         </div>
                       </td>
                     </tr>
@@ -508,6 +530,13 @@ export default function MisGrupos() {
           obtenerPrograma={obtenerPrograma}
         />
       )}
+      {/*ADD ESTO */}
+      {grupoModal && (
+        <ModalAgregarInstructor
+        grupo={grupoModal}
+        onCerrar={() => setGrupoModal(null)}
+        />
+      )} {/*hasta aca*/}
     </div>
   );
 }
