@@ -2217,6 +2217,10 @@
   gap: 8px;
 }
 
+.grupos-horario-instructor-results-dropdown {
+  grid-template-columns: 1fr;
+}
+
 .grupos-horario-instructor-option {
   min-height: 46px;
   display: flex;

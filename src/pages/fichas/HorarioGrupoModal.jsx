@@ -478,6 +478,7 @@ export default function HorarioGrupoModal({
   const [busquedaCompetencia, setBusquedaCompetencia] = useState("");
   const [competenciaAbierta, setCompetenciaAbierta] = useState(false);
   const [busquedaInstructor, setBusquedaInstructor] = useState("");
+  const [instructorAbierto, setInstructorAbierto] = useState(false);
   const [diasAbiertos, setDiasAbiertos] = useState(false);
   const [mensajeForm, setMensajeForm] = useState("");
   const [mensajeFormTipo, setMensajeFormTipo] = useState("success");
@@ -634,6 +635,7 @@ export default function HorarioGrupoModal({
     setMensajeForm("");
     setMensajeFormTipo("success");
     setBusquedaInstructor(obtenerNombreInstructor(item));
+    setInstructorAbierto(false);
     setFormHorario((actual) => ({ ...actual, id_instructor_grupo: String(valor) }));
   }
 
@@ -648,6 +650,7 @@ export default function HorarioGrupoModal({
 
     setMensajeForm("");
     setMensajeFormTipo("success");
+    setInstructorAbierto(true);
     setBusquedaInstructor(value);
     setFormHorario((actual) => ({
       ...actual,
@@ -959,34 +962,52 @@ export default function HorarioGrupoModal({
                 </label>
 
                 <div className="grupos-horario-form-field grupos-horario-form-full">
-                  <span>Instructores</span>
-                  <input
-                    type="text"
-                    value={textoInstructor}
-                    onChange={cambiarBusquedaInstructor}
-                    placeholder="Escribe el nombre del instructor"
-                    autoComplete="off"
-                  />
-                  <div className="grupos-horario-instructor-results">
-                    {instructoresFiltrados.map((item) => {
-                      const valor = String(item.id_instructor_grupo);
-                      return (
-                        <button
-                          type="button"
-                          key={item.id_instructor_grupo}
-                          className={`grupos-horario-instructor-option ${String(formHorario.id_instructor_grupo) === valor ? "selected" : ""}`}
-                          onClick={() => seleccionarInstructorHorario(item)}
-                        >
-                          <span>
-                            {obtenerNombreInstructor(item)}
-                            <small>{obtenerDetalleInstructor(item)}</small>
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {!instructoresFiltrados.length && (
-                      <div className="grupos-horario-instructor-empty">
-                        No hay instructores asignados que coincidan.
+                  <span>Instructor</span>
+                  <div className={`grupos-horario-dropdown ${instructorAbierto ? "open" : ""}`}>
+                    <div className="grupos-horario-combobox">
+                      <input
+                        type="text"
+                        value={textoInstructor}
+                        onChange={cambiarBusquedaInstructor}
+                        onFocus={() => setInstructorAbierto(true)}
+                        placeholder="Escribe el nombre del instructor"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="grupos-horario-arrow-btn"
+                        onClick={() => setInstructorAbierto((actual) => !actual)}
+                        aria-label="Desplegar instructores"
+                      >
+                        <ChevronDown size={18} />
+                      </button>
+                    </div>
+
+                    {instructorAbierto && (
+                      <div className="grupos-horario-dropdown-panel">
+                        <div className="grupos-horario-instructor-results grupos-horario-instructor-results-dropdown">
+                          {instructoresFiltrados.map((item) => {
+                            const valor = String(item.id_instructor_grupo);
+                            return (
+                              <button
+                                type="button"
+                                key={item.id_instructor_grupo}
+                                className={`grupos-horario-instructor-option ${String(formHorario.id_instructor_grupo) === valor ? "selected" : ""}`}
+                                onClick={() => seleccionarInstructorHorario(item)}
+                              >
+                                <span>
+                                  {obtenerNombreInstructor(item)}
+                                  <small>{obtenerDetalleInstructor(item)}</small>
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {!instructoresFiltrados.length && (
+                            <div className="grupos-horario-instructor-empty">
+                              No hay instructores asignados que coincidan.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
