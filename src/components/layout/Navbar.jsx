@@ -6,7 +6,7 @@ import {
   UserRound
 } from "lucide-react";
 import "./Navbar.css";
-import NotificacionCampana from "../layout/NotificacionCampana";
+import NotificacionCampana from "./NotificacionCampana";
 
 function Navbar() {
   const navigate = useNavigate();

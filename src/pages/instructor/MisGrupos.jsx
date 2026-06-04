@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, ClipboardList, Eye, FilterX, Search, UserPlus } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
+import {
+  ESTADOS_GRUPO,
+  GRUPOS_LIST_URL,
+  claseEstadoGrupo,
+  etiquetaEstadoGrupo,
+  normalizarEstadoGrupo,
+  prioridadEstadoGrupo,
+} from "../../services/gruposService";
+import HorarioGrupoModal from "../fichas/HorarioGrupoModal";
+import ModalAgregarInstructor from "./ModalAgregarInstructor";
 import "../fichas/fichas.css";
 
-const API_URL = "/api";
 const GRUPOS_POR_PAGINA = 5;
-const ENDPOINTS_GRUPOS_INSTRUCTOR = [
-  `${API_URL}/groups/mis-grupos`,
-  `${API_URL}/groups/instructor`,
-  `${API_URL}/apprentices/grupos-activos`,
-  `${API_URL}/groups`,
-];
 const FICHAS_OCULTAS = new Set(["2850312"]);
 const JORNADAS_BASE = ["Manana", "Tarde", "Noche"];
 
@@ -171,13 +174,11 @@ function obtenerCodigo(grupo) {
 }
 
 function obtenerEstado(grupo) {
-  return String(grupo.estado || "ACTIVO").toUpperCase();
+  return normalizarEstadoGrupo(grupo.estado);
 }
 
 function obtenerEstadoClase(estado) {
-  if (estado === "CERRADO") return "cerrado";
-  if (estado === "SUSPENDIDO") return "suspendido";
-  return "activo";
+  return claseEstadoGrupo(estado);
 }
 
 function obtenerIdGrupo(grupo, index = 0) {
@@ -202,14 +203,7 @@ function prepararGrupoDetalle(grupo) {
 
 function ordenarGruposImportantes(grupos) {
   return [...grupos].sort((a, b) => {
-    const prioridadEstado = (grupo) => {
-      const estado = obtenerEstado(grupo);
-      if (estado === "ACTIVO") return 0;
-      if (estado === "SUSPENDIDO") return 1;
-      return 2;
-    };
-
-    return prioridadEstado(a) - prioridadEstado(b) ||
+    return prioridadEstadoGrupo(obtenerEstado(a)) - prioridadEstadoGrupo(obtenerEstado(b)) ||
       String(obtenerCodigo(a)).localeCompare(String(obtenerCodigo(b)), "es", { numeric: true });
   });
 }
@@ -224,6 +218,8 @@ export default function MisGrupos() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
+  const [grupoHorario, setGrupoHorario] = useState(null);
+  const [grupoModal, setGrupoModal] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -234,45 +230,27 @@ export default function MisGrupos() {
       setMensajeError(false);
 
       try {
-        let ultimoError = null;
+        const res = await fetch(GRUPOS_LIST_URL, { headers: getHeaders() });
+        const data = await res.json().catch(() => null);
 
-        for (const endpoint of ENDPOINTS_GRUPOS_INSTRUCTOR) {
-          try {
-            const res = await fetch(endpoint, { headers: getHeaders() });
-
-            if (res.status === 404) {
-              ultimoError = new Error(`Ruta no disponible: ${endpoint}`);
-              continue;
-            }
-
-            const data = await res.json().catch(() => null);
-
-            if (!res.ok) {
-              throw new Error(
-                data?.message ||
-                  data?.error ||
-                  "No fue posible cargar tus grupos asignados"
-              );
-            }
-
-            const gruposExtraidos = extraerListaGrupos(data).filter(
-              (grupo) => !FICHAS_OCULTAS.has(String(obtenerCodigo(grupo)))
-            );
-
-            if (activo) {
-              setGrupos(gruposExtraidos);
-              setPaginaActual(1);
-              setMensaje("");
-              setMensajeError(false);
-            }
-
-            return;
-          } catch (error) {
-            ultimoError = error;
-          }
+        if (!res.ok) {
+          throw new Error(
+            data?.message ||
+              data?.error ||
+              "No fue posible cargar tus grupos asignados"
+          );
         }
 
-        throw ultimoError || new Error("No fue posible cargar tus grupos asignados");
+        const gruposExtraidos = extraerListaGrupos(data).filter(
+          (grupo) => !FICHAS_OCULTAS.has(String(obtenerCodigo(grupo)))
+        );
+
+        if (activo) {
+          setGrupos(gruposExtraidos);
+          setPaginaActual(1);
+          setMensaje("");
+          setMensajeError(false);
+        }
       } catch (error) {
         console.error("Error cargando grupos del instructor:", error);
         if (activo) {
@@ -364,6 +342,19 @@ export default function MisGrupos() {
     navigate(`/instructor/grupos/${idGrupo}`, { state: { grupo: grupoDetalle } });
   }
 
+  function navegarHistorialAsistencia(grupo, index = 0) {
+    const idGrupo = obtenerIdGrupo(grupo, index);
+    const grupoDetalle = prepararGrupoDetalle(grupo);
+
+    try {
+      sessionStorage.setItem(`sima_grupo_detalle_${idGrupo}`, JSON.stringify(grupoDetalle));
+    } catch {
+      // La navegacion sigue funcionando aunque el navegador bloquee sessionStorage.
+    }
+
+    navigate(`/instructor/grupos/${idGrupo}/asistencias`, { state: { grupo: grupoDetalle } });
+  }
+
   return (
     <div className="grupos-page mis-grupos-page">
       <header className="grupos-header">
@@ -418,9 +409,11 @@ export default function MisGrupos() {
           }}
         >
           <option value="">Todos los estados</option>
-          <option value="ACTIVO">Activo</option>
-          <option value="SUSPENDIDO">Suspendido</option>
-          <option value="CERRADO">Cerrado</option>
+          {ESTADOS_GRUPO.map((estado) => (
+            <option key={estado.value} value={estado.value}>
+              {estado.label}
+            </option>
+          ))}
         </select>
 
         <button type="button" className="ghost" onClick={limpiarFiltros}>
@@ -470,7 +463,7 @@ export default function MisGrupos() {
                       <td>{formatearTrimestres(grupo)}</td>
                       <td>
                         <span className={`grupos-status ${obtenerEstadoClase(estado)}`}>
-                          {estado}
+                          {etiquetaEstadoGrupo(estado)}
                         </span>
                       </td>
                       <td>
@@ -483,6 +476,33 @@ export default function MisGrupos() {
                             aria-label={`Ver ficha ${obtenerCodigo(grupo)}`}
                           >
                             <Eye size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn horario"
+                            onClick={() => setGrupoHorario(grupo)}
+                            title="Asignar horario"
+                            aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <CalendarClock size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
+                            title="Filtrar asistencias"
+                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <ClipboardList size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => setGrupoModal(grupo)}
+                            title="Gestionar instructores"
+                            aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <UserPlus size={16} />
                           </button>
                         </div>
                       </td>
@@ -513,6 +533,21 @@ export default function MisGrupos() {
         )}
       </section>
 
+      {grupoHorario && (
+        <HorarioGrupoModal
+          grupo={grupoHorario}
+          onClose={() => setGrupoHorario(null)}
+          obtenerCodigo={obtenerCodigo}
+          obtenerPrograma={obtenerPrograma}
+        />
+      )}
+
+      {grupoModal && (
+        <ModalAgregarInstructor
+          grupo={grupoModal}
+          onCerrar={() => setGrupoModal(null)}
+        />
+      )}
     </div>
   );
 }

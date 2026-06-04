@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Bell, BellOff, MessageSquareWarning, Bot, 
-  CheckCheck, Info, Clock, ExternalLink 
+  CheckCheck, Info, Clock
 } from 'lucide-react';
 import { 
   obtenerNotificaciones, 
@@ -33,17 +33,22 @@ export default function NotificacionCampana() {
 
   const noLeidas = notificaciones.filter(n => !n.leida).length;
 
-  const cargarNotificaciones = async () => {
+  const cargarNotificaciones = useCallback(async () => {
     const { data } = await obtenerNotificaciones();
     if (data) setNotificaciones(data);
-  };
+  }, []);
 
   // Polling cada 60s
   useEffect(() => {
-    cargarNotificaciones();
+    const inicial = setTimeout(() => {
+      cargarNotificaciones();
+    }, 0);
     const interval = setInterval(cargarNotificaciones, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearTimeout(inicial);
+      clearInterval(interval);
+    };
+  }, [cargarNotificaciones]);
 
   // Cerrar al click afuera
   useEffect(() => {
