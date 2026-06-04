@@ -77,6 +77,38 @@ function extraerOpcionesHorario(data) {
   };
 }
 
+function extraerListaInstructoresGrupo(data) {
+  const lista =
+    data?.data?.instructores ||
+    data?.data?.items ||
+    data?.data ||
+    data?.instructores ||
+    data?.items ||
+    data;
+
+  return Array.isArray(lista) ? lista : [];
+}
+
+function obtenerIdInstructorGrupo(item) {
+  return item?.id_instructor_grupo || item?.instructor_grupo?.id_instructor_grupo || "";
+}
+
+function combinarInstructoresHorario(...listas) {
+  const mapa = new Map();
+
+  listas.flat().forEach((item) => {
+    if (!item) return;
+    const idInstructorGrupo = obtenerIdInstructorGrupo(item);
+    const idInstructor = item.id_instructor || item.instructor?.id_instructor || item.instructor_grupo?.id_instructor || "";
+    const llave = idInstructorGrupo ? `grupo-${idInstructorGrupo}` : `instructor-${idInstructor}`;
+
+    if (!idInstructorGrupo || mapa.has(llave)) return;
+    mapa.set(llave, item);
+  });
+
+  return Array.from(mapa.values()).filter((item) => String(item.estado || "ACTIVO").toUpperCase() === "ACTIVO");
+}
+
 function diaDesdeFecha(valor) {
   if (!valor) return "";
   const fecha = new Date(`${String(valor).split("T")[0]}T00:00:00`);
@@ -403,9 +435,10 @@ export async function consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones 
   if (!idGrupo) return { horarios: [], opciones: OPCIONES_INICIALES };
 
   const idGrupoSeguro = encodeURIComponent(idGrupo);
-  const [horariosRespuesta, catalogosRespuesta] = await Promise.all([
+  const [horariosRespuesta, catalogosRespuesta, instructoresRespuesta] = await Promise.all([
     api.get(`${API_URL}/educational-schedules/group/${idGrupoSeguro}`),
     api.get(`${API_URL}/educational-schedules/catalogs?id_grupo=${idGrupoSeguro}`),
+    api.get(`${API_URL}/instructor-groups/grupo/${idGrupoSeguro}`).catch(() => ({ data: [] })),
   ]);
 
   let horarios = extraerListaHorarios(horariosRespuesta.data)
@@ -419,9 +452,15 @@ export async function consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones 
       .filter((horario) => horario.dia);
   }
 
+  const opciones = extraerOpcionesHorario(catalogosRespuesta.data);
+  const instructoresGrupo = extraerListaInstructoresGrupo(instructoresRespuesta.data);
+
   return {
     horarios,
-    opciones: extraerOpcionesHorario(catalogosRespuesta.data),
+    opciones: {
+      ...opciones,
+      instructores: combinarInstructoresHorario(opciones.instructores, instructoresGrupo),
+    },
   };
 }
 
@@ -514,7 +553,7 @@ export default function HorarioGrupoModal({
     (item) => String(item.id_instructor_grupo) === String(formHorario.id_instructor_grupo)
   );
   const textoInstructor = busquedaInstructor || (instructorSeleccionado ? obtenerNombreInstructor(instructorSeleccionado) : "");
-  const filtroInstructor = normalizarBusqueda(textoInstructor);
+  const filtroInstructor = normalizarBusqueda(busquedaInstructor);
   const instructoresFiltrados = opciones.instructores.filter((item) => {
     if (!filtroInstructor) return true;
     return obtenerTextoBusquedaInstructor(item).includes(filtroInstructor);
@@ -548,7 +587,7 @@ export default function HorarioGrupoModal({
         opcionesActuales.competencias[0]?.id_clase_competencia ||
         opcionesActuales.competencias[0]?.competencia?.id_clase_competencia ||
         "",
-      id_instructor_grupo: actual.id_instructor_grupo || opcionesActuales.instructores[0]?.id_instructor_grupo || "",
+      id_instructor_grupo: actual.id_instructor_grupo || "",
       dias_semana: Array.isArray(actual.dias_semana) && actual.dias_semana.length ? actual.dias_semana : ["1"],
       id_bloques_jornada: bloquesValidos.length ? bloquesValidos : bloquesDisponibles,
       semanas: actual.semanas || "16",
@@ -750,6 +789,8 @@ export default function HorarioGrupoModal({
       }
 
       const dataHorarioActualizado = await recargarHorario(idGrupo);
+      setBusquedaInstructor("");
+      setFormHorario((actual) => ({ ...actual, id_instructor_grupo: "" }));
 
       window.dispatchEvent(
         new CustomEvent("sima:horarios-actualizados", {
@@ -918,7 +959,7 @@ export default function HorarioGrupoModal({
                 </label>
 
                 <div className="grupos-horario-form-field grupos-horario-form-full">
-                  <span>Instructor</span>
+                  <span>Instructores</span>
                   <input
                     type="text"
                     value={textoInstructor}

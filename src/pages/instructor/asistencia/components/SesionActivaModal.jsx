@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, CalendarCheck, X } from "lucide-react";
+import { ArrowRight, Ban, CalendarCheck, Clock3, X } from "lucide-react";
 import {
+  cancelarSesionAsistencia,
   obtenerGruposInstructor,
   obtenerSesionAbiertaInstructor,
   obtenerSesionAbiertaPorGrupo
 } from "../asistencia.service";
-import { formatearFecha, obtenerCodigo, obtenerIdGrupo, obtenerPrograma } from "../asistencia.utils";
+import { formatearFecha, obtenerCodigo, obtenerIdGrupo, obtenerIdSesion, obtenerPrograma } from "../asistencia.utils";
 import "../../instructor.css";
 
 const RUTA_INICIO_INSTRUCTOR = "/instructor/dashboard";
+const MINUTOS_RECORDATORIO = 30;
 
 function esInstructor() {
   return String(localStorage.getItem("rol") || "").toLowerCase() === "instructor";
@@ -28,6 +30,8 @@ export default function SesionActivaModal() {
   const location = useLocation();
   const [grupoActivo, setGrupoActivo] = useState(null);
   const [visible, setVisible] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [mensajeError, setMensajeError] = useState("");
   const fechaHoy = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const rutaActual = location.pathname;
 
@@ -42,6 +46,8 @@ export default function SesionActivaModal() {
 
       const avisoCerrado = sessionStorage.getItem(`sima_aviso_asistencia_${fechaHoy}`);
       if (avisoCerrado === "cerrado") return;
+      const recordarHasta = Number(sessionStorage.getItem(`sima_aviso_asistencia_recordar_${fechaHoy}`) || 0);
+      if (recordarHasta && Date.now() < recordarHasta) return;
 
       const [sesionDirecta, grupos] = await Promise.all([
         obtenerSesionAbiertaInstructor(fechaHoy).catch(() => null),
@@ -87,6 +93,14 @@ export default function SesionActivaModal() {
     setVisible(false);
   }
 
+  function recordarMasTarde() {
+    sessionStorage.setItem(
+      `sima_aviso_asistencia_recordar_${fechaHoy}`,
+      String(Date.now() + MINUTOS_RECORDATORIO * 60 * 1000)
+    );
+    setVisible(false);
+  }
+
   function irAAsistencia() {
     if (grupoActivo) {
       sessionStorage.setItem("sima_asistencia_grupo_activo", String(obtenerIdGrupo(grupoActivo)));
@@ -94,6 +108,23 @@ export default function SesionActivaModal() {
 
     setVisible(false);
     navigate("/instructor/asistencia");
+  }
+
+  async function cancelarAsistencia() {
+    const idSesion = obtenerIdSesion(grupoActivo?.sesion);
+    setCancelando(true);
+    setMensajeError("");
+
+    try {
+      await cancelarSesionAsistencia(idSesion, "Cancelada desde aviso de sesion activa.");
+      sessionStorage.setItem(`sima_aviso_asistencia_${fechaHoy}`, "cerrado");
+      setVisible(false);
+      setGrupoActivo(null);
+    } catch (error) {
+      setMensajeError(error.message || "No fue posible cancelar la asistencia.");
+    } finally {
+      setCancelando(false);
+    }
   }
 
   if (!visible || !grupoActivo) return null;
@@ -117,10 +148,22 @@ export default function SesionActivaModal() {
           <small>{formatearFecha(fechaHoy)}</small>
         </div>
 
-        <button className="asistencia-session-action" type="button" onClick={irAAsistencia}>
-          Ir a asistencia
-          <ArrowRight size={18} />
-        </button>
+        {mensajeError && <p className="asistencia-session-error">{mensajeError}</p>}
+
+        <div className="asistencia-session-actions">
+          <button className="asistencia-session-action primary" type="button" onClick={irAAsistencia} disabled={cancelando}>
+            Ir a asistencia
+            <ArrowRight size={18} />
+          </button>
+          <button className="asistencia-session-action secondary" type="button" onClick={recordarMasTarde} disabled={cancelando}>
+            Recordar mas tarde
+            <Clock3 size={17} />
+          </button>
+          <button className="asistencia-session-action danger" type="button" onClick={cancelarAsistencia} disabled={cancelando}>
+            {cancelando ? "Cancelando..." : "Cancelar asistencia"}
+            <Ban size={17} />
+          </button>
+        </div>
       </section>
     </div>
   );

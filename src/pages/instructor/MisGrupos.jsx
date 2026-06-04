@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, ClipboardList, Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, ClipboardList, Eye, FilterX, Search, UserPlus } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -11,6 +11,7 @@ import {
   prioridadEstadoGrupo,
 } from "../../services/gruposService";
 import HorarioGrupoModal from "../fichas/HorarioGrupoModal";
+import ModalAgregarInstructor from "./ModalAgregarInstructor";
 import "../fichas/fichas.css";
 
 const GRUPOS_POR_PAGINA = 5;
@@ -218,6 +219,7 @@ export default function MisGrupos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [grupoHorario, setGrupoHorario] = useState(null);
+  const [grupoModal, setGrupoModal] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -493,6 +495,15 @@ export default function MisGrupos() {
                           >
                             <ClipboardList size={16} />
                           </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => setGrupoModal(grupo)}
+                            title="Gestionar instructores"
+                            aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <UserPlus size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -528,6 +539,13 @@ export default function MisGrupos() {
           onClose={() => setGrupoHorario(null)}
           obtenerCodigo={obtenerCodigo}
           obtenerPrograma={obtenerPrograma}
+        />
+      )}
+
+      {grupoModal && (
+        <ModalAgregarInstructor
+          grupo={grupoModal}
+          onCerrar={() => setGrupoModal(null)}
         />
       )}
     </div>

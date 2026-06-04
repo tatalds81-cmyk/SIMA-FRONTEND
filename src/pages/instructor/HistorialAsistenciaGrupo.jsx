@@ -158,7 +158,8 @@ export default function HistorialAsistenciaGrupo() {
   const [arrastreVentana, setArrastreVentana] = useState(null);
 
   const resumen = useMemo(() => calcularResumenAsistencia(registros), [registros]);
-  const totalRegistros = registros.length || 1;
+  const totalResumen = Object.values(resumen).reduce((total, valor) => total + Number(valor || 0), 0);
+  const totalRegistros = Math.max(registros.length, totalResumen, 1);
   const segmentosDonut = useMemo(() => {
     let inicio = 0;
     return Object.entries(resumen).map(([estado, valor]) => {

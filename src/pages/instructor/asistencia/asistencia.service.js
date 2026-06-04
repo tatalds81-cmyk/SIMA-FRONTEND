@@ -198,6 +198,14 @@ export async function cerrarSesionAsistencia(idSesion) {
   });
 }
 
+export async function cancelarSesionAsistencia(idSesion, motivo = "Cancelada desde aviso de sesion activa.") {
+  if (!idSesion) throw new Error("No hay una sesion abierta para cancelar.");
+  return requestJson(`${API_URL}/educational-sessions/${idSesion}/cancel`, {
+    method: "PATCH",
+    body: JSON.stringify({ motivo })
+  });
+}
+
 export async function corregirAsistencia(idAsistencia, { estado, observacion }) {
   if (!idAsistencia) throw new Error("No se encontro el registro de asistencia para actualizar.");
   return requestJson(`${API_URL}/attendances/${idAsistencia}/correction`, {

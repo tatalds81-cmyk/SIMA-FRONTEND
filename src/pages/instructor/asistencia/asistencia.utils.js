@@ -50,13 +50,27 @@ export function normalizarEstadoAsistencia(estado) {
   const valor = normalizarTexto(estado).replaceAll(" ", "_");
   const equivalencias = {
     presente: "presente",
+    asistio: "presente",
+    asistencia: "presente",
+    presente_ep05: "presente",
+    a_tiempo: "presente",
+    registrado: "presente",
+    valida: "presente",
+    valido: "presente",
     tarde: "retardado",
     tardanza: "retardado",
     retardado: "retardado",
+    retardo: "retardado",
+    llego_tarde: "retardado",
     inasistente: "ausente",
     ausente: "ausente",
+    falta: "ausente",
+    no_asistio: "ausente",
+    sin_registro: "ausente",
     justificada: "justificado",
     justificado: "justificado",
+    excusado: "justificado",
+    excusa: "justificado",
     pendiente: ""
   };
   return equivalencias[valor] || valor;

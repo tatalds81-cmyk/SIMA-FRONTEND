@@ -666,20 +666,62 @@
   font-weight: 900;
 }
 
+.asistencia-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+}
+
 .asistencia-session-action {
   min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid #15803d;
+  border: 1px solid #dbe5f0;
   border-radius: 8px;
   padding: 0 18px;
-  background: #15803d;
-  color: #fff;
+  background: #ffffff;
+  color: #0b2442;
   font-size: 14px;
   font-weight: 900;
   cursor: pointer;
+}
+
+.asistencia-session-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.asistencia-session-action.primary {
+  border-color: #15803d;
+  background: #15803d;
+  color: #ffffff;
+}
+
+.asistencia-session-action.secondary {
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.asistencia-session-action.danger {
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.asistencia-session-error {
+  width: 100%;
+  margin: 0;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .asistencia-page-title {

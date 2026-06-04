@@ -15,7 +15,7 @@ const FILTROS_INICIALES = {
 export default function Observaciones() {
   const API_URL = "/api";
 
-  // â”€â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   function safeParse(key) {
     try {
       return JSON.parse(localStorage.getItem(key)) || null;
@@ -44,7 +44,7 @@ export default function Observaciones() {
     return headers;
   }
 
-  // â”€â”€â”€ Utilidades â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 
   // Fecha mÃ¡xima = hoy (no se permiten fechas futuras en los filtros)
   const hoy = new Date().toISOString().split("T")[0];
@@ -73,8 +73,6 @@ export default function Observaciones() {
     return Boolean(fechaDesde && fechaHasta && fechaDesde > fechaHasta);
   }
 
-  // El backend devuelve obs.aprendiz.usuario.persona.{nombres, apellidos}
-  // No existe "nombre_completo" â€” lo construimos aquÃ­
   function getNombreAprendiz(obs) {
     const p = obs?.aprendiz?.usuario?.persona;
     return p ? `${p.nombres} ${p.apellidos}`.trim() : "Sin nombre";
@@ -95,7 +93,7 @@ export default function Observaciones() {
     return grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo || grupo?.id_grupo || "";
   }
 
-  // â”€â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  
   const [fichas, setFichas] = useState([]);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState(
     () => sessionStorage.getItem("obs_grupo_seleccionado") || ""
@@ -135,7 +133,7 @@ export default function Observaciones() {
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [aprendizHistorial, setAprendizHistorial] = useState(null);
 
-  // â”€â”€â”€ Efectos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   useEffect(() => {
     fetchFichas();
   }, []);
@@ -263,7 +261,7 @@ export default function Observaciones() {
     if (!grupoSeleccionado) { alert("Debes seleccionar una ficha"); return; }
     if (!form.id_aprendiz)  { alert("Selecciona un aprendiz"); return; }
     if (form.descripcion.trim().length < 20) {
-      alert("La descripciÃ³n debe tener mÃ­nimo 20 caracteres");
+      alert("La descripción debe tener mínimo 20 caracteres");
       return;
     }
 
@@ -289,7 +287,7 @@ export default function Observaciones() {
       const res  = await fetch(url, { method, headers: getHeaders(), body: JSON.stringify(payload) });
       const data = await res.json().catch(() => null);
 
-      if (!res.ok) throw new Error(data?.message || data?.error || "Error guardando observaciÃ³n");
+      if (!res.ok) throw new Error(data?.message || data?.error || "Error guardando observación");
 
       cerrarModal();
       setFiltros(FILTROS_INICIALES);
@@ -360,7 +358,7 @@ export default function Observaciones() {
     <div className="obs-page">
       <header className="obs-main-header">
         <div>
-          <h1>GestiÃ³n de observaciones</h1>
+          <h1>Gestión de observaciones</h1>
           <p>Consulta, registra y administra observaciones de los aprendices por ficha.</p>
           {grupoSeleccionado && (
             <div className="obs-stats">
@@ -377,7 +375,7 @@ export default function Observaciones() {
             onClick={() => { cerrarModal(); setMostrarModal(true); }}
           >
             <Plus size={18} strokeWidth={2.4} />
-            Registrar observaciÃ³n
+            Registrar observación
           </button>
         )}
       </header>
@@ -419,7 +417,7 @@ export default function Observaciones() {
             onChange={(e) => setFiltrosFormulario({ ...filtrosFormulario, tipo: e.target.value })}
           >
             <option value="">tipo</option>
-            <option value="ACADEMICA">acadÃ©mica</option>
+            <option value="ACADEMICA">académica</option>
             <option value="CONVIVENCIAL">convivencial</option>
           </select>
 
@@ -500,7 +498,7 @@ export default function Observaciones() {
                     <th>Tipo</th>
                     <th>Severidad</th>
                     <th>Estado</th>
-                    <th>DescripciÃ³n</th>
+                    <th>Descripción</th>
                     <th>Fecha</th>
                     <th>Autor</th>
                     <th>Seguimiento</th>
@@ -586,7 +584,7 @@ export default function Observaciones() {
             <span className="modal-tag">
               {editando ? "EDITANDO" : "NUEVO REGISTRO"}
             </span>
-            <h2>{editando ? "Editar observaciÃ³n" : "Registrar observaciÃ³n"}</h2>
+            <h2>{editando ? "Editar observación" : "Registrar observación"}</h2>
 
             <div className="modal-grid">
               <div>
@@ -610,7 +608,7 @@ export default function Observaciones() {
                 </select>
                 {grupoEnModal && (
                   <small className="obs-modal-help">
-                    La observaciÃ³n se asociarÃ¡ a la ficha {getNumeroFicha(grupoEnModal)}.
+                    La observación se asociará a la ficha {getNumeroFicha(grupoEnModal)}.
                   </small>
                 )}
               </div>
@@ -671,7 +669,7 @@ export default function Observaciones() {
                   value={form.tipo_observacion}
                   onChange={(e) => setForm({ ...form, tipo_observacion: e.target.value })}
                 >
-                  <option value="ACADEMICA">AcadÃ©mica</option>
+                  <option value="ACADEMICA">Académica</option>
                   <option value="CONVIVENCIAL">Convivencial</option>
                 </select>
               </div>
@@ -690,14 +688,14 @@ export default function Observaciones() {
             </div>
 
             <div className="modal-full">
-              <label>DescripciÃ³n</label>
+              <label>Descripción</label>
               <textarea
-                placeholder="Describe la observaciÃ³n (mÃ­nimo 20 caracteres)..."
+                placeholder="Describe la observación (mínimo 20 caracteres)..."
                 value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
               />
               <small className={form.descripcion.trim().length < 20 ? "obs-char-error" : "obs-char-ok"}>
-                {form.descripcion.trim().length} / 20 caracteres mÃ­nimo
+                {form.descripcion.trim().length} / 20 caracteres minimos
               </small>
             </div>
 
@@ -709,7 +707,7 @@ export default function Observaciones() {
                     checked={form.notificar_lider}
                     onChange={(e) => setForm({ ...form, notificar_lider: e.target.checked })}
                   />
-                  Notificar al instructor lÃ­der
+                  Notificar al instructor 
                 </label>
               </div>
             )}
@@ -721,14 +719,14 @@ export default function Observaciones() {
               </button>
               <button className="obs-btn-primary" onClick={handleSubmit}>
                 <Save size={16} strokeWidth={2.3} />
-                {editando ? "Actualizar" : "Guardar observaciÃ³n"}
+                {editando ? "Actualizar" : "Guardar observación"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* â”€â”€ Modal historial (H19) â”€â”€ */}
+      
       {mostrarHistorial && (
         <div className="modal-overlay">
           <div className="modal-card">
@@ -739,7 +737,7 @@ export default function Observaciones() {
               )}
             </h2>
             <p className="obs-historial-total">
-              {totalHistorial} observaciÃ³n{totalHistorial !== 1 ? "es" : ""} registrada{totalHistorial !== 1 ? "s" : ""}
+              {totalHistorial} observacion{totalHistorial !== 1 ? "es" : ""} registrada{totalHistorial !== 1 ? "s" : ""}
             </p>
 
             <div className="obs-historial-lista">
@@ -758,7 +756,7 @@ export default function Observaciones() {
                       </span>
                     </div>
                     <p><strong>Fecha:</strong> {formatFecha(item.fecha_observacion)}</p>
-                    <p><strong>DescripciÃ³n:</strong> {item.descripcion}</p>
+                    <p><strong>Descripción:</strong> {item.descripcion}</p>
                     <p className="historial-meta">
                       <strong>Instructor:</strong>{" "}
                       {item.instructor?.usuario?.persona

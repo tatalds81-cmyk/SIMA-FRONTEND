@@ -300,7 +300,8 @@ export default function AsistenciaInstructor() {
     return base;
   }, [aprendices, aprendicesRegistrados, haySesionActiva, modoManual]);
 
-  const totalAprendices = (modoManual ? aprendices.length : aprendicesRegistrados.length) || 1;
+  const totalResumen = Object.values(resumen).reduce((total, valor) => total + Number(valor || 0), 0);
+  const totalAprendices = Math.max(modoManual ? aprendices.length : aprendicesRegistrados.length, totalResumen, 1);
   const segmentosDonut = useMemo(() => {
     let inicio = 0;
     return Object.entries(resumen).map(([estado, valor]) => {
