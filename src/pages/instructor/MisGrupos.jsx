@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, ClipboardList, Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, Eye, FilterX, Search } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -12,7 +12,6 @@ import {
 } from "../../services/gruposService";
 import HorarioGrupoModal from "../fichas/HorarioGrupoModal";
 import "../fichas/fichas.css";
-import "./instructor.css";
 
 const GRUPOS_POR_PAGINA = 5;
 const FICHAS_OCULTAS = new Set(["2850312"]);
@@ -219,6 +218,19 @@ export default function MisGrupos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [grupoHorario, setGrupoHorario] = useState(null);
+  // agrego esta linea  
+  const [grupoModal, setGrupoModal] = useState(null);
+  const instructorIdActual = (() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+      return userData?.id_instructor || userData?.instructor?.id_instructor || null; 
+    }  catch { return null; }
+  })();  
+
+  function esLiderDeGrupo(grupo) {
+    if (!instructorIdActual) return false;
+    return Number(grupo.id_instructor_lider) === Number(instructorIdActual);
+  }  //HASTA ACA */}
 
   useEffect(() => {
     let activo = true;
@@ -485,15 +497,6 @@ export default function MisGrupos() {
                           >
                             <CalendarClock size={16} />
                           </button>
-                          <button
-                            type="button"
-                            className="grupos-icon-btn"
-                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
-                            title="Filtrar asistencias"
-                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
-                          >
-                            <ClipboardList size={16} />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -531,7 +534,6 @@ export default function MisGrupos() {
           obtenerPrograma={obtenerPrograma}
         />
       )}
-
     </div>
   );
 }
