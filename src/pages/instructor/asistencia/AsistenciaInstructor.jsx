@@ -312,7 +312,21 @@ export default function AsistenciaInstructor() {
       return segmento;
     });
   }, [resumen, totalAprendices]);
-  const porcentajePresentes = Math.round(((resumen.presente || 0) / totalAprendices) * 100);
+  const estadoDonutDestacado = useMemo(() => {
+    if (!totalResumen) {
+      return { label: "Sin registros", porcentaje: 0 };
+    }
+
+    const [estado, valor] = Object.entries(resumen).reduce(
+      (mayor, actual) => (Number(actual[1] || 0) > Number(mayor[1] || 0) ? actual : mayor),
+      ["presente", resumen.presente || 0]
+    );
+
+    return {
+      label: ESTADOS[estado]?.label || "Registros",
+      porcentaje: Math.round((Number(valor || 0) / totalAprendices) * 100)
+    };
+  }, [resumen, totalAprendices, totalResumen]);
   const resumenRecogido = qrAbierto && !resumenGrande;
   const aprendicesSinRegistro = useMemo(
     () => aprendices.filter((aprendiz) => !aprendiz.estado),
@@ -907,8 +921,8 @@ export default function AsistenciaInstructor() {
 
             {resumenRecogido ? (
               <div className="asistencia-summary-compact">
-                <strong>{porcentajePresentes}%</strong>
-                <span>Presentes</span>
+                <strong>{estadoDonutDestacado.porcentaje}%</strong>
+                <span>{estadoDonutDestacado.label}</span>
                 <small>{aprendices.length} aprendices</small>
               </div>
             ) : (
@@ -916,8 +930,8 @@ export default function AsistenciaInstructor() {
                 <div className="asistencia-dashboard-top">
                   <div className="asistencia-donut" style={{ background: `conic-gradient(${segmentosDonut.join(", ") || "#e5e7eb 0% 100%"})` }}>
                     <div>
-                      <strong>{porcentajePresentes}%</strong>
-                      <span>Presentes</span>
+                      <strong>{estadoDonutDestacado.porcentaje}%</strong>
+                      <span>{estadoDonutDestacado.label}</span>
                     </div>
                   </div>
                 </div>
