@@ -374,12 +374,7 @@
   background: #f8fafc;
   color: #0b2442;
   text-align: left;
-  cursor: pointer;
-}
-
-.instructor-calendar-session:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  cursor: default;
 }
 
 .instructor-calendar-session.activa {

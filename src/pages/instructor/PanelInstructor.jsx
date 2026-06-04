@@ -4,8 +4,6 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarClock,
-  ChevronLeft,
-  ChevronRight,
   CheckCircle2,
   Clock,
   Eye,
@@ -62,12 +60,6 @@ const inicioSemanaActual = (fechaBase = new Date()) => {
 const finSemanaActual = (fechaBase = new Date()) => {
   const fecha = new Date(`${inicioSemanaActual(fechaBase)}T12:00:00`);
   fecha.setDate(fecha.getDate() + 4);
-  return fecha.toISOString().slice(0, 10);
-};
-
-const desplazarFecha = (fechaISO, dias) => {
-  const fecha = new Date(`${fechaISO}T12:00:00`);
-  fecha.setDate(fecha.getDate() + dias);
   return fecha.toISOString().slice(0, 10);
 };
 
@@ -182,7 +174,7 @@ export default function PanelInstructor() {
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [semanaReferencia, setSemanaReferencia] = useState(() => new Date().toISOString().slice(0, 10));
+  const [semanaReferencia] = useState(() => new Date().toISOString().slice(0, 10));
 
   const inicioSemana = useMemo(() => inicioSemanaActual(semanaReferencia), [semanaReferencia]);
   const finSemana = useMemo(() => finSemanaActual(semanaReferencia), [semanaReferencia]);
@@ -393,24 +385,10 @@ export default function PanelInstructor() {
     [calendarioSemana]
   );
 
-  function cambiarSemana(dias) {
-    setSemanaReferencia((actual) => desplazarFecha(inicioSemanaActual(actual), dias));
-  }
-
-  function irASemanaActual() {
-    setSemanaReferencia(new Date().toISOString().slice(0, 10));
-  }
-
-  function abrirAsistenciaSesion(sesion) {
-    if (sesion?.id_grupo) {
-      sessionStorage.setItem("sima_asistencia_grupo_activo", String(sesion.id_grupo));
-    }
-    navigate("/instructor/asistencia");
-  }
-
   if (cargando) {
     return (
       <div className="coordinador-panel instructor-panel-v2">
+        <SesionActivaModal />
         <div className="grupos-alert info">Cargando dashboard del instructor...</div>
       </div>
     );
@@ -587,17 +565,6 @@ export default function PanelInstructor() {
               <h2>Horario semanal</h2>
               <p>{formatearFechaCorta(inicioSemana)} - {formatearFechaCorta(finSemana)} · {totalSesionesSemana} sesiones</p>
             </div>
-            <div className="instructor-calendar-controls">
-              <button type="button" className="instructor-icon-btn" onClick={() => cambiarSemana(-7)} aria-label="Semana anterior">
-                <ChevronLeft size={16} />
-              </button>
-              <button type="button" className="instructor-calendar-today" onClick={irASemanaActual}>
-                Hoy
-              </button>
-              <button type="button" className="instructor-icon-btn" onClick={() => cambiarSemana(7)} aria-label="Semana siguiente">
-                <ChevronRight size={16} />
-              </button>
-            </div>
           </div>
 
           <div className="instructor-calendar-grid">
@@ -608,11 +575,9 @@ export default function PanelInstructor() {
                   <span>{formatearFechaCorta(item.fecha)}</span>
                 </div>
                 {item.sesiones.length ? item.sesiones.map((sesion) => (
-                  <button
-                    type="button"
+                  <div
                     className={`instructor-calendar-session ${claseEstadoSesion(sesion.estado)}`}
                     key={obtenerIdSesion(sesion)}
-                    onClick={() => abrirAsistenciaSesion(sesion)}
                   >
                     <span className="instructor-calendar-time">
                       <Clock size={13} />
@@ -621,7 +586,7 @@ export default function PanelInstructor() {
                     <strong>{obtenerCompetenciaSesion(sesion)}</strong>
                     <small>Ficha {obtenerFichaSesion(sesion)} · {obtenerAmbienteSesion(sesion)}</small>
                     <em>{sesion.estado || "PROGRAMADA"}</em>
-                  </button>
+                  </div>
                 )) : (
                   <div className="instructor-calendar-empty">
                     <CalendarClock size={18} />
