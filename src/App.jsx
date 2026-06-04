@@ -8,6 +8,7 @@ import RegistroAprendices from "./pages/instructor/RegistroAprendices";
 import PanelInstructor from "./pages/instructor/PanelInstructor";
 import InstructorSeccion from "./pages/instructor/InstructorSeccion";
 import MisGrupos from "./pages/instructor/MisGrupos";
+import HistorialAsistenciaGrupo from "./pages/instructor/HistorialAsistenciaGrupo";
 import AsistenciaInstructor from "./pages/instructor/AsistenciaInstructor";
 import Fichas from "./pages/fichas/Fichas";
 import GrupoDetalle from "./pages/fichas/GrupoDetalle";
@@ -103,6 +104,15 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <GrupoDetalle />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/instructor/grupos/:id/asistencias"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <HistorialAsistenciaGrupo />
                 </Dashboard>
               }
             />

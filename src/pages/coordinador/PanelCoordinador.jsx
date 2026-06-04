@@ -342,7 +342,7 @@ export default function PanelCoordinador() {
                     onClick={() => setFiltroResumenActivo(filtro.id)}
                   >
                     {filtro.label}
-                    <Icon size={15} />
+                    <Icon size={13} />
                   </button>
                 );
               })}
@@ -394,7 +394,7 @@ export default function PanelCoordinador() {
               onClick={() => setFiltroOperativoActivo("inasistencias")}
             >
               Inasistencias
-              {filtroOperativoActivo === "inasistencias" ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+              {filtroOperativoActivo === "inasistencias" ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             </button>
           </div>
 

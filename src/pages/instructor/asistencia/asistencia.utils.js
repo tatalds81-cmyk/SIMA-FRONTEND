@@ -66,12 +66,41 @@ export function normalizarMetodoAsistencia(metodo) {
   const valor = normalizarTexto(metodo || "");
   const equivalencias = {
     biometrico: "Huella",
+    iot_huella: "Huella",
     huella: "Huella",
     manual: "Manual",
     qr: "QR",
+    biometria_movil: "Biometria movil",
+    geolocalizacion: "Geolocalizacion",
     automatico_cierre: "Automatico"
   };
   return equivalencias[valor] || metodo || "-";
+}
+
+function obtenerMetodoAsistencia(registro) {
+  const evidencia = Array.isArray(registro?.evidencias) ? registro.evidencias[0] : null;
+  return normalizarMetodoAsistencia(
+    evidencia?.metodo ||
+    registro?.origen ||
+    registro?.metodo_registro ||
+    registro?.metodo ||
+    "-"
+  );
+}
+
+function formatearHoraAsistencia(hora) {
+  if (!hora) return "-";
+  const texto = String(hora);
+  const partes = texto.match(/^(\d{1,2}):(\d{2})/);
+  if (!partes) return texto;
+
+  const horas = Number(partes[1]);
+  const minutos = partes[2];
+  if (Number.isNaN(horas)) return texto;
+
+  const periodo = horas >= 12 ? "p. m." : "a. m.";
+  const hora12 = horas % 12 || 12;
+  return `${hora12}:${minutos} ${periodo}`;
 }
 
 export function prepararAprendiz(aprendiz, index) {
@@ -81,9 +110,9 @@ export function prepararAprendiz(aprendiz, index) {
   return {
     id: aprendiz.id_aprendiz || aprendiz.id || index + 1,
     nombre: obtenerNombreAprendiz(aprendiz, index),
-    hora: asistencia.hora_registro || asistencia.hora || aprendiz.hora_registro || aprendiz.hora || "-",
+    hora: formatearHoraAsistencia(asistencia.hora_registro || asistencia.hora || aprendiz.hora_registro || aprendiz.hora),
     estado: normalizarEstadoAsistencia(estado),
-    metodo: normalizarMetodoAsistencia(asistencia.origen || asistencia.metodo_registro || asistencia.metodo || aprendiz.origen || aprendiz.metodo_registro || aprendiz.metodo || "-"),
+    metodo: obtenerMetodoAsistencia({ ...aprendiz, ...asistencia }),
     fecha: asistencia.fecha_clase || asistencia.fecha || asistencia.fecha_registro || aprendiz.fecha_clase || aprendiz.fecha || aprendiz.fecha_registro || "",
     historial: aprendiz.historial || aprendiz.historial_asistencia || aprendiz.asistencias || []
   };
@@ -99,9 +128,9 @@ export function prepararAsistenciaSesion(asistencia, index) {
     idAsistencia: asistencia.id_asistencia || asistencia.id || "",
     idSesion: asistencia.id_sesion_formacion || sesion.id_sesion_formacion || "",
     nombre: obtenerNombreAprendiz(aprendiz, index),
-    hora: asistencia.hora_registro || asistencia.hora || "-",
+    hora: formatearHoraAsistencia(asistencia.hora_registro || asistencia.hora),
     estado: normalizarEstadoAsistencia(asistencia.estado_ep05 || asistencia.estado_asistencia || asistencia.estado || ""),
-    metodo: normalizarMetodoAsistencia(asistencia.origen || asistencia.metodo_registro || asistencia.metodo || "-"),
+    metodo: obtenerMetodoAsistencia(asistencia),
     fecha: fechaSesion,
     historial: [asistencia]
   };
@@ -161,8 +190,8 @@ export function construirHistorialAsistencia(aprendiz) {
     id: item.id || item.id_asistencia || `${aprendiz?.id || "aprendiz"}-${index}`,
     estado: normalizarEstadoAsistencia(item.estado_asistencia || item.estado || ""),
     fecha: item.fecha_clase || item.fecha || item.fecha_registro || "",
-    hora: item.hora_registro || item.hora || "-",
-    metodo: normalizarMetodoAsistencia(item.origen || item.metodo_registro || item.metodo || "-"),
+    hora: formatearHoraAsistencia(item.hora_registro || item.hora),
+    metodo: obtenerMetodoAsistencia(item),
     nota: item.nota || item.observacion || item.descripcion || ""
   }));
 }

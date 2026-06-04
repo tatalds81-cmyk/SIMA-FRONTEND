@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import SimaPagination from "../../components/common/SimaPagination";
 import api from "../../services/api";
 import { claseEstadoGrupo, etiquetaEstadoGrupo } from "../../services/gruposService";
-import { DIAS_SEMANA, consultarHorariosGrupo } from "./HorarioGrupoModal";
+import HorarioGrupoModal, { DIAS_SEMANA, consultarHorariosGrupo } from "./HorarioGrupoModal";
 import "./fichas.css";
 
 /* ── helpers ─────────────────────────────── */
@@ -726,6 +726,7 @@ export default function GrupoDetalle() {
   const [horariosBackend, setHorariosBackend] = useState([]);
   const [cargandoHorario, setCargandoHorario] = useState(false);
   const [errorHorario, setErrorHorario] = useState("");
+  const [grupoHorario, setGrupoHorario] = useState(null);
   const [metricas, setMetricas] = useState(null);
   const [periodoAsist, setPeriodoAsist] = useState("Hoy");
   const [tabDetalle, setTabDetalle] = useState("resumen");
@@ -1376,6 +1377,12 @@ export default function GrupoDetalle() {
               <p className="gd-card-kicker">Ficha {detalle.ficha} - {detalle.jornada}</p>
             </div>
             <div className="gd-header-actions">
+              {esInstructor && (
+                <button type="button" className="grupos-primary-btn" onClick={() => setGrupoHorario(grupo)}>
+                  <CalendarClock size={15} />
+                  Asignar horario
+                </button>
+              )}
               <button type="button" className="grupos-secondary-btn" onClick={cargarHorarioBackend} disabled={cargandoHorario}>
                 <RefreshCw size={15} />
                 {cargandoHorario ? "Actualizando..." : "Actualizar"}
@@ -1888,6 +1895,13 @@ export default function GrupoDetalle() {
             </div>
           </section>
         </div>
+      )}
+
+      {grupoHorario && (
+        <HorarioGrupoModal
+          grupo={grupoHorario}
+          onClose={() => setGrupoHorario(null)}
+        />
       )}
 
     </div>

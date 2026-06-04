@@ -70,6 +70,13 @@ export async function obtenerAprendicesPorGrupo(grupoId) {
   throw ultimoError || new Error("No fue posible cargar aprendices.");
 }
 
+export async function obtenerDetalleGrupo(grupoId) {
+  if (!grupoId) return null;
+
+  const data = await requestJson(`${API_URL}/groups/${grupoId}`);
+  return data;
+}
+
 function extraerPayload(data) {
   return data?.data || data || {};
 }
@@ -126,6 +133,54 @@ export async function obtenerAsistenciasSesion(idSesion) {
   return {
     sesion: data.sesion || null,
     asistencias: extraerLista(data, "asistencias")
+  };
+}
+
+export async function obtenerCatalogosHorarioGrupo(idGrupo) {
+  if (!idGrupo) return { trimestres: [], competencias: [] };
+
+  const idGrupoSeguro = encodeURIComponent(idGrupo);
+  const data = await requestJson(`${API_URL}/educational-schedules/catalogs?id_grupo=${idGrupoSeguro}`);
+  const opciones = data.opciones || data || {};
+
+  return {
+    trimestres: Array.isArray(opciones.trimestres) ? opciones.trimestres : [],
+    competencias: Array.isArray(opciones.competencias) ? opciones.competencias : []
+  };
+}
+
+export async function listarSesionesGrupo({
+  idGrupo,
+  idGrupoTrimestre = "",
+  fechaDesde = "",
+  fechaHasta = "",
+  estado = "",
+  soloResponsable = true,
+  limit = 100
+} = {}) {
+  if (!idGrupo) return { total: 0, sesiones: [] };
+
+  const params = new URLSearchParams({
+    id_grupo: String(idGrupo),
+    limit: String(limit)
+  });
+
+  if (soloResponsable) params.set("solo_responsable", "true");
+  if (idGrupoTrimestre) params.set("id_grupo_trimestre", String(idGrupoTrimestre));
+  if (estado) params.set("estado", estado);
+  if (fechaDesde && fechaHasta && fechaDesde === fechaHasta) {
+    params.set("fecha", fechaDesde);
+  } else {
+    if (fechaDesde) params.set("fecha_desde", fechaDesde);
+    if (fechaHasta) params.set("fecha_hasta", fechaHasta);
+  }
+
+  const data = await requestJson(`${API_URL}/educational-sessions?${params.toString()}`);
+  const sesiones = extraerLista(data, "sesiones");
+
+  return {
+    total: data.total || sesiones.length,
+    sesiones
   };
 }
 
