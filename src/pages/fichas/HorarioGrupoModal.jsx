@@ -913,6 +913,7 @@ export default function HorarioGrupoModal({
                   Se crearan {totalHorariosAcrear} horario{totalHorariosAcrear === 1 ? "" : "s"} para {semanasHorario} semana{semanasHorario === 1 ? "" : "s"}.
                 </div>
               )}
+              {/* /hola// */}
 
               {mensajeForm && <div className={`grupos-horario-form-msg ${mensajeFormTipo}`}>{mensajeForm}</div>}
 
