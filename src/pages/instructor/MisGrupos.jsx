@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, Eye, FilterX, Search } from "lucide-react";
+import { CalendarClock, ClipboardList, Eye, FilterX, Search } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -218,19 +218,6 @@ export default function MisGrupos() {
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [grupoHorario, setGrupoHorario] = useState(null);
-  // agrego esta linea  
-  const [grupoModal, setGrupoModal] = useState(null);
-  const instructorIdActual = (() => {
-    try {
-      const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
-      return userData?.id_instructor || userData?.instructor?.id_instructor || null; 
-    }  catch { return null; }
-  })();  
-
-  function esLiderDeGrupo(grupo) {
-    if (!instructorIdActual) return false;
-    return Number(grupo.id_instructor_lider) === Number(instructorIdActual);
-  }  //HASTA ACA */}
 
   useEffect(() => {
     let activo = true;
@@ -496,6 +483,15 @@ export default function MisGrupos() {
                             aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
                           >
                             <CalendarClock size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
+                            title="Filtrar asistencias"
+                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <ClipboardList size={16} />
                           </button>
                         </div>
                       </td>
