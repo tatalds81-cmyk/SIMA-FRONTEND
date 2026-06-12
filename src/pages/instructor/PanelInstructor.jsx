@@ -192,6 +192,26 @@ const obtenerHoraInicioSesion = (sesion) =>
   sesion.hora_inicio_programada || sesion.hora_inicio || sesion.horaInicio || sesion.inicio || sesion.bloque_jornada?.hora_inicio || "";
 const obtenerHoraFinSesion = (sesion) =>
   sesion.hora_fin_programada || sesion.hora_fin || sesion.horaFin || sesion.fin || sesion.bloque_jornada?.hora_fin || "";
+const BLOQUES_MANANA_DASHBOARD = [
+  { inicio: "07:00", fin: "09:30" },
+  { inicio: "10:00", fin: "12:30" }
+];
+const obtenerHorasBloqueDashboard = (sesion, index, sesionesDia = []) => {
+  const inicio = normalizarHora(obtenerHoraInicioSesion(sesion));
+  const fin = normalizarHora(obtenerHoraFinSesion(sesion));
+  const sesionesVisibles = sesionesDia.slice(0, 2);
+  const horaBase = normalizarHora(obtenerHoraInicioSesion(sesionesVisibles[0]));
+  const horasRepetidas =
+    sesionesVisibles.length > 1 &&
+    horaBase !== "--:--" &&
+    sesionesVisibles.every((item) => normalizarHora(obtenerHoraInicioSesion(item)) === horaBase);
+
+  if (horasRepetidas && horaBase === "07:00" && index < BLOQUES_MANANA_DASHBOARD.length) {
+    return BLOQUES_MANANA_DASHBOARD[index];
+  }
+
+  return { inicio, fin };
+};
 const agregarValor = (set, valor) => {
   if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
 };
@@ -822,7 +842,7 @@ export default function PanelInstructor() {
                   >
                     <span className="instructor-calendar-time">
                       <Clock size={13} />
-                      {normalizarHora(obtenerHoraInicioSesion(sesion))} - {normalizarHora(obtenerHoraFinSesion(sesion))}
+                      {obtenerHorasBloqueDashboard(sesion, index, item.sesiones).inicio} - {obtenerHorasBloqueDashboard(sesion, index, item.sesiones).fin}
                     </span>
                     <strong>{obtenerCompetenciaSesion(sesion)}</strong>
                     <small>Ficha {obtenerFichaSesion(sesion)} · {obtenerAmbienteSesion(sesion)}</small>
