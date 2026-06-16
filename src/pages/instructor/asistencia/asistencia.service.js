@@ -28,11 +28,48 @@ export async function obtenerGruposInstructor() {
   return [];
 }
 
+function obtenerIdentificadoresGrupo(grupo) {
+  if (!grupo) return [];
+  const candidatos = typeof grupo === "object"
+    ? [
+        grupo.id_grupo,
+        grupo.id,
+        grupo.numero_ficha,
+        grupo.numero_grupo,
+        grupo.codigo,
+        grupo.ficha
+      ]
+    : [grupo];
+
+  return [...new Set(candidatos.filter(Boolean).map(String))];
+}
+
+function grupoCoincideConIdentificador(grupo, identificadores) {
+  const idsGrupo = obtenerIdentificadoresGrupo(grupo);
+  return idsGrupo.some((id) => identificadores.includes(id));
+}
+
+export async function resolverIdGrupoBackend(grupoReferencia) {
+  const identificadores = obtenerIdentificadoresGrupo(grupoReferencia);
+  if (!identificadores.length) return "";
+
+  if (typeof grupoReferencia === "object" && grupoReferencia.id_grupo) {
+    return grupoReferencia.id_grupo;
+  }
+
+  const grupos = await obtenerGruposInstructor().catch(() => []);
+  const grupoEncontrado = grupos.find((grupo) => grupoCoincideConIdentificador(grupo, identificadores));
+
+  return grupoEncontrado?.id_grupo || identificadores[0];
+}
+
 export async function obtenerAprendicesPorGrupo(grupoId) {
   if (!grupoId) return [];
+  const idGrupoResuelto = await resolverIdGrupoBackend(grupoId);
 
   const ids = typeof grupoId === "object"
     ? [
+        idGrupoResuelto,
         grupoId.id_grupo,
         grupoId.id,
         grupoId.numero_ficha,
@@ -40,7 +77,7 @@ export async function obtenerAprendicesPorGrupo(grupoId) {
         grupoId.codigo,
         grupoId.ficha
       ]
-    : [grupoId];
+    : [idGrupoResuelto, grupoId];
   const idsUnicos = [...new Set(ids.filter(Boolean).map(String))];
   let ultimoError = null;
   let listaVacia = [];
@@ -159,9 +196,11 @@ export async function listarSesionesGrupo({
   limit = 100
 } = {}) {
   if (!idGrupo) return { total: 0, sesiones: [] };
+  const idGrupoConsulta = await resolverIdGrupoBackend(idGrupo);
+  if (!idGrupoConsulta) return { total: 0, sesiones: [] };
 
   const params = new URLSearchParams({
-    id_grupo: String(idGrupo),
+    id_grupo: String(idGrupoConsulta),
     limit: String(limit)
   });
 
