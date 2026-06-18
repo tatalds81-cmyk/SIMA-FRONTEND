@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Loader2, X, Info } from 'lucide-react';
 import { cerrarAlerta } from '../../services/alertasService';
 import './modal.css';
@@ -56,14 +56,14 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
     if (err) {
       setLoading(false);
       if (err === 404) {
-        setErrorGlobal("No se encontró la alerta. Puede haber sido eliminada.");
+        setErrorGlobal("No se encontrÃ³ la alerta. Puede haber sido eliminada.");
       } else if (err === 409 || err === 400) {
         setErrorGlobal("Esta alerta ya fue cerrada anteriormente.");
         setYaCerrada(true);
       } else if (err === 403) {
         setErrorGlobal("No tienes permisos para cerrar esta alerta.");
       } else {
-        setErrorGlobal("Ocurrió un error al cerrar la alerta. Intenta nuevamente.");
+        setErrorGlobal("OcurriÃ³ un error al cerrar la alerta. Intenta nuevamente.");
       }
       return;
     }
@@ -96,10 +96,10 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
       >
         <div className="mcal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #e5e7eb', marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ color: '#ea580c', display: 'flex', alignItems: 'center' }}>
+            <div style={{ color: '#f5b400', display: 'flex', alignItems: 'center' }}>
               <AlertTriangle size={24} />
             </div>
-            <h2 className="mcal-titulo" style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>Cerrar alerta</h2>
+            <h2 className="mcal-titulo" style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#0b2442' }}>Cerrar alerta</h2>
           </div>
           <button type="button" className="mcal-btn-close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
             <X size={20} />
@@ -108,12 +108,12 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
 
         <div className="mcal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>
-            Estás a punto de gestionar la alerta de <strong>{aprendizNombre}</strong>. 
-            Selecciona el nuevo estado y proporciona la justificación o acta correspondiente.
+            EstÃ¡s a punto de gestionar la alerta de <strong>{aprendizNombre}</strong>. 
+            Selecciona el nuevo estado y proporciona la justificaciÃ³n o acta correspondiente.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Estado de resolución</label>
+            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Estado de resoluciÃ³n</label>
             <select 
               value={estadoFinal} 
               onChange={(e) => setEstadoFinal(e.target.value)}
@@ -124,17 +124,17 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
               }}
             >
               <option value="CERRADA">Cerrada / Resuelta</option>
-              <option value="EN_COMITE">En Comité de Evaluación</option>
+              <option value="EN_COMITE">En ComitÃ© de EvaluaciÃ³n</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-              Justificación del cierre <span style={{ color: '#ef4444' }}>*</span>
+              JustificaciÃ³n del cierre <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <textarea
               ref={textareaRef}
-              placeholder={estadoFinal === 'CERRADA' ? "Describe brevemente cómo fue atendida la situación..." : "Indica el acta o resumen de por qué se envía a comité..."}
+              placeholder={estadoFinal === 'CERRADA' ? "Describe brevemente cÃ³mo fue atendida la situaciÃ³n..." : "Indica el acta o resumen de por quÃ© se envÃ­a a comitÃ©..."}
               value={justificacion}
               onChange={(e) => {
                 if (e.target.value.length <= 300) {
@@ -153,7 +153,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
               }}
               onFocus={(e) => {
                 if (!errorJustificacion) e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
-                e.target.style.borderColor = errorJustificacion ? '#ef4444' : '#3b82f6';
+                e.target.style.borderColor = errorJustificacion ? '#ef4444' : '#0b2442';
               }}
               onBlur={(e) => {
                 e.target.style.boxShadow = errorJustificacion ? '0 0 0 1px #ef4444' : 'none';
@@ -162,7 +162,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
               <span style={{ color: errorJustificacion ? '#ef4444' : 'transparent', fontWeight: '500' }}>
-                {errorJustificacion ? 'Mínimo 20 caracteres requeridos' : ' '}
+                {errorJustificacion ? 'MÃ­nimo 20 caracteres requeridos' : ' '}
               </span>
               <span style={{ color: '#6b7280' }}>
                 {justificacion.length} / 300
@@ -176,12 +176,12 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
           }}>
             <Info size={18} color="#4b5563" style={{ flexShrink: 0, marginTop: '1px' }} />
             <span style={{ fontSize: '13px', color: '#4b5563', lineHeight: '1.4' }}>
-              La alerta permanecerá visible en el historial del aprendiz pero no podrá ser modificada.
+              La alerta permanecerÃ¡ visible en el historial del aprendiz pero no podrÃ¡ ser modificada.
             </span>
           </div>
 
           {errorGlobal && (
-            <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '6px', fontSize: '14px', fontWeight: '500' }}>
+            <div style={{ backgroundColor: '#fee2e2', color: '#ef4444', padding: '12px', borderRadius: '6px', fontSize: '14px', fontWeight: '500' }}>
               {errorGlobal}
             </div>
           )}
@@ -208,7 +208,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             disabled={loading}
             style={{ 
               padding: '8px 16px', borderRadius: '6px', border: 'none', 
-              backgroundColor: yaCerrada ? '#3b82f6' : '#ef4444', color: '#fff', 
+              backgroundColor: yaCerrada ? '#0b2442' : '#ef4444', color: '#fff', 
               fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: '8px',
               transition: 'background-color 0.2s'
@@ -228,7 +228,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
       {toast && (
         <div style={{
           position: 'fixed', bottom: '24px', right: '24px',
-          backgroundColor: '#10b981', color: 'white', padding: '12px 24px',
+          backgroundColor: '#238500', color: 'white', padding: '12px 24px',
           borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999,
           fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px',
           animation: 'mcal-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -246,3 +246,5 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
     </>
   );
 }
+
+

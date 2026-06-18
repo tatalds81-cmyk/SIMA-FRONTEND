@@ -164,6 +164,17 @@ export async function obtenerSesionAbiertaInstructor(fecha) {
   return sesiones[0] || null;
 }
 
+export async function obtenerSesionesInstructorDia(fecha) {
+  const params = new URLSearchParams({
+    solo_responsable: "true",
+    limit: "100"
+  });
+  if (fecha) params.set("fecha", fecha);
+
+  const data = await requestJson(`${API_URL}/educational-sessions?${params.toString()}`);
+  return extraerLista(data, "sesiones");
+}
+
 export async function obtenerAsistenciasSesion(idSesion) {
   if (!idSesion) return { sesion: null, asistencias: [] };
   const data = await requestJson(`${API_URL}/educational-sessions/${idSesion}/attendances`);

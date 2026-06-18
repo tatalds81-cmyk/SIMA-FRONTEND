@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   Calendar, User, Users, AlertCircle,
   Info, History, CheckCircle2, ShieldAlert, NotebookText, X
@@ -13,7 +13,7 @@ import './modal.css';
 import '../../pages/alertas/detalleAlerta.css';
 
 function formatFechaLarga(isoStr) {
-  if (!isoStr) return '—';
+  if (!isoStr) return 'â€”';
   const d = new Date(isoStr);
   return d.toLocaleString('es-CO', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -54,7 +54,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
 
   const esCoordinador = getRolActual() === 'coordinador';
   const puedeCerrar = esCoordinador && (alerta?.estado === 'ABIERTA' || alerta?.estado === 'ACTIVA');
-  const nombreAprendiz = alerta?.aprendizNombre || alerta?.aprendiz?.nombre || '—';
+  const nombreAprendiz = alerta?.aprendizNombre || alerta?.aprendiz?.nombre || 'â€”';
 
   return (
     <>
@@ -108,7 +108,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
             <div className="da-estado-error">
               <AlertCircle size={40} />
               <h2>Error al cargar la alerta</h2>
-              <p>{error || 'No se encontró la información solicitada'}</p>
+              <p>{error || 'No se encontrÃ³ la informaciÃ³n solicitada'}</p>
               <button className="mcal-btn-cancelar" onClick={onClose}>
                 Cerrar
               </button>
@@ -119,10 +119,10 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
           {!loading && !error && alerta && (
             <div className="da-grid">
               <div className="da-col-main">
-                {/* Información general */}
+                {/* InformaciÃ³n general */}
                 <section className="da-card">
                   <div className="da-card-header">
-                    <div className="da-card-titulo"><Info size={18} /> Información general</div>
+                    <div className="da-card-titulo"><Info size={18} /> InformaciÃ³n general</div>
                     <div className="da-header-badges">
                       <BadgeSeveridad severidad={alerta.severidad} />
                       <BadgeEstado estado={alerta.estado} />
@@ -142,7 +142,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                     </div>
                     <div className="da-info-item">
                       <label><Users size={14} /> Grupo</label>
-                      <p>{alerta.grupoCodigo || alerta.grupo?.codigo || '—'}</p>
+                      <p>{alerta.grupoCodigo || alerta.grupo?.codigo || 'â€”'}</p>
                     </div>
                     <div className="da-info-item">
                       <label><ShieldAlert size={14} /> Tipo de alerta</label>
@@ -153,7 +153,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                       <div className="da-origen-tag">{alerta.origen || 'MANUAL'}</div>
                     </div>
                     <div className="da-info-item">
-                      <label><Calendar size={14} /> Fecha creación</label>
+                      <label><Calendar size={14} /> Fecha creaciÃ³n</label>
                       <p>{formatFechaLarga(alerta.fechaCreacion)}</p>
                     </div>
                     <div className="da-info-item">
@@ -163,10 +163,10 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                   </div>
                 </section>
 
-                {/* Descripción */}
+                {/* DescripciÃ³n */}
                 <section className="da-card">
                   <div className="da-card-header">
-                    <div className="da-card-titulo"><NotebookText size={18} /> Descripción</div>
+                    <div className="da-card-titulo"><NotebookText size={18} /> DescripciÃ³n</div>
                   </div>
                   <div className="da-descripcion-content">{alerta.descripcion}</div>
                 </section>
@@ -184,12 +184,12 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                         <div key={obs.id} style={{
                           padding: '12px 16px',
                           background: '#f8fafc',
-                          borderLeft: '4px solid #3b82f6',
+                          borderLeft: '4px solid #0b2442',
                           borderRadius: '0 8px 8px 0',
                           marginBottom: index === alerta.observacionesVinculadas.length - 1 ? 0 : '12px'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>Observación {index + 1}</strong>
+                            <strong style={{ fontSize: '13px', color: '#0b2442' }}>ObservaciÃ³n {index + 1}</strong>
                             <span style={{ fontSize: '12px', color: '#64748b' }}>{formatFechaLarga(obs.fecha)}</span>
                           </div>
                           <p style={{ margin: 0, fontSize: '14px', color: '#334155' }}>{obs.descripcion}</p>
@@ -209,10 +209,10 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                   <div className="da-timeline">
                     {alerta.estado === 'CERRADA' && alerta.fecha_cierre && (
                       <div className="da-timeline-item">
-                        <div className="da-timeline-dot" style={{ background: '#22c55e', borderColor: '#dcfce7' }} />
+                        <div className="da-timeline-dot" style={{ background: '#238500', borderColor: '#dcfce7' }} />
                         <div className="da-timeline-content">
                           <div className="da-timeline-head">
-                            <strong style={{ color: '#16a34a' }}>CERRADA</strong>
+                            <strong style={{ color: '#238500' }}>CERRADA</strong>
                             <span>{formatFechaLarga(alerta.fecha_cierre)}</span>
                           </div>
                           <p style={{ marginTop: '8px', fontStyle: 'italic', color: '#475569' }}>
@@ -261,3 +261,5 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
     </>
   );
 }
+
+

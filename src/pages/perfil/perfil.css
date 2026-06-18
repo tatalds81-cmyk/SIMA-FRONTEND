@@ -1,6 +1,6 @@
 ﻿.perfil-page {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
   --sima-text: #0b2442;
   --sima-muted: #6b7a8b;
@@ -341,3 +341,4 @@
     grid-template-columns: 1fr;
   }
 }
+

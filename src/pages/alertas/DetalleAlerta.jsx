@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Calendar, User, Users, AlertCircle, 
@@ -13,7 +13,7 @@ import ModalCerrarAlerta from '../../components/alertas/ModalCerrarAlerta';
 import './detalleAlerta.css';
 
 function formatFechaLarga(isoStr) {
-  if (!isoStr) return '—';
+  if (!isoStr) return 'â€”';
   const d = new Date(isoStr);
   return d.toLocaleString('es-CO', { 
     day: '2-digit', month: 'long', year: 'numeric',
@@ -58,24 +58,24 @@ export default function DetalleAlerta() {
     <div className="da-estado-error">
       <AlertCircle size={40} />
       <h2>Error al cargar la alerta</h2>
-      <p>{error || 'No se encontró la información solicitada'}</p>
+      <p>{error || 'No se encontrÃ³ la informaciÃ³n solicitada'}</p>
       <button className="ca-btn-outline" onClick={() => navigate('/alertas/consultar')}>
         Volver a la lista
       </button>
     </div>
   );
 
-  const nombreAprendiz = alerta.aprendizNombre || alerta.aprendiz?.nombre || '—';
+  const nombreAprendiz = alerta.aprendizNombre || alerta.aprendiz?.nombre || 'â€”';
 
   return (
     <div className="da-page">
       <header className="da-header">
         <div className="da-header-izq">
           <nav className="ca-breadcrumb">
-            <span>Inicio</span> <span className="ca-bread-sep">›</span>
-            <span>Alertas</span> <span className="ca-bread-sep">›</span>
+            <span>Inicio</span> <span className="ca-bread-sep">â€º</span>
+            <span>Alertas</span> <span className="ca-bread-sep">â€º</span>
             <span onClick={() => navigate('/alertas/consultar')} style={{ cursor: 'pointer' }}>Consultar</span>
-            <span className="ca-bread-sep">›</span>
+            <span className="ca-bread-sep">â€º</span>
             <span className="ca-bread-active">Detalle</span>
           </nav>
           <div className="da-titulo-wrap">
@@ -99,7 +99,7 @@ export default function DetalleAlerta() {
         <div className="da-col-main">
           <section className="da-card">
             <div className="da-card-header">
-              <div className="da-card-titulo"><Info size={18} /> Información general</div>
+              <div className="da-card-titulo"><Info size={18} /> InformaciÃ³n general</div>
               <div className="da-header-badges">
                 <BadgeSeveridad severidad={alerta.severidad} />
                 <BadgeEstado estado={alerta.estado} />
@@ -119,7 +119,7 @@ export default function DetalleAlerta() {
               </div>
               <div className="da-info-item">
                 <label><Users size={14} /> Grupo</label>
-                <p>{alerta.grupoCodigo || alerta.grupo?.codigo || '—'}</p>
+                <p>{alerta.grupoCodigo || alerta.grupo?.codigo || 'â€”'}</p>
               </div>
               <div className="da-info-item">
                 <label><ShieldAlert size={14} /> Tipo de alerta</label>
@@ -130,7 +130,7 @@ export default function DetalleAlerta() {
                 <div className="da-origen-tag">{alerta.origen || 'MANUAL'}</div>
               </div>
               <div className="da-info-item">
-                <label><Calendar size={14} /> Fecha creación</label>
+                <label><Calendar size={14} /> Fecha creaciÃ³n</label>
                 <p>{formatFechaLarga(alerta.fechaCreacion)}</p>
               </div>
               <div className="da-info-item">
@@ -142,7 +142,7 @@ export default function DetalleAlerta() {
 
           <section className="da-card">
             <div className="da-card-header">
-              <div className="da-card-titulo"><NotebookText size={18} /> Descripción</div>
+              <div className="da-card-titulo"><NotebookText size={18} /> DescripciÃ³n</div>
             </div>
             <div className="da-descripcion-content">{alerta.descripcion}</div>
           </section>
@@ -157,12 +157,12 @@ export default function DetalleAlerta() {
                   <div key={obs.id} style={{ 
                     padding: '12px 16px', 
                     background: '#f8fafc', 
-                    borderLeft: '4px solid #3b82f6', 
+                    borderLeft: '4px solid #0b2442', 
                     borderRadius: '0 8px 8px 0',
                     marginBottom: index === alerta.observacionesVinculadas.length - 1 ? 0 : '12px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>Observación {index + 1}</strong>
+                      <strong style={{ fontSize: '13px', color: '#0b2442' }}>ObservaciÃ³n {index + 1}</strong>
                       <span style={{ fontSize: '12px', color: '#64748b' }}>{formatFechaLarga(obs.fecha)}</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '14px', color: '#334155' }}>{obs.descripcion}</p>
@@ -209,3 +209,5 @@ export default function DetalleAlerta() {
     </div>
   );
 }
+
+

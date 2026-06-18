@@ -1,11 +1,11 @@
-.login-sima-container {
-  --sima-navy: #052d4f;
+﻿.login-sima-container {
+  --sima-navy: #0b2442;
   --sima-navy-2: #07385f;
-  --sima-green: #39a900;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
-  --sima-cyan: #20bce3;
+  --sima-cyan: #0b2442;
   --sima-gold: #f8c008;
-  --sima-text: #092444;
+  --sima-text: #0b2442;
   --sima-muted: #6f7d8d;
   --sima-border: #dfe5ec;
   --sima-panel: #ffffff;
@@ -237,7 +237,7 @@
   margin-top: -10px;
   border: 0;
   background: transparent;
-  color: #00649b;
+  color: #0b2442;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -299,7 +299,7 @@
 .login-sima-register-btn {
   border: 1px solid var(--sima-green);
   background: #ffffff;
-  color: #2f8b12;
+  color: #238500;
 }
 
 .login-sima-register-btn:hover {
@@ -340,7 +340,7 @@
 }
 
 .login-sima-legal a {
-  color: #00649b;
+  color: #0b2442;
   text-decoration: none;
 }
 
@@ -442,3 +442,4 @@
     text-align: left;
   }
 }
+

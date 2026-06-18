@@ -1,12 +1,12 @@
-.grupos-page {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+﻿.grupos-page {
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
   --sima-text: #0b2442;
   --sima-muted: #6b7a8b;
   --sima-border: #e1e8f0;
-  --sima-red: #dc2626;
-  --sima-yellow: #b8860b;
+  --sima-red: #ef4444;
+  --sima-yellow: #f5b400;
 
   width: 100%;
   max-width: 1480px;
@@ -102,7 +102,7 @@
 .grupos-alert.danger {
   border: 1px solid #fecaca;
   background: #fff1f2;
-  color: #b91c1c;
+  color: #ef4444;
 }
 
 .grupos-toolbar {
@@ -204,7 +204,7 @@
 }
 
 .grupos-table td {
-  color: #263a52;
+  color: #0b2442;
   font-weight: 400;
 }
 
@@ -397,7 +397,7 @@
 }
 
 /* =============================================
-   GrupoDetalle v3 — gd-*
+   GrupoDetalle v3 â€” gd-*
    ============================================= */
 
 /* Banner */
@@ -458,7 +458,7 @@
   font-weight: 800;
   cursor: pointer;
 }
-.gd-period-btn.active { background: #39a900; border-color: #39a900; color: #fff; }
+.gd-period-btn.active { background: #238500; border-color: #238500; color: #fff; }
 
 /* Bar chart (asistencia) */
 .gd-bar-chart {
@@ -530,8 +530,8 @@
   height: 34px;
   border-radius: 50%;
   background: #edf9e7;
-  border: 2px solid #39a900;
-  color: #39a900;
+  border: 2px solid #238500;
+  color: #238500;
   font-size: 11px;
   font-weight: 900;
   display: flex;
@@ -567,12 +567,12 @@
   font-size: 13px;
 }
 .gd-table th { background: #f8fafc; color: #38506b; font-weight: 900; font-size: 12px; }
-.gd-table td { color: #263a52; font-weight: 400; }
+.gd-table td { color: #0b2442; font-weight: 400; }
 .gd-table tbody strong { font-weight: 400; }
 .gd-table tbody tr:hover { background: #fafcff; }
-.gd-num-alerta { color: #2652cc; font-weight: 400; }
+.gd-num-alerta { color: #0b2442; font-weight: 400; }
 .gd-num-inasis  { color: #ef4444; font-weight: 400; }
-.gd-td-link { color: #2652cc; font-weight: 400; }
+.gd-td-link { color: #0b2442; font-weight: 400; }
 .gd-empty { text-align: center; color: #8b95a3; padding: 24px !important; font-style: italic; }
 
 .gd-alertas-toolbar {
@@ -602,7 +602,7 @@
 }
 
 .gd-alertas-search svg {
-  color: #052d4f;
+  color: #0b2442;
   flex: 0 0 auto;
 }
 
@@ -660,7 +660,7 @@
   border: 1px solid #bfe5b4;
   border-radius: 8px;
   background: #f7fbf4;
-  color: #248400;
+  color: #238500;
   padding: 0 11px;
   font: inherit;
   font-size: 12px;
@@ -684,8 +684,8 @@
 }
 
 .gd-action-btn-icon:hover {
-  border-color: #39a900;
-  color: #248400;
+  border-color: #238500;
+  color: #238500;
 }
 
 .gd-edit-modal {
@@ -722,7 +722,7 @@
   display: grid;
   place-items: center;
   background: #e9f8e4;
-  color: #248400;
+  color: #238500;
   font-size: 22px;
   font-weight: 950;
   text-transform: uppercase;
@@ -731,7 +731,7 @@
 .gd-profile-card span {
   border-radius: 999px;
   background: #e9f8e4;
-  color: #248400;
+  color: #238500;
   padding: 5px 10px;
   font-size: 11px;
   font-weight: 900;
@@ -786,7 +786,7 @@
   border: 1px solid #dbeafe;
   border-radius: 8px;
   background: #eff6ff;
-  color: #1d4ed8;
+  color: #0b2442;
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 800;
@@ -828,7 +828,7 @@
 
 .gd-edit-form input:focus,
 .gd-edit-form select:focus {
-  border-color: #39a900;
+  border-color: #238500;
   box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.12);
 }
 
@@ -837,7 +837,7 @@
   border: 1px solid #fecaca;
   border-radius: 8px;
   background: #fff1f2;
-  color: #b91c1c;
+  color: #ef4444;
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 800;
@@ -860,7 +860,7 @@
 .gd-edit-actions .grupos-primary-btn {
   min-width: 118px;
   border: 1px solid #238500;
-  background: linear-gradient(180deg, #39a900, #238500);
+  background: linear-gradient(180deg, #238500, #238500);
   color: #ffffff;
 }
 
@@ -879,16 +879,16 @@
   font-size: 11px;
   font-weight: 900;
 }
-.gd-badge-alto  { background: #fee2e2; color: #b91c1c; }
-.gd-badge-medio { background: #fef3c7; color: #92400e; }
-.gd-badge-bajo  { background: #d1fae5; color: #065f46; }
+.gd-badge-alto  { background: #fee2e2; color: #ef4444; }
+.gd-badge-medio { background: #fef3c7; color: #f5b400; }
+.gd-badge-bajo  { background: #d1fae5; color: #238500; }
 
 /* Severidad labels */
 .gd-sev { font-weight: 900; font-size: 13px; }
-.gd-sev-critica  { color: #b91c1c; }
+.gd-sev-critica  { color: #ef4444; }
 .gd-sev-grave    { color: #ef4444; }
-.gd-sev-moderada { color: #f59e0b; }
-.gd-sev-leve     { color: #d97706; }
+.gd-sev-moderada { color: #f5b400; }
+.gd-sev-leve     { color: #f5b400; }
 
 /* Bottom grid (alertas tabla + chart) */
 .gd-bottom-grid {
@@ -960,7 +960,7 @@
 }
 .gd-info-row span { color: #38506b; font-weight: 600; }
 .gd-info-row strong { color: #0b2442; font-weight: 800; }
-.gd-green { color: #39a900 !important; }
+.gd-green { color: #238500 !important; }
 
 .gd-inline-input {
   height: 32px;
@@ -973,7 +973,7 @@
   outline: 0;
   font-family: inherit;
 }
-.gd-inline-input:focus { border-color: #39a900; box-shadow: 0 0 0 2px rgba(57,169,0,.12); }
+.gd-inline-input:focus { border-color: #238500; box-shadow: 0 0 0 2px rgba(57,169,0,.12); }
 
 /* Metrics grid */
 .gd-metrics-grid {
@@ -990,7 +990,7 @@
 }
 .gd-metric-box span { display: block; color: #6b7a8b; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .gd-metric-box strong { display: block; margin-top: 6px; color: #0b2442; font-size: 22px; font-weight: 900; line-height: 1; }
-.gd-metric-green strong { color: #39a900; }
+.gd-metric-green strong { color: #238500; }
 .gd-metric-red   strong { color: #ef4444; }
 
 /* Asistencia horizontal bars */
@@ -1009,12 +1009,12 @@
   padding: 0 11px;
   border-radius: 999px;
   background: #edf9e7;
-  color: #248400;
+  color: #238500;
   font-size: 12px;
   font-weight: 900;
 }
 
-/* Alertas por Tipo — barras horizontales */
+/* Alertas por Tipo â€” barras horizontales */
 .gd-tipo-bars { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
 .gd-tipo-bar-row {
   display: grid;
@@ -1106,8 +1106,8 @@
 }
 
 .gd-tabs button.active {
-  background: #39a900;
-  border-color: #39a900;
+  background: #238500;
+  border-color: #238500;
   box-shadow: 0 8px 16px rgba(57, 169, 0, 0.18);
   color: #ffffff;
 }
@@ -1468,10 +1468,10 @@
   font-weight: 700;
 }
 
-.fichas-detail-kpi-green { border-left-color: #39a900; }
+.fichas-detail-kpi-green { border-left-color: #238500; }
 .fichas-detail-kpi-red { border-left-color: #ef4444; }
-.fichas-detail-kpi-yellow { border-left-color: #f59e0b; }
-.fichas-detail-kpi-blue { border-left-color: #3b82f6; }
+.fichas-detail-kpi-yellow { border-left-color: #f5b400; }
+.fichas-detail-kpi-blue { border-left-color: #0b2442; }
 
 .fichas-detail-layout {
   display: grid;
@@ -1640,7 +1640,7 @@
   gap: 8px;
   border: 0;
   background: transparent;
-  color: #1f2937;
+  color: #0b2442;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -1650,7 +1650,7 @@
 .fichas-banner {
   padding: 34px 30px;
   border-radius: 18px;
-  background: linear-gradient(180deg, #06395f, #052d4f);
+  background: linear-gradient(180deg, #0b2442, #0b2442);
   box-shadow: 0 16px 30px rgba(5, 45, 79, 0.18);
 }
 
@@ -1719,7 +1719,7 @@
 .fichas-mini-kpi strong {
   display: block;
   margin-top: 12px;
-  color: #1f2937;
+  color: #0b2442;
   font-size: 24px;
   line-height: 1;
   font-weight: 900;
@@ -1791,13 +1791,13 @@
 .fichas-detail-field strong,
 .fichas-ambient-block strong,
 .fichas-instructor-row strong {
-  color: #25364a;
+  color: #0b2442;
   font-size: 15px;
   font-weight: 800;
 }
 
 .fichas-detail-field strong.highlight {
-  color: #39a900;
+  color: #238500;
 }
 
 .fichas-side-stack {
@@ -1820,7 +1820,7 @@
   justify-content: center;
   border-radius: 999px;
   background: #eefbe8;
-  color: #39a900;
+  color: #238500;
   font-size: 18px;
   font-weight: 900;
   flex-shrink: 0;
@@ -1866,7 +1866,7 @@
 
 .grupos-icon-btn.horario {
   border-color: #bfdbfe;
-  color: #1d4ed8;
+  color: #0b2442;
 }
 
 .grupos-horario-modal {
@@ -1912,7 +1912,7 @@
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   background: #eff6ff;
-  color: #1d4ed8;
+  color: #0b2442;
   font-size: 12px;
   font-weight: 850;
 }
@@ -2184,7 +2184,7 @@
 }
 
 .grupos-horario-form .grupos-horario-check.selected {
-  border-color: #9add8c;
+  border-color: #238500;
   background: #f0fdf4;
 }
 
@@ -2236,7 +2236,7 @@
 }
 
 .grupos-horario-instructor-option.selected {
-  border-color: #9add8c;
+  border-color: #238500;
   background: #f0fdf4;
 }
 
@@ -2281,13 +2281,13 @@
 .grupos-horario-form-msg.error {
   border-color: #fecaca;
   background: #fef2f2;
-  color: #b91c1c;
+  color: #ef4444;
 }
 
 .grupos-horario-form-msg.warning {
   border-color: #fde68a;
   background: #fffbeb;
-  color: #92400e;
+  color: #f5b400;
 }
 
 .grupos-horario-row {
@@ -2623,7 +2623,7 @@
   height: 8px;
   min-width: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--sima-green), #21b8d7);
+  background: linear-gradient(90deg, var(--sima-green), #0b2442);
 }
 
 .mis-grupos-chart-bars {
@@ -3330,11 +3330,11 @@
 /* Alineacion visual con el maquetado del dashboard/instructor. */
 .grupos-page,
 .fichas-detail-page-v2 {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
-  --sima-green-dark: #248400;
-  --sima-yellow: #f8d41f;
-  --sima-cyan: #21b8d7;
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
+  --sima-green-dark: #238500;
+  --sima-yellow: #f5b400;
+  --sima-cyan: #0b2442;
   --sima-red: #ef4444;
   --sima-text: #0b2442;
   --sima-muted: #6d7c8d;
@@ -3376,7 +3376,7 @@
 
 .fichas-detail-page-v2 .fichas-banner-badge.suspendido {
   background: #fff8d6;
-  color: #a36d00;
+  color: #f5b400;
 }
 
 .fichas-detail-page-v2 .fichas-banner-badge.cerrado,
@@ -3541,8 +3541,10 @@
 .grupos-horario-field-hint {
   display: block;
   margin-top: 6px;
-  color: #b45309;
+  color: #f5b400;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.35;
 }
+
+

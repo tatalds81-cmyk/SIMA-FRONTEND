@@ -1,12 +1,12 @@
-export const API_URL = "/api";
+﻿export const API_URL = "/api";
 export const APRENDICES_POR_PAGINA = 5;
 export const HISTORIAL_POR_PAGINA = 4;
 
 export const ESTADOS = {
-  presente: { label: "Presente", color: "#22c55e" },
+  presente: { label: "Presente", color: "#238500" },
   ausente: { label: "Ausente", color: "#ef4444" },
-  retardado: { label: "Retardado", color: "#f59e0b" },
-  justificado: { label: "Justificado", color: "#3b82f6" }
+  retardado: { label: "Retardado", color: "#f5b400" },
+  justificado: { label: "Justificado", color: "#0b2442" }
 };
 
 export const METODOS = [
@@ -30,3 +30,4 @@ export const MESES = [
   { value: "11", label: "Noviembre" },
   { value: "12", label: "Diciembre" }
 ];
+

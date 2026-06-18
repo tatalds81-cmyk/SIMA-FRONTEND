@@ -1,9 +1,9 @@
-.coordinador-panel {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
-  --sima-green-dark: #248400;
-  --sima-yellow: #f8d41f;
-  --sima-cyan: #21b8d7;
+﻿.coordinador-panel {
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
+  --sima-green-dark: #238500;
+  --sima-yellow: #f5b400;
+  --sima-cyan: #0b2442;
   --sima-red: #ef4444;
   --sima-text: #0b2442;
   --sima-muted: #6d7c8d;
@@ -86,8 +86,8 @@
 .tono-amarillo .coordinador-kpi-icon { background: #fff8d6; color: #d7a400; }
 .tono-azul .coordinador-kpi-icon { background: #f1f5fb; color: var(--sima-navy); }
 .tono-verde .coordinador-kpi-icon { background: #edf9e7; color: var(--sima-green-dark); }
-.tono-cyan .coordinador-kpi-icon { background: #e8fbff; color: #159eb9; }
-.tono-morado .coordinador-kpi-icon { background: #f4f0ff; color: #6d4cc2; }
+.tono-cyan .coordinador-kpi-icon { background: #e8fbff; color: #0b2442; }
+.tono-morado .coordinador-kpi-icon { background: #f4f0ff; color: #0b2442; }
 .tono-rojo .coordinador-kpi-icon { background: #fff1f2; color: var(--sima-red); }
 
 .coordinador-kpi-ring {
@@ -215,29 +215,30 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--sima-border);
-  border-radius: 7px;
-  background: #ffffff;
-  color: #334155;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #0b2442;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.15;
   cursor: pointer;
   white-space: nowrap;
   box-shadow: none;
-  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+  transition: border-color 0.18s ease, color 0.18s ease;
 }
 
 .coordinador-select-btn.active {
-  border-color: #b9ddaa;
-  background: #f6fbf3;
-  color: var(--sima-green-dark);
+  border-color: #0b2442;
+  background: transparent;
+  color: #0b2442;
 }
 
 .coordinador-select-btn:hover {
-  border-color: #b9ddaa;
-  color: var(--sima-green-dark);
+  border-color: #0b2442;
+  color: #0b2442;
 }
 
 .coordinador-filter-actions {
@@ -275,7 +276,7 @@
 
 .chart-line {
   fill: none;
-  stroke: #1685c1;
+  stroke: #0b2442;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -448,7 +449,7 @@
 .coordinador-novedades {
   padding: 20px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #06395f, #052d4f);
+  background: linear-gradient(180deg, #0b2442, #0b2442);
   color: #ffffff;
   box-shadow: 0 16px 30px rgba(5, 45, 79, 0.18);
 }
@@ -804,3 +805,5 @@
 .coordinador-acciones button {
   min-height: 36px;
 }
+
+
