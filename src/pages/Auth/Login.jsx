@@ -17,6 +17,7 @@ export default function Login({ onLogin }) {
 
   const URL_LOGIN = "/api/auth/login";
   const URL_ME = "/api/auth/me";
+  const ROLES_WEB_PERMITIDOS = ["instructor", "coordinador"];
 
   function obtenerNombreRol(valor) {
     if (!valor) return "";
@@ -96,17 +97,24 @@ export default function Login({ onLogin }) {
       const nombreCompleto = `${persona.nombres || ""} ${persona.apellidos || ""}`.trim();
       const nombreUsuario = nombreCompleto || usuarioFinal.email || username.trim();
       const rol = obtenerNombreRol(usuarioFinal.rol || userLogin?.rol || loginData?.rol);
+      const rolNormalizado = String(rol || "").toLowerCase();
+
+      if (!ROLES_WEB_PERMITIDOS.includes(rolNormalizado)) {
+        localStorage.removeItem("access");
+        localStorage.removeItem("token");
+        localStorage.removeItem("rol");
+        throw new Error("El portal web es solo para instructores y coordinadores. Los aprendices deben ingresar desde la app movil.");
+      }
 
       localStorage.setItem("username", nombreUsuario);
       localStorage.setItem("usuario", nombreUsuario);
-      localStorage.setItem("rol", rol);
+      localStorage.setItem("rol", rolNormalizado);
       localStorage.setItem("user_email", usuarioFinal.email || "");
       localStorage.setItem("user_documento", persona.numero_documento || username.trim());
       localStorage.setItem("user_data", JSON.stringify(usuarioFinal));
 
       setMensaje("Inicio de sesion correcto");
 
-      const rolNormalizado = String(rol || "").toLowerCase();
       const rutaInicio = rolNormalizado === "instructor" ? "/instructor/dashboard" : "/dashboard";
 
       if (onLogin) {

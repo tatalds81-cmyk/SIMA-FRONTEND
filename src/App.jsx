@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Login from "./pages/Auth/Login";
@@ -39,9 +39,19 @@ function App() {
   }
 
   const esInstructor = rol === "instructor";
+  const esCoordinador = rol === "coordinador";
+  const esRolWebValido = esInstructor || esCoordinador;
   const rutaInicio = esInstructor
     ? "/instructor/dashboard"
-    : "/dashboard";
+    : esCoordinador
+      ? "/dashboard"
+      : "/login";
+
+  useEffect(() => {
+    if (token && rol && !esRolWebValido) {
+      manejarLogout();
+    }
+  }, [token, rol, esRolWebValido]);
 
   return (
     <BrowserRouter>
