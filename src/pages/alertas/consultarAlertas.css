@@ -1,10 +1,10 @@
-/* ═══════════════════════════════════════════════════════════════
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    consultarAlertas.css
-   ═══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .ca-page {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
   --sima-text: #0b2442;
   --sima-muted: #6b7a8b;
@@ -20,7 +20,7 @@
   color: var(--sima-text);
 }
 
-/* ── Header ─────────────────────────────────────────────────── */
+/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-page-header {
   display: flex;
   align-items: center;
@@ -65,7 +65,7 @@
   align-self: center;
 }
 
-/* ── Botones globales ───────────────────────────────────────── */
+/* â”€â”€ Botones globales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -100,7 +100,7 @@
 }
 .ca-btn-outline:hover { background: #f0f4f8; border-color: #b0c0d6; }
 
-/* ── Filtros ────────────────────────────────────────────────── */
+/* â”€â”€ Filtros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-filtros-card {
   background: #fff;
   border: 1px solid var(--sima-border);
@@ -152,7 +152,7 @@
 }
 .ca-input:focus,
 .ca-select:focus {
-  border-color: #2652cc;
+  border-color: #0b2442;
   box-shadow: 0 0 0 3px rgba(38,82,204,0.10);
   background: #fff;
 }
@@ -235,7 +235,7 @@
   justify-content: flex-end;
 }
 
-/* ── Cabecera de resultados ─────────────────────────────────── */
+/* â”€â”€ Cabecera de resultados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-resultados-header {
   display: flex;
   align-items: center;
@@ -247,7 +247,7 @@
 }
 .ca-resultados-count strong { color: #0b2442; font-weight: 900; }
 
-/* ── Estados vacío / error / loading ────────────────────────── */
+/* â”€â”€ Estados vacÃ­o / error / loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-estado-loading,
 .ca-estado-error,
 .ca-estado-vacio {
@@ -268,20 +268,20 @@
   width: 36px;
   height: 36px;
   border: 3px solid #e1e8f0;
-  border-top-color: #2652cc;
+  border-top-color: #0b2442;
   border-radius: 50%;
   animation: ca-spin 0.75s linear infinite;
 }
 @keyframes ca-spin { to { transform: rotate(360deg); } }
 
 .ca-estado-loading span { color: #38506b; font-size: 13px; font-weight: 600; }
-.ca-estado-error p { color: #991b1b; font-size: 13px; font-weight: 600; margin: 0; }
+.ca-estado-error p { color: #ef4444; font-size: 13px; font-weight: 600; margin: 0; }
 
 .ca-vacio-icono { font-size: 42px; }
 .ca-vacio-titulo { color: #0b2442; font-size: 15px; font-weight: 800; margin: 0; }
 .ca-vacio-sub    { color: #38506b; font-size: 13px; font-weight: 600; margin: 0; }
 
-/* ── Tabla ──────────────────────────────────────────────────── */
+/* â”€â”€ Tabla â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-tabla-wrap {
   background: #fff;
   border: 1px solid var(--sima-border);
@@ -334,7 +334,7 @@
   padding-left: 9px;
 }
 
-/* ── Celda aprendiz ─────────────────────────────────────────── */
+/* â”€â”€ Celda aprendiz â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-aprendiz-cell {
   display: flex;
   align-items: center;
@@ -354,7 +354,7 @@
   font-weight: 400;
 }
 
-/* ── Celda fecha ────────────────────────────────────────────── */
+/* â”€â”€ Celda fecha â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-fecha-linea1 {
   display: block;
   color: #0b2442;
@@ -369,14 +369,14 @@
   font-weight: 400;
 }
 
-/* ── Celda texto genérico ───────────────────────────────────── */
+/* â”€â”€ Celda texto genÃ©rico â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-cell-texto {
   color: #0b2442;
   font-size: 12px;
   font-weight: 400;
 }
 
-/* ── Botón ojo ──────────────────────────────────────────────── */
+/* â”€â”€ BotÃ³n ojo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-btn-accion {
   width: 30px;
   height: 30px;
@@ -390,9 +390,9 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.ca-btn-accion:hover { background: #eef3ff; color: #2652cc; border-color: #c7d7f8; }
+.ca-btn-accion:hover { background: #eef3ff; color: #0b2442; border-color: #c7d7f8; }
 
-/* ── Paginación ─────────────────────────────────────────────── */
+/* â”€â”€ PaginaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ca-pagination {
   display: flex;
   align-items: center;
@@ -457,7 +457,7 @@
   outline: none;
 }
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 900px) {
   .ca-filtro-grupo { min-width: 140px; }
 }
@@ -467,3 +467,4 @@
   .ca-filtro-grupo,
   .ca-filtro-grupo--wide { min-width: 100%; flex: none; }
 }
+

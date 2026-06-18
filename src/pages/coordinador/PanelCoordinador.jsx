@@ -171,8 +171,8 @@ export default function PanelCoordinador() {
 
   const asistenciaJornada = [
     { nombre: "Manana", valor: 0, color: "#20b9d7" },
-    { nombre: "Tarde", valor: 0, color: "#052d4f" },
-    { nombre: "Noche", valor: 0, color: "#71ad00" }
+    { nombre: "Tarde", valor: 0, color: "#0b2442" },
+    { nombre: "Noche", valor: 0, color: "#238500" }
   ];
 
   const filtrosResumen = [
@@ -358,8 +358,8 @@ export default function PanelCoordinador() {
             <svg viewBox="0 0 680 230" role="img">
               <defs>
                 <linearGradient id="asistenciaFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#2ca8df" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#2ca8df" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#0b2442" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#0b2442" stopOpacity="0" />
                 </linearGradient>
               </defs>
               <path className="chart-area" d={graficoResumen.area} />
@@ -470,3 +470,4 @@ export default function PanelCoordinador() {
     </div>
   );
 }
+

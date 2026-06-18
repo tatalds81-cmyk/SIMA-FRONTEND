@@ -1,4 +1,4 @@
-export const SEVERIDAD = {
+﻿export const SEVERIDAD = {
   LEVE: 'LEVE',
   MODERADA: 'MODERADA',
   GRAVE: 'GRAVE'
@@ -23,14 +23,15 @@ export const ORIGEN_ALERTA = {
 };
 
 export const SEVERIDAD_COLORES = {
-  LEVE:     { bg: '#FEF9C3', text: '#854D0E', border: '#FDE047' },
-  MODERADA: { bg: '#FEF3C7', text: '#92400E', border: '#F59E0B' },
-  GRAVE:    { bg: '#FEE2E2', text: '#991B1B', border: '#EF4444' }
+  LEVE:     { bg: '#FEF9C3', text: '#854D0E', border: '#f5b400' },
+  MODERADA: { bg: '#FEF3C7', text: '#f5b400', border: '#f5b400' },
+  GRAVE:    { bg: '#FEE2E2', text: '#ef4444', border: '#EF4444' }
 };
 
 export const ESTADO_COLORES = {
-  ABIERTA:        { bg: '#FEE2E2', text: '#991B1B' },
-  ACTIVA:         { bg: '#FEE2E2', text: '#991B1B' },
-  CERRADA:        { bg: '#DCFCE7', text: '#166534' },
-  EN_SEGUIMIENTO: { bg: '#DBEAFE', text: '#1E40AF' }
+  ABIERTA:        { bg: '#FEE2E2', text: '#ef4444' },
+  ACTIVA:         { bg: '#FEE2E2', text: '#ef4444' },
+  CERRADA:        { bg: '#DCFCE7', text: '#238500' },
+  EN_SEGUIMIENTO: { bg: '#DBEAFE', text: '#0b2442' }
 };
+

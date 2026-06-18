@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import {
   AlertTriangle,
@@ -256,7 +256,7 @@ export default function AsistenciaInstructor() {
     return listaBase.filter((aprendiz) => {
       const coincideBusqueda = !texto || normalizarTexto(aprendiz.nombre).includes(texto);
       
-      // En modo manual, no filtrar por estado/método/fecha
+      // En modo manual, no filtrar por estado/mÃ©todo/fecha
       if (modoManual) {
         return coincideBusqueda;
       }
@@ -545,7 +545,7 @@ export default function AsistenciaInstructor() {
         margin: 2,
         width: 420,
         color: {
-          dark: "#111827",
+          dark: "#0b2442",
           light: "#ffffff"
         }
       });
@@ -735,7 +735,7 @@ export default function AsistenciaInstructor() {
                       </label>
 
                       <label>
-                        <span>Año</span>
+                        <span>AÃ±o</span>
                         <select
                           value={filtroAnio}
                           onChange={(e) => {
@@ -1181,7 +1181,7 @@ export default function AsistenciaInstructor() {
                     setBusquedaHistorialDetalle(e.target.value);
                     setPaginaHistorialDetalle(1);
                   }}
-                  placeholder="Buscar fecha, mes o año"
+                  placeholder="Buscar fecha, mes o aÃ±o"
                 />
                 {busquedaHistorialDetalle && (
                   <button
@@ -1349,3 +1349,4 @@ export default function AsistenciaInstructor() {
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════════════════════════════
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    notificaciones.css
-   ═══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .notif-container {
   position: relative;
@@ -8,7 +8,7 @@
   align-items: center;
 }
 
-/* ── Botón Campana ── */
+/* â”€â”€ BotÃ³n Campana â”€â”€ */
 .notif-btn {
   background: none;
   border: none;
@@ -24,6 +24,10 @@
 }
 .notif-btn:hover, .notif-btn.active {
   background: #f0f4f8;
+  color: #0b2442;
+}
+
+.notif-btn.coordinador {
   color: #0b2442;
 }
 
@@ -44,7 +48,7 @@
   border: 2px solid #fff;
 }
 
-/* ── Dropdown ── */
+/* â”€â”€ Dropdown â”€â”€ */
 .notif-dropdown {
   position: absolute;
   top: calc(100% + 12px);
@@ -81,12 +85,12 @@
 .notif-ver-todas {
   font-size: 12px;
   font-weight: 700;
-  color: #2652cc;
+  color: #0b2442;
   text-decoration: none;
 }
 .notif-ver-todas:hover { text-decoration: underline; }
 
-/* ── Lista de items ── */
+/* â”€â”€ Lista de items â”€â”€ */
 .notif-list {
   max-height: 380px;
   overflow-y: auto;
@@ -115,9 +119,9 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.notif-icon-box.manual     { background: #fee2e2; color: #dc2626; }
-.notif-icon-box.automatica { background: #e0e7ff; color: #4338ca; }
-.notif-icon-box.sistema    { background: #fef3c7; color: #d97706; }
+.notif-icon-box.manual     { background: #fee2e2; color: #ef4444; }
+.notif-icon-box.automatica { background: #e0e7ff; color: #0b2442; }
+.notif-icon-box.sistema    { background: #fef3c7; color: #f5b400; }
 
 .notif-content {
   flex: 1;
@@ -133,7 +137,7 @@
   line-height: 1.4;
   font-weight: 500;
 }
-.unread .notif-msg { font-weight: 700; color: #0f172a; }
+.unread .notif-msg { font-weight: 700; color: #0b2442; }
 
 .notif-time {
   display: flex;
@@ -148,13 +152,13 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2652cc;
+  background: #0b2442;
   position: absolute;
   right: 18px;
   top: 18px;
 }
 
-/* ── Vacío ── */
+/* â”€â”€ VacÃ­o â”€â”€ */
 .notif-empty {
   padding: 40px 20px;
   text-align: center;
@@ -163,7 +167,7 @@
 .notif-empty svg { margin-bottom: 10px; opacity: 0.3; }
 .notif-empty p { font-size: 13px; font-weight: 600; margin: 0; }
 
-/* ── Footer ── */
+/* â”€â”€ Footer â”€â”€ */
 .notif-footer {
   padding: 10px;
   border-top: 1px solid #f1f5f9;
@@ -188,3 +192,5 @@
 }
 .notif-btn-readall:hover:not(:disabled) { background: #f1f5f9; color: #0b2442; }
 .notif-btn-readall:disabled { opacity: 0.5; cursor: not-allowed; }
+
+

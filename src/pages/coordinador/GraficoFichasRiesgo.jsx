@@ -1,4 +1,4 @@
-import {
+﻿import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -54,7 +54,7 @@ function GraficoFichasRiesgo() {
         position: "top"
       },
       tooltip: {
-        backgroundColor: "#111827",
+        backgroundColor: "#0b2442",
         titleColor: "#ffffff",
         bodyColor: "#ffffff"
       }

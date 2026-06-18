@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Info, MoreVertical } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, MoreVertical, UserRound } from "lucide-react";
 import {
   listarSesionesGrupo,
   obtenerAprendicesPorGrupo,
@@ -8,19 +8,19 @@ import {
 } from "./asistencia/asistencia.service";
 import {
   combinarAprendicesConAsistencias,
-  formatearFecha,
   obtenerIdSesion,
   prepararAsistenciaSesion
 } from "./asistencia/asistencia.utils";
 import "../coordinador/coordinador.css";
 import "../fichas/fichas.css";
 import "./instructor.css";
+import "./historial-asistencia.css";
 
 const RESUMEN_ASISTENCIA = [
-  { key: "presente", label: "Asistio", color: "#22c55e" },
-  { key: "ausente", label: "Ausente", color: "#ef4444" },
-  { key: "justificado", label: "Justificado", color: "#eab308" },
-  { key: "retardado", label: "Retraso", color: "#3b82f6" },
+  { key: "presente", label: "Presente", color: "#55A83B", backgroundColor: "#EAF6E6" },
+  { key: "ausente", label: "Ausente", color: "#EE6666", backgroundColor: "#FDECEC" },
+  { key: "justificado", label: "Justificado", color: "#E9AC24", backgroundColor: "#FFF5D9" },
+  { key: "tarde", label: "Tarde", color: "#0B2442", backgroundColor: "#EAF0F6" },
 ];
 
 const DIAS_CALENDARIO = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
@@ -91,6 +91,10 @@ function obtenerHorarioSesion(sesion) {
 function normalizarEstadoHistorial(estado) {
   if (!estado || estado === "sin_estado" || estado === "sin-estado" || estado === "pendiente") {
     return "ausente";
+  }
+
+  if (estado === "retardado" || estado === "retraso") {
+    return "tarde";
   }
 
   return estado;
@@ -201,6 +205,7 @@ export default function HistorialAsistenciaGrupo() {
   const [registros, setRegistros] = useState([]);
   const [estadoResumenSeleccionado, setEstadoResumenSeleccionado] = useState("");
   const [sesionResumenSeleccionada, setSesionResumenSeleccionada] = useState("");
+  const [sesionExpandida, setSesionExpandida] = useState("");
   const [cargandoSesiones, setCargandoSesiones] = useState(false);
   const [cargandoAsistencias, setCargandoAsistencias] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -256,6 +261,7 @@ export default function HistorialAsistenciaGrupo() {
 
   function alternarFiltroResumen(idSesion, estado = "") {
     const mismoFiltro = String(sesionResumenSeleccionada) === String(idSesion) && estadoResumenSeleccionado === estado;
+    setSesionExpandida(String(idSesion));
     setSesionResumenSeleccionada(mismoFiltro ? "" : idSesion);
     setEstadoResumenSeleccionado(mismoFiltro ? "" : estado);
   }
@@ -269,6 +275,7 @@ export default function HistorialAsistenciaGrupo() {
     setRegistros([]);
     setEstadoResumenSeleccionado("");
     setSesionResumenSeleccionada("");
+    setSesionExpandida("");
     setMensaje("");
 
     try {
@@ -293,8 +300,13 @@ export default function HistorialAsistenciaGrupo() {
         })
       );
       if (!activo) return;
-      setSesionSeleccionada(detalles[0]?.sesion || sesionesValidas[0]);
+      const primeraSesion = detalles[0]?.sesion || sesionesValidas[0];
+      const primerIdSesion = obtenerIdSesion(primeraSesion);
+      setSesionSeleccionada(primeraSesion);
       setRegistros(detalles.flatMap((detalle) => detalle.registros));
+      setSesionExpandida(String(primerIdSesion || ""));
+      setSesionResumenSeleccionada(primerIdSesion || "");
+      setEstadoResumenSeleccionado("presente");
     } catch (error) {
       console.error("Error cargando asistencias de seccion:", error);
       if (activo) setMensaje(error.message || "No fue posible cargar la asistencia de este dia.");
@@ -311,6 +323,7 @@ export default function HistorialAsistenciaGrupo() {
     setRegistros([]);
     setEstadoResumenSeleccionado("");
     setSesionResumenSeleccionada("");
+    setSesionExpandida("");
 
     try {
       const respuesta = await listarSesionesGrupo({
@@ -365,6 +378,7 @@ export default function HistorialAsistenciaGrupo() {
     setRegistros([]);
     setEstadoResumenSeleccionado("");
     setSesionResumenSeleccionada("");
+    setSesionExpandida("");
     setMensaje("");
   }
 
@@ -442,142 +456,164 @@ export default function HistorialAsistenciaGrupo() {
           <section className="asistencia-historial-detalle" aria-label="Asistencia del dia seleccionado" key={obtenerIdSesion(sesionSeleccionada) || fechaSeleccionada || "sin-sesion"}>
             {sesionSeleccionada ? (
               <>
+                <div className="asistencia-historial-detalle-head">
+                  <h2>Sesiones del dia</h2>
+                </div>
+
                 <div className="asistencia-historial-session-cards">
-                  {resumenesPorSesion.map((resumenSesion, index) => (
-                    <article className="asistencia-historial-session-card" key={resumenSesion.idSesion}>
-                      <div className="asistencia-historial-session-main">
-                        <h3>
-                          <CalendarDays size={18} />
-                          Seccion {index + 1}: Sesion #{resumenSesion.idSesion}
-                        </h3>
-                        <div className="asistencia-historial-session-time">
-                          <Clock size={17} />
-                          <span>{obtenerHorarioSesion(resumenSesion.sesion)}</span>
+                  {resumenesPorSesion.map((resumenSesion, index) => {
+                    const abierta = String(sesionExpandida) === String(resumenSesion.idSesion);
+                    const seleccionada = String(sesionResumenSeleccionada) === String(resumenSesion.idSesion);
+                    const aprendicesTabla = seleccionada ? aprendicesSeleccionados : [];
+                    const estadoChip = seleccionada ? estadoSeleccionado : null;
+
+                    return (
+                      <article className={`asistencia-historial-session-card ${abierta ? "expanded" : ""}`} key={resumenSesion.idSesion}>
+                        <div className="asistencia-historial-session-index">{index + 1}</div>
+                        <div className="asistencia-historial-session-main">
+                          <h3>Seccion {index + 1} - Sesion #{resumenSesion.idSesion}</h3>
+                          <div className="asistencia-historial-session-time">
+                            <Clock size={17} />
+                            <span>{obtenerHorarioSesion(resumenSesion.sesion)}</span>
+                          </div>
+                          <p>
+                            <UserRound size={16} />
+                            Instructor: {resumenSesion.sesion?.instructor?.nombre || resumenSesion.sesion?.instructor_nombre || "Sin asignar"}
+                          </p>
+                          <p>
+                            <BookOpen size={16} />
+                            Competencia: {obtenerNombreCompetenciaSesion(resumenSesion.sesion)}
+                          </p>
                         </div>
-                        <p>
-                          Ficha {obtenerCodigo(grupo)} - Trimestre {obtenerNumeroTrimestreSesion(resumenSesion.sesion) || "sin trimestre"}.
-                          {" "}{obtenerPrograma(grupo)}
-                        </p>
+
                         <div className="asistencia-historial-session-meta">
-                          <span>{formatearFecha(resumenSesion.sesion.fecha_clase)}</span>
                           <strong className={`asistencia-historial-session-status ${obtenerEstadoSesion(resumenSesion.sesion).toLowerCase()}`}>
+                            <CalendarDays size={14} />
                             {etiquetaEstadoSesion(obtenerEstadoSesion(resumenSesion.sesion))}
                           </strong>
                         </div>
-                      </div>
 
-                      <div className="asistencia-historial-session-summary">
+                        <div className="asistencia-historial-session-summary">
+                          <button
+                            type="button"
+                            className={`asistencia-historial-donut ${seleccionada && !estadoResumenSeleccionado ? "active" : ""}`}
+                            style={{ background: resumenSesion.gradiente }}
+                            onClick={() => alternarFiltroResumen(resumenSesion.idSesion)}
+                            aria-label={`Ver aprendices de la seccion ${index + 1}`}
+                          >
+                            <div>
+                              <strong>{resumenSesion.items.find((item) => item.key === "presente")?.valor || 0}/{resumenSesion.total}</strong>
+                              <span>asistieron</span>
+                            </div>
+                          </button>
+                          <div className="asistencia-historial-legend">
+                            {resumenSesion.items.map((item) => {
+                              const activa = seleccionada && estadoResumenSeleccionado === item.key;
+                              return (
+                                <button
+                                  type="button"
+                                  className={activa ? "active" : ""}
+                                  key={item.key}
+                                  aria-pressed={activa}
+                                  onClick={() => alternarFiltroResumen(resumenSesion.idSesion, item.key)}
+                                >
+                                  <i style={{ background: item.color }} />
+                                  {item.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         <button
                           type="button"
-                          className={`asistencia-historial-donut ${String(sesionResumenSeleccionada) === String(resumenSesion.idSesion) && !estadoResumenSeleccionado ? "active" : ""}`}
-                          style={{ background: resumenSesion.gradiente }}
-                          onClick={() => alternarFiltroResumen(resumenSesion.idSesion)}
-                          aria-label={`Ver aprendices de la seccion ${index + 1}`}
+                          className="asistencia-historial-session-toggle"
+                          onClick={() => setSesionExpandida(abierta ? "" : String(resumenSesion.idSesion))}
+                          aria-label={abierta ? "Cerrar detalle de aprendices" : "Abrir detalle de aprendices"}
                         >
-                          <div>
-                            <strong>{resumenSesion.total}</strong>
-                            <span>Total</span>
-                          </div>
+                          {abierta ? <ChevronUp size={19} /> : <ChevronDown size={19} />}
                         </button>
-                        <div className="asistencia-historial-legend">
-                          {resumenSesion.items.map((item) => {
-                            const activa = String(sesionResumenSeleccionada) === String(resumenSesion.idSesion) && estadoResumenSeleccionado === item.key;
-                            return (
-                              <button
-                                type="button"
-                                className={activa ? "active" : ""}
-                                key={item.key}
-                                aria-pressed={activa}
-                                onClick={() => alternarFiltroResumen(resumenSesion.idSesion, item.key)}
-                              >
-                                <i style={{ background: item.color }} />
-                                {item.label}: {item.valor}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
 
-                <article className="coordinador-card asistencia-historial-selected-card">
-                  <div className="asistencia-historial-selected-head">
-                    <div>
-                      <h2>Aprendices del estado seleccionado</h2>
-                      <p>
-                        {sesionResumenSeleccionada
-                          ? `Sesion #${sesionResumenSeleccionada}${estadoSeleccionado ? ` - ${estadoSeleccionado.label}` : " - Todos"}`
-                          : "Selecciona una metrica de una seccion para ver aprendices."}
-                      </p>
-                    </div>
-                    {estadoSeleccionado && (
-                      <span className="asistencia-historial-selected-chip" style={{ "--estado-color": estadoSeleccionado.color }}>
-                        <CheckCircle2 size={15} />
-                        {estadoSeleccionado.label} ({aprendicesSeleccionados.length})
-                      </span>
-                    )}
-                  </div>
+                        {abierta && (
+                          <div className="asistencia-historial-session-apprentices">
+                            <div className="asistencia-historial-apprentices-head">
+                              <h3>Aprendices</h3>
+                              {estadoChip && (
+                                <span
+                                  className="asistencia-historial-selected-chip"
+                                  style={{ "--estado-color": estadoChip.color, "--estado-bg": estadoChip.backgroundColor }}
+                                >
+                                  <CheckCircle2 size={15} />
+                                  {estadoChip.label} ({aprendicesTabla.length})
+                                </span>
+                              )}
+                            </div>
 
-                  <div className="asistencia-historial-selected-hint">
-                    <Info size={15} />
-                    <span>Al hacer clic en la dona o en la leyenda de la seccion, se muestran aqui los aprendices de ese estado.</span>
-                  </div>
-
-                  <div className="asistencia-historial-selected-table-wrap">
-                    <table className="asistencia-historial-selected-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Estudiante</th>
-                          <th>Estado</th>
-                          <th>Hora de registro</th>
-                          <th aria-label="Acciones" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cargandoAsistencias ? (
-                          <tr>
-                            <td colSpan="5" className="grupos-empty">Cargando aprendices...</td>
-                          </tr>
-                        ) : aprendicesSeleccionados.length ? (
-                          aprendicesSeleccionados.map((aprendiz, index) => {
-                            const estado = RESUMEN_ASISTENCIA.find((item) => item.key === aprendiz.estado);
-                            return (
-                              <tr key={aprendiz.id}>
-                                <td>{index + 1}</td>
-                                <td>
-                                  <div className="asistencia-historial-student-cell">
-                                    <span>{obtenerIniciales(aprendiz.nombre)}</span>
-                                    <strong>{aprendiz.nombre}</strong>
-                                  </div>
-                                </td>
-                                <td>
-                                  <span className="asistencia-historial-selected-status" style={{ "--estado-color": estado?.color || "#64748b" }}>
-                                    <CheckCircle2 size={15} />
-                                    {estado?.label || "Sin estado"}
-                                  </span>
-                                </td>
-                                <td>{aprendiz.hora || "-"}</td>
-                                <td>
-                                  <button type="button" className="asistencia-historial-row-action" aria-label={`Ver opciones de ${aprendiz.nombre}`}>
-                                    <MoreVertical size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan="5" className="grupos-empty">
-                              {sesionSeleccionadaParaTabla ? "No hay aprendices para ese estado." : "Selecciona una metrica para ver aprendices."}
-                            </td>
-                          </tr>
+                            <div className="asistencia-historial-selected-table-wrap">
+                              <table className="asistencia-historial-selected-table">
+                                <thead>
+                                  <tr>
+                                    <th>#</th>
+                                    <th>Estudiante</th>
+                                    <th>Estado</th>
+                                    <th>Hora de registro</th>
+                                    <th aria-label="Acciones" />
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {cargandoAsistencias ? (
+                                    <tr>
+                                      <td colSpan="5" className="grupos-empty">Cargando aprendices...</td>
+                                    </tr>
+                                  ) : aprendicesTabla.length ? (
+                                    aprendicesTabla.map((aprendiz, aprendizIndex) => {
+                                      const estado = RESUMEN_ASISTENCIA.find((item) => item.key === aprendiz.estado);
+                                      return (
+                                        <tr key={aprendiz.id}>
+                                          <td>{aprendizIndex + 1}</td>
+                                          <td>
+                                            <div className="asistencia-historial-student-cell">
+                                              <span>{obtenerIniciales(aprendiz.nombre)}</span>
+                                              <strong>{aprendiz.nombre}</strong>
+                                            </div>
+                                          </td>
+                                          <td>
+                                            <span
+                                              className="asistencia-historial-selected-status"
+                                              style={{
+                                                "--estado-color": estado?.color || "#64809F",
+                                                "--estado-bg": estado?.backgroundColor || "#EAF0F6",
+                                              }}
+                                            >
+                                              <CheckCircle2 size={15} />
+                                              {estado?.label || "Sin estado"}
+                                            </span>
+                                          </td>
+                                          <td>{aprendiz.hora || "-"}</td>
+                                          <td>
+                                            <button type="button" className="asistencia-historial-row-action" aria-label={`Ver opciones de ${aprendiz.nombre}`}>
+                                              <MoreVertical size={16} />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })
+                                  ) : (
+                                    <tr>
+                                      <td colSpan="5" className="grupos-empty">
+                                        {sesionSeleccionadaParaTabla ? "No hay aprendices para ese estado." : "Selecciona una metrica para ver aprendices."}
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
                         )}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
+                      </article>
+                    );
+                  })}
+                </div>
               </>
             ) : (
               <div className="asistencia-historial-placeholder">

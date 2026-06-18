@@ -1,8 +1,8 @@
-.sima-navbar-main {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+﻿.sima-navbar-main {
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-border: #dfe6ee;
-  --sima-text: #092444;
+  --sima-text: #0b2442;
   --sima-muted: #667789;
 
   position: fixed;
@@ -22,7 +22,7 @@
 }
 
 .sima-navbar-main.navbar-instructor {
-  background: linear-gradient(180deg, var(--sima-navy) 0%, #021f39 100%);
+  background: linear-gradient(180deg, var(--sima-navy) 0%, #0b2442 100%);
   border-bottom-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 24px rgba(5, 45, 79, 0.18);
 }
@@ -81,7 +81,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #e53935;
+  background: #ef4444;
   border: 2px solid #ffffff;
   font-size: 0;
 }
@@ -116,7 +116,7 @@
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 34%, #f4c09a 0 25%, transparent 26%),
-    linear-gradient(145deg, #123e63 0 48%, #0c2e4f 49% 100%);
+    linear-gradient(145deg, #0b2442 0 48%, #0c2e4f 49% 100%);
   color: #ffffff;
   font-size: 14px;
   font-weight: 900;
@@ -198,12 +198,12 @@
 }
 
 .profile-menu .logout-btn {
-  color: #c62828;
+  color: #ef4444;
 }
 
 .profile-menu .logout-btn:hover {
   background: #fff5f5;
-  color: #b71c1c;
+  color: #ef4444;
 }
 
 @media (max-width: 980px) {
@@ -245,3 +245,5 @@
     display: none;
   }
 }
+
+

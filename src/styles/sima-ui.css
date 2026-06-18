@@ -1,4 +1,4 @@
-/* Shared SIMA interface rules */
+﻿/* Shared SIMA interface rules */
 :root {
   --sima-ui-text: #0b2442;
   --sima-ui-muted: #38506b;
@@ -7,9 +7,9 @@
   --sima-ui-head-bg: #f8fafc;
   --sima-ui-green: #238500;
   --sima-ui-green-bg: #edf9e7;
-  --sima-ui-red: #dc2626;
+  --sima-ui-red: #ef4444;
   --sima-ui-red-bg: #fce4e4;
-  --sima-ui-yellow: #b8860b;
+  --sima-ui-yellow: #f5b400;
   --sima-ui-yellow-bg: #fdf2d0;
   --sima-ui-card-shadow: 0 12px 28px rgba(9, 36, 68, 0.06);
   --sima-ui-radius: 12px;
@@ -586,3 +586,4 @@
     margin-left: 0 !important;
   }
 }
+

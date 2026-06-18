@@ -1,4 +1,4 @@
-import {
+﻿import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -9,7 +9,7 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 
-// Registramos los elementos necesarios para el gráfico de barras apiladas
+// Registramos los elementos necesarios para el grÃ¡fico de barras apiladas
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -71,7 +71,7 @@ function GraficoBarrasApiladas({ etiquetas }) {
         }
       },
       tooltip: {
-        backgroundColor: "#111827",
+        backgroundColor: "#0b2442",
         titleColor: "#ffffff",
         bodyColor: "#ffffff",
         borderColor: "#d1d5db",

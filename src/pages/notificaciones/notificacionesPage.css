@@ -1,10 +1,10 @@
-/* ═══════════════════════════════════════════════════════════════
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    notificacionesPage.css
-   ═══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .nt-page {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
   --sima-text: #0b2442;
   --sima-muted: #6b7a8b;
@@ -19,7 +19,7 @@
   color: var(--sima-text);
 }
 
-/* ── Breadcrumb ── */
+/* â”€â”€ Breadcrumb â”€â”€ */
 .nt-breadcrumb {
   display: flex;
   gap: 8px;
@@ -31,9 +31,9 @@
 .nt-breadcrumb span { cursor: pointer; transition: color 0.2s; }
 .nt-breadcrumb span:hover { color: #0b2442; }
 .nt-sep { color: #cbd5e1; cursor: default !important; }
-.nt-active { color: #2563eb; font-weight: 700; cursor: default !important; }
+.nt-active { color: #0b2442; font-weight: 700; cursor: default !important; }
 
-/* ── Title Row ── */
+/* â”€â”€ Title Row â”€â”€ */
 .nt-title-row {
   display: flex;
   justify-content: space-between;
@@ -74,7 +74,7 @@
   color: var(--sima-muted);
 }
 
-/* ── Back Button ── */
+/* â”€â”€ Back Button â”€â”€ */
 .nt-btn-back {
   width: 32px;
   height: 32px;
@@ -95,7 +95,7 @@
   border-color: #cbd5e1;
 }
 
-/* ── Actions ── */
+/* â”€â”€ Actions â”€â”€ */
 .nt-actions { display: flex; gap: 12px; }
 
 .nt-btn-secondary {
@@ -129,7 +129,7 @@
 }
 .nt-btn-refresh:hover:not(:disabled) { background: #e2e8f0; color: #0b2442; }
 
-/* ── List ── */
+/* â”€â”€ List â”€â”€ */
 .nt-content {
   background: #fff;
   border-radius: 12px;
@@ -167,8 +167,8 @@
   flex-shrink: 0;
 }
 
-.nt-icon-bot { color: #7c3aed; }
-.nt-icon-sys { color: #2563eb; }
+.nt-icon-bot { color: #0b2442; }
+.nt-icon-sys { color: #0b2442; }
 .nt-icon-alert { color: #ef4444; }
 
 .nt-item-body {
@@ -183,7 +183,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 500;
-  color: #0f172a;
+  color: #0b2442;
   line-height: 1.4;
 }
 .nt-item-time { font-size: 12px; color: #94a3b8; font-weight: 500; }
@@ -212,7 +212,7 @@
 }
 .nt-btn-action:hover { background: #fee2e2; color: #ef4444; }
 
-/* ── States ── */
+/* â”€â”€ States â”€â”€ */
 .nt-state-msg {
   padding: 80px 40px;
   display: flex;
@@ -228,3 +228,5 @@
 
 .spin { animation: nt-spin 1s linear infinite; }
 @keyframes nt-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+
