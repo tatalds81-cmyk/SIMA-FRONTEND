@@ -1,39 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, Search, X } from "lucide-react";
-import TablaAsistencia from "./asistencia/components/TablaAsistencia";
-import { ESTADOS } from "./asistencia/asistencia.constants";
+import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, MoreVertical, UserRound } from "lucide-react";
 import {
   listarSesionesGrupo,
-  obtenerAsistenciasSesion,
-  obtenerCatalogosHorarioGrupo
+  obtenerAprendicesPorGrupo,
+  obtenerAsistenciasSesion
 } from "./asistencia/asistencia.service";
 import {
-  formatearFecha,
+  combinarAprendicesConAsistencias,
   obtenerIdSesion,
   prepararAsistenciaSesion
 } from "./asistencia/asistencia.utils";
 import "../coordinador/coordinador.css";
 import "../fichas/fichas.css";
 import "./instructor.css";
+import "./historial-asistencia.css";
 
-const FILTROS_INICIALES = {
-  idGrupoTrimestre: "",
-  idCompetencia: "",
-  fechaDesde: "",
-  fechaHasta: "",
-  estado: "",
-};
-
-const ESTADOS_SESION = [
-  { value: "", label: "Todos los estados" },
-  { value: "PROGRAMADA", label: "Programada" },
-  { value: "ABIERTA", label: "Abierta" },
-  { value: "CERRADA", label: "Cerrada" },
-  { value: "CANCELADA", label: "Cancelada" },
+const RESUMEN_ASISTENCIA = [
+  { key: "presente", label: "Presente", color: "#55A83B", backgroundColor: "#EAF6E6" },
+  { key: "ausente", label: "Ausente", color: "#EE6666", backgroundColor: "#FDECEC" },
+  { key: "justificado", label: "Justificado", color: "#E9AC24", backgroundColor: "#FFF5D9" },
+  { key: "tarde", label: "Tarde", color: "#0B2442", backgroundColor: "#EAF0F6" },
 ];
 
-const DIAS_HABILES = ["Lun", "Mar", "Mie", "Jue", "Vie"];
+const DIAS_CALENDARIO = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
 const MESES_CALENDARIO = [
   "Enero",
   "Febrero",
@@ -48,14 +38,6 @@ const MESES_CALENDARIO = [
   "Noviembre",
   "Diciembre",
 ];
-
-function normalizarTexto(valor) {
-  return String(valor || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
 
 function obtenerCodigo(grupo) {
   return (
@@ -92,24 +74,6 @@ function obtenerGrupoGuardado(idGrupo) {
   }
 }
 
-function obtenerCompetenciaCatalogo(item) {
-  return item?.competencia || item || {};
-}
-
-function obtenerIdCompetenciaCatalogo(item) {
-  const competencia = obtenerCompetenciaCatalogo(item);
-  return competencia.id_clase_competencia || item?.id_clase_competencia || "";
-}
-
-function obtenerNombreCompetenciaCatalogo(item) {
-  const competencia = obtenerCompetenciaCatalogo(item);
-  return competencia.nombre_competencia || competencia.nombre || "Competencia sin nombre";
-}
-
-function obtenerIdCompetenciaSesion(sesion) {
-  return sesion?.id_clase_competencia || sesion?.competencia?.id_clase_competencia || "";
-}
-
 function obtenerNombreCompetenciaSesion(sesion) {
   return sesion?.competencia?.nombre_competencia || sesion?.competencia?.nombre || "Sin competencia";
 }
@@ -124,20 +88,26 @@ function obtenerHorarioSesion(sesion) {
   return inicio && fin ? `${String(inicio).slice(0, 5)} - ${String(fin).slice(0, 5)}` : "Sin horario";
 }
 
-function prepararRegistrosHistorial(asistencias) {
-  return asistencias.map(prepararAsistenciaSesion).filter((registro) => registro.estado);
+function normalizarEstadoHistorial(estado) {
+  if (!estado || estado === "sin_estado" || estado === "sin-estado" || estado === "pendiente") {
+    return "ausente";
+  }
+
+  if (estado === "retardado" || estado === "retraso") {
+    return "tarde";
+  }
+
+  return estado;
 }
 
-function calcularResumenAsistencia(registros) {
-  return registros.reduce(
-    (acumulado, registro) => {
-      if (Object.prototype.hasOwnProperty.call(acumulado, registro.estado)) {
-        acumulado[registro.estado] += 1;
-      }
-      return acumulado;
-    },
-    { presente: 0, ausente: 0, retardado: 0, justificado: 0 }
-  );
+function prepararRegistrosHistorial(asistencias) {
+  return asistencias.map((asistencia) => {
+    const registro = prepararAsistenciaSesion(asistencia);
+    return {
+      ...registro,
+      estado: normalizarEstadoHistorial(registro.estado),
+    };
+  });
 }
 
 function obtenerEstadoSesion(sesion) {
@@ -159,7 +129,7 @@ function formatearFechaISO(fecha) {
   return `${anio}-${mes}-${dia}`;
 }
 
-function construirDiasHabilesMes(fechaBase) {
+function construirDiasMes(fechaBase) {
   const anio = fechaBase.getFullYear();
   const mes = fechaBase.getMonth();
   const ultimoDia = new Date(anio, mes + 1, 0).getDate();
@@ -168,7 +138,6 @@ function construirDiasHabilesMes(fechaBase) {
   for (let dia = 1; dia <= ultimoDia; dia += 1) {
     const fecha = new Date(anio, mes, dia, 12);
     const diaSemana = fecha.getDay();
-    if (diaSemana === 0 || diaSemana === 6) continue;
 
     if (!dias.length) {
       const espacios = diaSemana === 0 ? 6 : diaSemana - 1;
@@ -197,43 +166,50 @@ function etiquetaEstadoSesion(estado) {
   return etiquetas[estado] || estado;
 }
 
+function obtenerIniciales(nombre) {
+  const partes = String(nombre || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return `${partes[0]?.[0] || "A"}${partes[1]?.[0] || ""}`.toUpperCase();
+}
+
+function construirGradienteResumen(items, total) {
+  if (!total) return "#e5edf6";
+
+  let inicio = 0;
+  const segmentos = items
+    .filter((item) => item.valor > 0)
+    .map((item) => {
+      const fin = inicio + (item.valor / total) * 100;
+      const segmento = `${item.color} ${inicio}% ${fin}%`;
+      inicio = fin;
+      return segmento;
+    });
+
+  return `conic-gradient(${segmentos.join(", ")})`;
+}
+
 export default function HistorialAsistenciaGrupo() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
   const grupo = location.state?.grupo || obtenerGrupoGuardado(id) || { id_grupo: id };
   const idGrupo = obtenerIdGrupo(grupo) || id;
-  const [filtros, setFiltros] = useState(FILTROS_INICIALES);
-  const [opciones, setOpciones] = useState({ trimestres: [], competencias: [] });
+  const grupoConsulta = grupo || idGrupo;
   const [sesiones, setSesiones] = useState([]);
   const [sesionSeleccionada, setSesionSeleccionada] = useState(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState("");
   const [mesCalendario, setMesCalendario] = useState(() => new Date());
   const [registros, setRegistros] = useState([]);
-  const [busquedaAprendiz, setBusquedaAprendiz] = useState("");
+  const [estadoResumenSeleccionado, setEstadoResumenSeleccionado] = useState("");
+  const [sesionResumenSeleccionada, setSesionResumenSeleccionada] = useState("");
+  const [sesionExpandida, setSesionExpandida] = useState("");
   const [cargandoSesiones, setCargandoSesiones] = useState(false);
   const [cargandoAsistencias, setCargandoAsistencias] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
-  const resumen = useMemo(() => calcularResumenAsistencia(registros), [registros]);
-  const totalResumen = Object.values(resumen).reduce((total, valor) => total + Number(valor || 0), 0);
-  const totalRegistros = Math.max(registros.length, totalResumen, 1);
-  const segmentosDonut = useMemo(() => {
-    let inicio = 0;
-    return Object.entries(resumen).map(([estado, valor]) => {
-      const porcentaje = Math.round((valor / totalRegistros) * 100);
-      const fin = inicio + porcentaje;
-      const segmento = `${ESTADOS[estado]?.color || "#e5e7eb"} ${inicio}% ${fin}%`;
-      inicio = fin;
-      return segmento;
-    });
-  }, [resumen, totalRegistros]);
-  const porcentajePresentes = Math.round(((resumen.presente || 0) / totalRegistros) * 100);
-  const registrosFiltrados = useMemo(() => {
-    const texto = normalizarTexto(busquedaAprendiz);
-    if (!texto) return registros;
-    return registros.filter((registro) => normalizarTexto(registro.nombre).includes(texto));
-  }, [busquedaAprendiz, registros]);
   const sesionesPorFecha = useMemo(() => {
     return sesiones.reduce((mapa, sesion) => {
       const fecha = obtenerFechaSesion(sesion);
@@ -244,63 +220,129 @@ export default function HistorialAsistenciaGrupo() {
       return mapa;
     }, new Map());
   }, [sesiones]);
-  const diasCalendario = useMemo(() => construirDiasHabilesMes(mesCalendario), [mesCalendario]);
+  const diasCalendario = useMemo(() => construirDiasMes(mesCalendario), [mesCalendario]);
+  const sesionesFechaSeleccionada = fechaSeleccionada ? sesionesPorFecha.get(fechaSeleccionada) || [] : [];
+  const estadoSeleccionado = RESUMEN_ASISTENCIA.find((item) => item.key === estadoResumenSeleccionado);
+  const sesionSeleccionadaParaTabla = sesionesFechaSeleccionada.find((sesion) => String(obtenerIdSesion(sesion)) === String(sesionResumenSeleccionada));
+  const aprendicesSeleccionados = useMemo(() => {
+    if (!sesionResumenSeleccionada) return [];
+
+    return registros.filter((registro) => {
+      const coincideSesion = String(registro.idSesion) === String(sesionResumenSeleccionada);
+      const coincideEstado = estadoResumenSeleccionado ? registro.estado === estadoResumenSeleccionado : true;
+      return coincideSesion && coincideEstado;
+    });
+  }, [estadoResumenSeleccionado, registros, sesionResumenSeleccionada]);
+  const resumenesPorSesion = useMemo(() => {
+    return sesionesFechaSeleccionada.map((sesion) => {
+      const idSesion = obtenerIdSesion(sesion);
+      const registrosSesion = registros.filter((registro) => String(registro.idSesion) === String(idSesion));
+      const items = RESUMEN_ASISTENCIA.map((item) => ({
+        ...item,
+        valor: registrosSesion.filter((registro) => registro.estado === item.key).length,
+      }));
+      const total = items.reduce((suma, item) => suma + item.valor, 0);
+
+      return {
+        idSesion,
+        sesion,
+        items,
+        aprendicesFiltrados: registrosSesion.filter((registro) => (
+          String(sesionResumenSeleccionada) === String(idSesion) && estadoResumenSeleccionado
+            ? registro.estado === estadoResumenSeleccionado
+            : false
+        )),
+        total,
+        gradiente: construirGradienteResumen(items, total),
+      };
+    });
+  }, [registros, sesionesFechaSeleccionada]);
   const etiquetaMesCalendario = `${MESES_CALENDARIO[mesCalendario.getMonth()]} ${mesCalendario.getFullYear()}`;
 
-  async function cargarRegistrosSesion(sesion, activo = true) {
-    const idSesion = obtenerIdSesion(sesion);
-    if (!idSesion) return;
+  function alternarFiltroResumen(idSesion, estado = "") {
+    const mismoFiltro = String(sesionResumenSeleccionada) === String(idSesion) && estadoResumenSeleccionado === estado;
+    setSesionExpandida(String(idSesion));
+    setSesionResumenSeleccionada(mismoFiltro ? "" : idSesion);
+    setEstadoResumenSeleccionado(mismoFiltro ? "" : estado);
+  }
 
-    setSesionSeleccionada(sesion);
+  async function cargarRegistrosSesionesDia(sesionesDia, activo = true) {
+    const sesionesValidas = sesionesDia.filter((sesion) => obtenerIdSesion(sesion));
+    if (!sesionesValidas.length) return;
+
+    setSesionSeleccionada(sesionesValidas[0]);
     setCargandoAsistencias(true);
     setRegistros([]);
-    setBusquedaAprendiz("");
+    setEstadoResumenSeleccionado("");
+    setSesionResumenSeleccionada("");
+    setSesionExpandida("");
     setMensaje("");
 
     try {
-      const detalle = await obtenerAsistenciasSesion(idSesion);
+      const aprendicesGrupo = await obtenerAprendicesPorGrupo(grupoConsulta).catch(() => []);
+      const detalles = await Promise.all(
+        sesionesValidas.map(async (sesion) => {
+          const idSesion = obtenerIdSesion(sesion);
+          const detalle = await obtenerAsistenciasSesion(idSesion);
+          const registrosSesion = aprendicesGrupo.length
+            ? combinarAprendicesConAsistencias(aprendicesGrupo, detalle.asistencias)
+            : prepararRegistrosHistorial(detalle.asistencias);
+
+          return {
+            sesion: detalle.sesion || sesion,
+            registros: registrosSesion.map((registro) => ({
+              ...registro,
+              estado: normalizarEstadoHistorial(registro.estado),
+              id: `${idSesion}-${registro.id}`,
+              idSesion,
+            })),
+          };
+        })
+      );
       if (!activo) return;
-      setSesionSeleccionada(detalle.sesion || sesion);
-      setRegistros(prepararRegistrosHistorial(detalle.asistencias));
+      const primeraSesion = detalles[0]?.sesion || sesionesValidas[0];
+      const primerIdSesion = obtenerIdSesion(primeraSesion);
+      setSesionSeleccionada(primeraSesion);
+      setRegistros(detalles.flatMap((detalle) => detalle.registros));
+      setSesionExpandida(String(primerIdSesion || ""));
+      setSesionResumenSeleccionada(primerIdSesion || "");
+      setEstadoResumenSeleccionado("presente");
     } catch (error) {
       console.error("Error cargando asistencias de seccion:", error);
-      if (activo) setMensaje(error.message || "No fue posible cargar la asistencia de esta seccion.");
+      if (activo) setMensaje(error.message || "No fue posible cargar la asistencia de este dia.");
     } finally {
       if (activo) setCargandoAsistencias(false);
     }
   }
 
-  async function cargarSesionesHistorial(filtrosConsulta = filtros, activo = true) {
+  async function cargarSesionesHistorial(activo = true) {
     if (!idGrupo) return;
     setCargandoSesiones(true);
     setMensaje("");
     setSesionSeleccionada(null);
     setRegistros([]);
-    setBusquedaAprendiz("");
+    setEstadoResumenSeleccionado("");
+    setSesionResumenSeleccionada("");
+    setSesionExpandida("");
 
     try {
       const respuesta = await listarSesionesGrupo({
-        idGrupo,
-        idGrupoTrimestre: filtrosConsulta.idGrupoTrimestre,
-        fechaDesde: filtrosConsulta.fechaDesde,
-        fechaHasta: filtrosConsulta.fechaHasta,
-        estado: filtrosConsulta.estado,
+        idGrupo: grupoConsulta,
         soloResponsable: true,
         limit: 100,
       });
 
       if (!activo) return;
-      const sesionesFiltradas = filtrosConsulta.idCompetencia
-        ? respuesta.sesiones.filter((sesion) => String(obtenerIdCompetenciaSesion(sesion)) === String(filtrosConsulta.idCompetencia))
-        : respuesta.sesiones;
+      const sesionesFiltradas = respuesta.sesiones;
       setSesiones(sesionesFiltradas);
       const primeraFecha = obtenerFechaSesion(sesionesFiltradas[0]);
-      setFechaSeleccionada((actual) => {
-        if (actual && sesionesFiltradas.some((sesion) => obtenerFechaSesion(sesion) === actual)) return actual;
-        return primeraFecha || "";
-      });
-      if (primeraFecha) setMesCalendario(crearFechaLocal(primeraFecha));
+      const fechaActualValida = fechaSeleccionada && sesionesFiltradas.some((sesion) => obtenerFechaSesion(sesion) === fechaSeleccionada);
+      const fechaParaMostrar = fechaActualValida ? fechaSeleccionada : primeraFecha || "";
+      const sesionesIniciales = sesionesFiltradas.filter((sesion) => obtenerFechaSesion(sesion) === fechaParaMostrar);
+      setFechaSeleccionada(fechaParaMostrar);
+      if (fechaParaMostrar) setMesCalendario(crearFechaLocal(fechaParaMostrar));
       setMensaje(sesionesFiltradas.length ? "" : "No hay secciones con esos filtros.");
+      if (sesionesIniciales.length) await cargarRegistrosSesionesDia(sesionesIniciales, activo);
     } catch (error) {
       console.error("Error cargando secciones de asistencia:", error);
       if (activo) {
@@ -315,22 +357,7 @@ export default function HistorialAsistenciaGrupo() {
   useEffect(() => {
     let activo = true;
 
-    async function cargarCatalogos() {
-      try {
-        const catalogos = await obtenerCatalogosHorarioGrupo(idGrupo);
-        if (!activo) return;
-        setOpciones({
-          trimestres: catalogos.trimestres,
-          competencias: catalogos.competencias,
-        });
-      } catch (error) {
-        console.error("Error cargando catalogos de asistencia:", error);
-        if (activo) setOpciones({ trimestres: [], competencias: [] });
-      }
-    }
-
-    cargarCatalogos();
-    const timeout = window.setTimeout(() => cargarSesionesHistorial(FILTROS_INICIALES, activo), 0);
+    const timeout = window.setTimeout(() => cargarSesionesHistorial(activo), 0);
 
     return () => {
       activo = false;
@@ -339,22 +366,19 @@ export default function HistorialAsistenciaGrupo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idGrupo]);
 
-  function cambiarFiltro(evento) {
-    const { name, value } = evento.target;
-    setFiltros((actual) => ({ ...actual, [name]: value }));
-  }
-
   async function seleccionarDiaCalendario(fechaISO) {
     setFechaSeleccionada(fechaISO);
     const sesionesDia = sesionesPorFecha.get(fechaISO) || [];
     if (sesionesDia.length) {
-      await cargarRegistrosSesion(sesionesDia[0]);
+      await cargarRegistrosSesionesDia(sesionesDia);
       return;
     }
 
     setSesionSeleccionada(null);
     setRegistros([]);
-    setBusquedaAprendiz("");
+    setEstadoResumenSeleccionado("");
+    setSesionResumenSeleccionada("");
+    setSesionExpandida("");
     setMensaje("");
   }
 
@@ -362,13 +386,8 @@ export default function HistorialAsistenciaGrupo() {
     setMesCalendario((actual) => new Date(actual.getFullYear(), actual.getMonth() + direccion, 1, 12));
   }
 
-  function limpiarFiltrosHistorial() {
-    setFiltros(FILTROS_INICIALES);
-    cargarSesionesHistorial(FILTROS_INICIALES);
-  }
-
   return (
-    <div className="grupos-page mis-grupos-page asistencia-historial-page">
+    <div className="grupos-page mis-grupos-page asistencia-historial-page" translate="no">
       <header className="grupos-header asistencia-historial-page-header">
         <div>
           <span className="grupos-eyebrow">Asistencia de grupo</span>
@@ -382,234 +401,218 @@ export default function HistorialAsistenciaGrupo() {
       </header>
 
       <section className="coordinador-card asistencia-historial-panel" aria-label="Historial de asistencia del grupo">
-        <div className="asistencia-historial-filters">
-          <label>
-            <span>Trimestre</span>
-            <select name="idGrupoTrimestre" value={filtros.idGrupoTrimestre} onChange={cambiarFiltro}>
-              <option value="">Todos</option>
-              {opciones.trimestres.map((trimestre) => (
-                <option key={trimestre.id_grupo_trimestre} value={trimestre.id_grupo_trimestre}>
-                  Trimestre {trimestre.numero_trimestre || trimestre.trimestre || trimestre.id_grupo_trimestre}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Competencia</span>
-            <select name="idCompetencia" value={filtros.idCompetencia} onChange={cambiarFiltro}>
-              <option value="">Todas</option>
-              {opciones.competencias.map((competencia) => {
-                const idCompetencia = obtenerIdCompetenciaCatalogo(competencia);
-                return (
-                  <option key={idCompetencia} value={idCompetencia}>
-                    {obtenerNombreCompetenciaCatalogo(competencia)}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-
-          <label>
-            <span>Desde</span>
-            <input type="date" name="fechaDesde" value={filtros.fechaDesde} onChange={cambiarFiltro} />
-          </label>
-
-          <label>
-            <span>Hasta</span>
-            <input type="date" name="fechaHasta" value={filtros.fechaHasta} onChange={cambiarFiltro} />
-          </label>
-
-          <label>
-            <span>Estado</span>
-            <select name="estado" value={filtros.estado} onChange={cambiarFiltro}>
-              {ESTADOS_SESION.map((estado) => (
-                <option key={estado.value || "todos"} value={estado.value}>
-                  {estado.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="asistencia-historial-actions">
-            <button type="button" className="mcal-btn-cancelar" onClick={limpiarFiltrosHistorial}>
-              Limpiar
-            </button>
-            <button type="button" className="mcal-btn-enviar" onClick={() => cargarSesionesHistorial()} disabled={cargandoSesiones}>
-              <RefreshCw size={15} />
-              Filtrar
-            </button>
-          </div>
-        </div>
-
         {mensaje && <div className="grupos-alert info asistencia-historial-message">{mensaje}</div>}
 
         <div className="asistencia-historial-body">
           <aside className="asistencia-historial-sesiones">
-            <div className="asistencia-historial-section-head">
-              <div>
-                <h3>Calendario</h3>
-                <p>Selecciona un dia habil</p>
-              </div>
-              <span>{sesiones.length}</span>
-            </div>
-
-            <div className="asistencia-historial-calendar">
-              <div className="asistencia-historial-calendar-head">
-                <button type="button" onClick={() => cambiarMesCalendario(-1)} aria-label="Mes anterior">
-                  <ChevronLeft size={16} />
-                </button>
-                <strong>{etiquetaMesCalendario}</strong>
-                <button type="button" onClick={() => cambiarMesCalendario(1)} aria-label="Mes siguiente">
-                  <ChevronRight size={16} />
-                </button>
+            <section className="coordinador-card asistencia-historial-calendar-card">
+              <div className="asistencia-historial-section-head">
+                <div>
+                  <h3>Calendario</h3>
+                  <p>Selecciona un dia</p>
+                </div>
+                <span>{sesiones.length}</span>
               </div>
 
-              <div className="asistencia-historial-weekdays">
-                {DIAS_HABILES.map((dia) => (
-                  <span key={dia}>{dia}</span>
-                ))}
-              </div>
+              <div className="asistencia-historial-calendar">
+                <div className="asistencia-historial-calendar-head">
+                  <button type="button" onClick={() => cambiarMesCalendario(-1)} aria-label="Mes anterior">
+                    <ChevronLeft size={16} />
+                  </button>
+                  <strong>{etiquetaMesCalendario}</strong>
+                  <button type="button" onClick={() => cambiarMesCalendario(1)} aria-label="Mes siguiente">
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
 
-              <div className="asistencia-historial-calendar-grid">
-                {diasCalendario.map((dia, index) => {
-                  if (!dia) return <span className="asistencia-historial-calendar-gap" key={`gap-${index}`} />;
-                  const sesionesDia = sesionesPorFecha.get(dia.fechaISO) || [];
-                  const activo = fechaSeleccionada === dia.fechaISO;
-                  return (
-                    <button
-                      type="button"
-                      className={`asistencia-historial-day ${activo ? "active" : ""} ${sesionesDia.length ? "has-session" : ""}`}
-                      key={dia.fechaISO}
-                      onClick={() => seleccionarDiaCalendario(dia.fechaISO)}
-                    >
-                      <strong>{dia.dia}</strong>
-                      {sesionesDia.length ? <span>{sesionesDia.length}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                <div className="asistencia-historial-weekdays">
+                  {DIAS_CALENDARIO.map((dia) => (
+                    <span key={dia}>{dia}</span>
+                  ))}
+                </div>
 
+                <div className="asistencia-historial-calendar-grid">
+                  {diasCalendario.map((dia, index) => {
+                    if (!dia) return <span className="asistencia-historial-calendar-gap" key={`gap-${index}`} />;
+                    const sesionesDia = sesionesPorFecha.get(dia.fechaISO) || [];
+                    const activo = fechaSeleccionada === dia.fechaISO;
+                    return (
+                      <button
+                        type="button"
+                        className={`asistencia-historial-day ${activo ? "active" : ""} ${sesionesDia.length ? "has-session" : ""}`}
+                        key={dia.fechaISO}
+                        onClick={() => seleccionarDiaCalendario(dia.fechaISO)}
+                      >
+                        <strong>{dia.dia}</strong>
+                        {sesionesDia.length ? <span>{sesionesDia.length}</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
           </aside>
 
-          <section className="asistencia-historial-detalle" aria-label="Asistencia del dia seleccionado">
+          <section className="asistencia-historial-detalle" aria-label="Asistencia del dia seleccionado" key={obtenerIdSesion(sesionSeleccionada) || fechaSeleccionada || "sin-sesion"}>
             {sesionSeleccionada ? (
               <>
-                <div className="asistencia-historial-section-head">
-                  <div>
-                    <h3>Asistencia de sesion #{obtenerIdSesion(sesionSeleccionada)}</h3>
-                    <p>{formatearFecha(sesionSeleccionada.fecha_clase)} - {obtenerNombreCompetenciaSesion(sesionSeleccionada)}</p>
-                  </div>
+                <div className="asistencia-historial-detalle-head">
+                  <h2>Sesiones del dia</h2>
                 </div>
 
-                <div className="asistencia-historial-info-card">
-                  <div>
-                    <span>Fecha</span>
-                    <strong>{formatearFecha(sesionSeleccionada.fecha_clase)}</strong>
-                  </div>
-                  <div>
-                    <span>Estado de sesion</span>
-                    <strong className={`asistencia-historial-session-status ${obtenerEstadoSesion(sesionSeleccionada).toLowerCase()}`}>
-                      {etiquetaEstadoSesion(obtenerEstadoSesion(sesionSeleccionada))}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Ficha</span>
-                    <strong>{obtenerCodigo(grupo)}</strong>
-                  </div>
-                  <div>
-                    <span>Programa</span>
-                    <strong>{obtenerPrograma(grupo)}</strong>
-                  </div>
-                  <div>
-                    <span>Competencia</span>
-                    <strong>{obtenerNombreCompetenciaSesion(sesionSeleccionada)}</strong>
-                  </div>
-                  <div>
-                    <span>Trimestre</span>
-                    <strong>{obtenerNumeroTrimestreSesion(sesionSeleccionada) || "Sin trimestre"}</strong>
-                  </div>
-                  <div>
-                    <span>Horario</span>
-                    <strong>{obtenerHorarioSesion(sesionSeleccionada)}</strong>
-                  </div>
-                </div>
+                <div className="asistencia-historial-session-cards">
+                  {resumenesPorSesion.map((resumenSesion, index) => {
+                    const abierta = String(sesionExpandida) === String(resumenSesion.idSesion);
+                    const seleccionada = String(sesionResumenSeleccionada) === String(resumenSesion.idSesion);
+                    const aprendicesTabla = seleccionada ? aprendicesSeleccionados : [];
+                    const estadoChip = seleccionada ? estadoSeleccionado : null;
 
-                <div className="asistencia-historial-asistencia-grid">
-                <article className="coordinador-card asistencia-list-card asistencia-historial-table-card">
-                  <div className="coordinador-card-header">
-                    <div>
-                      <h2>Asistencia</h2>
-                      <p>Aprendices registrados: {registros.length}</p>
-                    </div>
-                  </div>
-
-                  <div className="asistencia-table-search asistencia-historial-search">
-                    <Search size={16} />
-                    <input
-                      type="search"
-                      value={busquedaAprendiz}
-                      onChange={(evento) => setBusquedaAprendiz(evento.target.value)}
-                      placeholder="Buscar aprendiz"
-                      aria-label="Buscar aprendiz en historial de asistencia"
-                    />
-                    {busquedaAprendiz && (
-                      <button type="button" onClick={() => setBusquedaAprendiz("")} aria-label="Limpiar busqueda de aprendices">
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  <TablaAsistencia
-                    aprendices={registrosFiltrados}
-                    cargando={cargandoAsistencias}
-                    guardando={false}
-                    modoManual={false}
-                    soloLectura
-                    onAbrirDetalle={() => {}}
-                    onAbrirManual={() => {}}
-                    onCambiarEstado={() => {}}
-                  />
-                </article>
-
-                <article className="coordinador-card asistencia-summary-card asistencia-historial-summary-card">
-                  <div className="coordinador-card-header">
-                    <div>
-                      <h2>Resumen de asistencia</h2>
-                      <p>Aprendices registrados: {registros.length}</p>
-                    </div>
-                  </div>
-
-                  <div className="asistencia-dashboard-summary">
-                    <div className="asistencia-dashboard-top">
-                      <div className="asistencia-donut" style={{ background: `conic-gradient(${segmentosDonut.join(", ") || "#e5e7eb 0% 100%"})` }}>
-                        <div>
-                          <strong>{porcentajePresentes}%</strong>
-                          <span>Presentes</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {Object.entries(ESTADOS).map(([estado, info]) => {
-                      const valor = resumen[estado] || 0;
-                      const porcentaje = Math.round((valor / totalRegistros) * 100);
-                      return (
-                        <div className="asistencia-dashboard-row" key={estado}>
-                          <div>
-                            <span className="asistencia-dot" style={{ background: info.color }}></span>
-                            <strong>{info.label}</strong>
+                    return (
+                      <article className={`asistencia-historial-session-card ${abierta ? "expanded" : ""}`} key={resumenSesion.idSesion}>
+                        <div className="asistencia-historial-session-index">{index + 1}</div>
+                        <div className="asistencia-historial-session-main">
+                          <h3>Seccion {index + 1} - Sesion #{resumenSesion.idSesion}</h3>
+                          <div className="asistencia-historial-session-time">
+                            <Clock size={17} />
+                            <span>{obtenerHorarioSesion(resumenSesion.sesion)}</span>
                           </div>
-                          <b>{valor}</b>
-                          <small>{porcentaje}%</small>
-                          <i>
-                            <em style={{ width: `${porcentaje}%`, background: info.color }}></em>
-                          </i>
+                          <p>
+                            <UserRound size={16} />
+                            Instructor: {resumenSesion.sesion?.instructor?.nombre || resumenSesion.sesion?.instructor_nombre || "Sin asignar"}
+                          </p>
+                          <p>
+                            <BookOpen size={16} />
+                            Competencia: {obtenerNombreCompetenciaSesion(resumenSesion.sesion)}
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
-                </article>
+
+                        <div className="asistencia-historial-session-meta">
+                          <strong className={`asistencia-historial-session-status ${obtenerEstadoSesion(resumenSesion.sesion).toLowerCase()}`}>
+                            <CalendarDays size={14} />
+                            {etiquetaEstadoSesion(obtenerEstadoSesion(resumenSesion.sesion))}
+                          </strong>
+                        </div>
+
+                        <div className="asistencia-historial-session-summary">
+                          <button
+                            type="button"
+                            className={`asistencia-historial-donut ${seleccionada && !estadoResumenSeleccionado ? "active" : ""}`}
+                            style={{ background: resumenSesion.gradiente }}
+                            onClick={() => alternarFiltroResumen(resumenSesion.idSesion)}
+                            aria-label={`Ver aprendices de la seccion ${index + 1}`}
+                          >
+                            <div>
+                              <strong>{resumenSesion.items.find((item) => item.key === "presente")?.valor || 0}/{resumenSesion.total}</strong>
+                              <span>asistieron</span>
+                            </div>
+                          </button>
+                          <div className="asistencia-historial-legend">
+                            {resumenSesion.items.map((item) => {
+                              const activa = seleccionada && estadoResumenSeleccionado === item.key;
+                              return (
+                                <button
+                                  type="button"
+                                  className={activa ? "active" : ""}
+                                  key={item.key}
+                                  aria-pressed={activa}
+                                  onClick={() => alternarFiltroResumen(resumenSesion.idSesion, item.key)}
+                                >
+                                  <i style={{ background: item.color }} />
+                                  {item.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="asistencia-historial-session-toggle"
+                          onClick={() => setSesionExpandida(abierta ? "" : String(resumenSesion.idSesion))}
+                          aria-label={abierta ? "Cerrar detalle de aprendices" : "Abrir detalle de aprendices"}
+                        >
+                          {abierta ? <ChevronUp size={19} /> : <ChevronDown size={19} />}
+                        </button>
+
+                        {abierta && (
+                          <div className="asistencia-historial-session-apprentices">
+                            <div className="asistencia-historial-apprentices-head">
+                              <h3>Aprendices</h3>
+                              {estadoChip && (
+                                <span
+                                  className="asistencia-historial-selected-chip"
+                                  style={{ "--estado-color": estadoChip.color, "--estado-bg": estadoChip.backgroundColor }}
+                                >
+                                  <CheckCircle2 size={15} />
+                                  {estadoChip.label} ({aprendicesTabla.length})
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="asistencia-historial-selected-table-wrap">
+                              <table className="asistencia-historial-selected-table">
+                                <thead>
+                                  <tr>
+                                    <th>#</th>
+                                    <th>Estudiante</th>
+                                    <th>Estado</th>
+                                    <th>Hora de registro</th>
+                                    <th aria-label="Acciones" />
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {cargandoAsistencias ? (
+                                    <tr>
+                                      <td colSpan="5" className="grupos-empty">Cargando aprendices...</td>
+                                    </tr>
+                                  ) : aprendicesTabla.length ? (
+                                    aprendicesTabla.map((aprendiz, aprendizIndex) => {
+                                      const estado = RESUMEN_ASISTENCIA.find((item) => item.key === aprendiz.estado);
+                                      return (
+                                        <tr key={aprendiz.id}>
+                                          <td>{aprendizIndex + 1}</td>
+                                          <td>
+                                            <div className="asistencia-historial-student-cell">
+                                              <span>{obtenerIniciales(aprendiz.nombre)}</span>
+                                              <strong>{aprendiz.nombre}</strong>
+                                            </div>
+                                          </td>
+                                          <td>
+                                            <span
+                                              className="asistencia-historial-selected-status"
+                                              style={{
+                                                "--estado-color": estado?.color || "#64809F",
+                                                "--estado-bg": estado?.backgroundColor || "#EAF0F6",
+                                              }}
+                                            >
+                                              <CheckCircle2 size={15} />
+                                              {estado?.label || "Sin estado"}
+                                            </span>
+                                          </td>
+                                          <td>{aprendiz.hora || "-"}</td>
+                                          <td>
+                                            <button type="button" className="asistencia-historial-row-action" aria-label={`Ver opciones de ${aprendiz.nombre}`}>
+                                              <MoreVertical size={16} />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })
+                                  ) : (
+                                    <tr>
+                                      <td colSpan="5" className="grupos-empty">
+                                        {sesionSeleccionadaParaTabla ? "No hay aprendices para ese estado." : "Selecciona una metrica para ver aprendices."}
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
                 </div>
               </>
             ) : (
@@ -623,3 +626,5 @@ export default function HistorialAsistenciaGrupo() {
     </div>
   );
 }
+
+// jngjh//

@@ -24,7 +24,7 @@ function tiempoRelativo(isoDate) {
   return `Hace ${dias} días`;
 }
 
-export default function NotificacionCampana() {
+export default function NotificacionCampana({ esCoordinador = false }) {
   const [notificaciones, setNotificaciones] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -86,7 +86,7 @@ export default function NotificacionCampana() {
   return (
     <div className="notif-container" ref={dropdownRef}>
       <button 
-        className={`notif-btn ${isOpen ? 'active' : ''}`} 
+        className={`notif-btn ${esCoordinador ? 'coordinador' : ''} ${isOpen ? 'active' : ''}`} 
         onClick={handleToggle}
         aria-label="Notificaciones"
       >

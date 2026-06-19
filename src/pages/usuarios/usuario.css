@@ -1,12 +1,12 @@
 ﻿.usuarios-page {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
   --sima-text: #0b2442;
   --sima-muted: #6b7a8b;
   --sima-border: #e1e8f0;
-  --sima-red: #dc2626;
-  --sima-yellow: #d99a00;
+  --sima-red: #ef4444;
+  --sima-yellow: #f5b400;
 
   width: 100%;
   max-width: 1480px;
@@ -132,19 +132,19 @@
 .usuarios-alert.info {
   border: 1px solid #bfdbfe;
   background: #eff6ff;
-  color: #1d4ed8;
+  color: #0b2442;
 }
 
 .usuarios-alert.danger {
   border: 1px solid #fecaca;
   background: #fff1f2;
-  color: #b91c1c;
+  color: #ef4444;
 }
 
 .usuarios-alert.warning {
   border: 1px solid #fde68a;
   background: #fffbeb;
-  color: #92400e;
+  color: #f5b400;
 }
 
 .usuarios-card {
@@ -193,7 +193,7 @@
 }
 
 .usuarios-table td {
-  color: #263a52;
+  color: #0b2442;
   font-weight: 400;
 }
 
@@ -641,5 +641,7 @@
   padding: 20px 24px 24px;
   border-top: 1px solid var(--sima-border);
 }
+
+
 
 

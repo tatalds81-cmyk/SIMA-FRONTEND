@@ -1,16 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowRight,
   CalendarClock,
   CheckCircle2,
   Clock,
-  Eye,
-  MessageSquareWarning,
   PencilLine,
-  TrendingUp,
-  UserRoundCheck,
   UsersRound
 } from "lucide-react";
 import "../coordinador/coordinador.css";
@@ -30,7 +24,7 @@ const calcularProgreso = (valor, maximo) => {
 };
 
 const coloresBarras = ["verde", "azul", "morado"];
-const coloresRiesgo = ["#ef4444", "#f59e0b", "#facc15"];
+const coloresRiesgo = ["#ef4444", "#f5b400", "#f5b400"];
 
 const nombresRiesgo = {
   INASISTENCIA: "Inasistencia",
@@ -128,11 +122,6 @@ const extraerAsignacionesInstructor = (data) => {
 const extraerAsistencias = (data) => {
   const asistencias = data?.asistencias || data?.data?.asistencias || data?.results || data;
   return Array.isArray(asistencias) ? asistencias : [];
-};
-
-const extraerObservaciones = (data) => {
-  const observaciones = data?.observaciones || data?.data?.observaciones || data?.results || data;
-  return Array.isArray(observaciones) ? observaciones : [];
 };
 
 const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || grupo.programa || "Sin programa";
@@ -299,13 +288,6 @@ const horarioPerteneceInstructorActual = (horario, idsAsignacionActual, identida
 
   return tieneInstructor ? itemPerteneceInstructorActual(horario, identidad) : true;
 };
-const obtenerPersona = (item) => item?.aprendiz?.usuario?.persona || item?.usuario?.persona || item?.persona || {};
-const obtenerNombreAprendiz = (item) => {
-  const persona = obtenerPersona(item);
-  const nombre = `${persona.nombres || ""} ${persona.apellidos || ""}`.trim();
-  return nombre || item?.aprendizNombre || item?.nombre || "Aprendiz";
-};
-const obtenerFicha = (item) => item?.grupo?.numero_ficha || item?.grupoCodigo || item?.id_grupo || "Sin ficha";
 const esInstructorLiderGrupo = (grupo) => {
   const identidad = obtenerIdentidadInstructorActual();
   const idsLider = [
@@ -336,19 +318,60 @@ const estadoCuentaComoAsistencia = (estado) => (
 
 const claseEstadoSesion = (estado) => {
   const valor = String(estado || "").toUpperCase();
-  if (valor === "ABIERTA") return "activa";
+  if (valor === "ABIERTA" || valor === "ACTIVA" || valor === "EN_CURSO") return "activa";
   if (valor === "PROGRAMADA") return "proxima";
-  if (valor === "CERRADA") return "cerrada";
-  if (valor === "CANCELADA") return "cancelada";
+  if (valor === "CERRADA" || valor === "CERRADO" || valor === "FINALIZADA") return "cerrada";
+  if (valor === "CANCELADA" || valor === "CANCELADO") return "cancelada";
   return "sin";
 };
 
-const obtenerClaseDiaCalendario = (sesiones = []) => {
+const etiquetaEstadoSesion = (estado) => {
+  const valor = String(estado || "PROGRAMADA").toUpperCase();
+  if (valor === "ABIERTA" || valor === "ACTIVA" || valor === "EN_CURSO") return "Activa";
+  if (valor === "PROGRAMADA") return "Programada";
+  if (valor === "CERRADA" || valor === "CERRADO" || valor === "FINALIZADA") return "Cerrada";
+  if (valor === "CANCELADA" || valor === "CANCELADO") return "Cancelada";
+  return String(estado || "Programada");
+};
+
+const crearFechaHoraSesion = (fechaISO, hora) => {
+  const horaNormalizada = normalizarHora(hora);
+  if (!fechaISO || horaNormalizada === "--:--") return null;
+  const fecha = new Date(`${fechaISO}T${horaNormalizada}:00`);
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+};
+
+const obtenerEstadoSesionCalendario = (sesion, fechaISO, horas = null) => {
+  const estadoBackend = String(sesion.estado || "").toUpperCase();
+  if (["CANCELADA", "CANCELADO"].includes(estadoBackend)) return "CANCELADA";
+  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estadoBackend)) return "CERRADA";
+  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estadoBackend)) return "ACTIVA";
+
+  const hoyISO = formatearFechaISO(new Date());
+  if (fechaISO && fechaISO < hoyISO) return "CERRADA";
+  if (fechaISO && fechaISO > hoyISO) return "PROGRAMADA";
+
+  const inicio = crearFechaHoraSesion(fechaISO, horas?.inicio || obtenerHoraInicioSesion(sesion));
+  const fin = crearFechaHoraSesion(fechaISO, horas?.fin || obtenerHoraFinSesion(sesion));
+  if (!inicio || !fin) return "PROGRAMADA";
+
+  const ahora = new Date();
+  if (ahora < inicio) return "PROGRAMADA";
+  if (ahora > fin) return "CERRADA";
+
+  const idSesionActiva = localStorage.getItem("sima_asistencia_sesion_activa") || sessionStorage.getItem("sima_asistencia_sesion_activa");
+  const idSesion = obtenerIdSesion(sesion);
+  const ingresoAAsistencia = idSesionActiva && idSesion && String(idSesionActiva) === String(idSesion);
+
+  if (ingresoAAsistencia) return "ACTIVA";
+  return "PROGRAMADA";
+};
+
+const obtenerClaseDiaCalendario = (sesiones = [], fechaISO = "") => {
   if (!sesiones.length) return "sin-sesiones";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "activa")) return "activa";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "proxima")) return "proxima";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "cerrada")) return "cerrada";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estado) === "cancelada")) return "cancelada";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario || sesion.estado) === "activa")) return "activa";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario || sesion.estado) === "cerrada")) return "cerrada";
+  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario || sesion.estado) === "cancelada")) return "cancelada";
   return "con-sesiones";
 };
 
@@ -387,14 +410,11 @@ const combinarSesionesCalendario = (...listas) => {
 };
 
 export default function PanelInstructor() {
-  const navigate = useNavigate();
   const [grupos, setGrupos] = useState([]);
   const [alertas, setAlertas] = useState([]);
-  const [observacionesRecientes, setObservacionesRecientes] = useState([]);
   const [sesionesSemana, setSesionesSemana] = useState([]);
   const [asistenciaPromedioMes, setAsistenciaPromedioMes] = useState(null);
   const [asistenciaPorGrupo, setAsistenciaPorGrupo] = useState({});
-  const [totalAprendices, setTotalAprendices] = useState(0);
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -430,7 +450,6 @@ export default function PanelInstructor() {
         setGrupos(gruposInstructor);
         setAlertas(extraerAlertas(alertasResultado));
         setSesionesSemana(sesionesSemanaData);
-        setTotalAprendices(Number(resumen?.kpis?.total_aprendices_activos) || 0);
         setTotalObservacionesMes(Number(resumen?.kpis?.total_observaciones_abiertas) || 0);
         setError("");
         setCargando(false);
@@ -466,20 +485,12 @@ export default function PanelInstructor() {
         if (!activo) return;
 
         const sesionesMes = extraerSesiones(sesionesMesResultado);
-        const [asistenciasPorSesion, observacionesPorGrupo] = await Promise.all([
-          Promise.allSettled(
-            sesionesMes.map((sesion) =>
-              fetchJson(`/api/educational-sessions/${obtenerIdSesion(sesion)}/attendances`)
-                .then((data) => ({ sesion, asistencias: extraerAsistencias(data) }))
-            )
-          ),
-          Promise.allSettled(
-            gruposInstructor.map((grupo) =>
-              fetchJson(`/api/observations/group/${grupo.id_grupo}?estado=ABIERTA&limit=5`)
-                .then((data) => extraerObservaciones(data))
-            )
+        const asistenciasPorSesion = await Promise.allSettled(
+          sesionesMes.map((sesion) =>
+            fetchJson(`/api/educational-sessions/${obtenerIdSesion(sesion)}/attendances`)
+              .then((data) => ({ sesion, asistencias: extraerAsistencias(data) }))
           )
-        ]);
+        );
 
         if (!activo) return;
 
@@ -502,12 +513,6 @@ export default function PanelInstructor() {
           return acc;
         }, { total: 0, asisten: 0, porGrupo: {} });
 
-        setObservacionesRecientes(
-          observacionesPorGrupo
-            .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
-            .sort((a, b) => new Date(b.fecha_observacion || 0) - new Date(a.fecha_observacion || 0))
-            .slice(0, 5)
-        );
         setAsistenciaPromedioMes(
           acumuladoAsistencia.total
             ? Math.round((acumuladoAsistencia.asisten / acumuladoAsistencia.total) * 100)
@@ -631,12 +636,19 @@ export default function PanelInstructor() {
         .sort((a, b) =>
           String(obtenerHoraInicioSesion(a)).localeCompare(String(obtenerHoraInicioSesion(b)))
         );
+      const sesionesConEstado = sesionesDia.map((sesion, index) => {
+        const horas = obtenerHorasBloqueDashboard(sesion, index, sesionesDia);
+        return {
+          ...sesion,
+          estadoCalendario: obtenerEstadoSesionCalendario(sesion, fechaISO, horas)
+        };
+      });
 
       return {
         dia,
         fecha: fechaISO,
-        clase: obtenerClaseDiaCalendario(sesionesDia),
-        sesiones: sesionesDia
+        clase: obtenerClaseDiaCalendario(sesionesConEstado, fechaISO),
+        sesiones: sesionesConEstado
       };
     });
   }, [inicioSemana, sesionesSemana]);
@@ -693,39 +705,7 @@ export default function PanelInstructor() {
         })}
       </section>
 
-      <section className="instructor-main-grid">
-        <article className="coordinador-card instructor-chart-card">
-          <div className="coordinador-card-header">
-            <h2>Asistencia promedio por grupo (este mes)</h2>
-          </div>
-
-          <div className="instructor-group-chart">
-            <div className="instructor-chart-scale">
-              <span>100%</span>
-              <span>75%</span>
-              <span>50%</span>
-              <span>25%</span>
-              <span>0%</span>
-            </div>
-
-            <div className="instructor-bars-wrap">
-              {barras.map((item) => (
-                <div className="instructor-group-bar-item" key={item.grupo}>
-                  <span>{item.tieneDatos ? `${item.porcentaje}%` : "Sin datos"}</span>
-                  <div className="instructor-group-bar-track">
-                    <span
-                      className={`instructor-group-bar-fill ${item.color}`}
-                      style={{ height: `${item.porcentaje}%` }}
-                    ></span>
-                  </div>
-                  <strong>Grupo {item.grupo}</strong>
-                  <small>{item.programa}</small>
-                </div>
-              ))}
-            </div>
-          </div>
-        </article>
-
+      <section className="instructor-overview-grid">
         <article className="coordinador-card instructor-risk-card">
           <div className="coordinador-card-header">
             <h2>Alertas activas por causa</h2>
@@ -770,74 +750,33 @@ export default function PanelInstructor() {
             </div>
           </div>
         </article>
-      </section>
 
-      <section className="instructor-bottom-grid">
-        <article className="coordinador-card instructor-table-card">
-          <div className="coordinador-card-header">
-            <h2>Mis grupos asignados</h2>
+        <article className="coordinador-card instructor-calendar-card instructor-calendar-card-dark">
+          <div className="instructor-calendar-top">
+            <div className="instructor-calendar-title-row">
+              <h2>Horario semanal</h2>
+              <span>{formatearFechaCorta(inicioSemana)} - {formatearFechaCorta(finSemana)}</span>
+            </div>
+            <strong>{totalSesionesSemana} sesiones</strong>
           </div>
 
-          <table className="instructor-groups-table">
-            <thead>
-              <tr>
-                <th>Grupo</th>
-                <th>Programa</th>
-                <th>Jornada</th>
-                <th>Rol</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {grupos.slice(0, 5).map((item) => (
-                <tr key={item.id_grupo || obtenerCodigo(item)}>
-                  <td>{obtenerCodigo(item)}</td>
-                  <td>{obtenerPrograma(item)}</td>
-                  <td>{item.jornada || "Sin jornada"}</td>
-                  <td>{obtenerRol(item)}</td>
-                  <td>
-                    <div className="instructor-table-actions">
-                      <button type="button" aria-label="Ver grupo" onClick={() => navigate(`/fichas/${item.id_grupo}`)}>
-                        <Eye size={15} />
-                      </button>
-                      <button type="button" aria-label="Ver observaciones" onClick={() => navigate("/instructor/observaciones")}>
-                        <MessageSquareWarning size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!grupos.length && (
-                <tr>
-                  <td colSpan="5">No tienes grupos asignados.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <button className="coordinador-link-btn" type="button" onClick={() => navigate("/instructor/grupos")}>
-            Ver todos mis grupos <ArrowRight size={17} />
-          </button>
-        </article>
-
-        <article className="coordinador-card instructor-calendar-card">
-          <div className="coordinador-card-header">
-            <div>
-              <h2>Horario semanal</h2>
-              <p>{formatearFechaCorta(inicioSemana)} - {formatearFechaCorta(finSemana)} · {totalSesionesSemana} sesiones</p>
-            </div>
+          <div className="instructor-calendar-legend">
+            <span><i className="activa"></i> Sesion activa</span>
+            <span><i className="proxima"></i> Proxima sesion</span>
+            <span><i className="cerrada"></i> Cerrada</span>
+            <span><i className="cancelada"></i> Cancelada</span>
           </div>
 
           <div className="instructor-calendar-grid">
             {calendarioSemana.map((item) => (
               <div key={item.dia} className={`instructor-calendar-day ${item.clase}`}>
                 <div className="instructor-calendar-head">
-                  <strong>{item.dia}</strong>
-                  <span>{formatearFechaCorta(item.fecha)}</span>
+                  <strong>{item.dia.slice(0, 3).toUpperCase()}</strong>
+                  <span>{Number(String(item.fecha).slice(8, 10))}</span>
                 </div>
                 {item.sesiones.length ? item.sesiones.slice(0, 2).map((sesion, index) => (
                   <div
-                    className={`instructor-calendar-session ${claseEstadoSesion(sesion.estado)}`}
+                    className={`instructor-calendar-session ${claseEstadoSesion(sesion.estadoCalendario || sesion.estado)}`}
                     key={obtenerIdSesion(sesion) || `${item.dia}-${obtenerClaveSesionCalendario(sesion)}-${index}`}
                   >
                     <span className="instructor-calendar-time">
@@ -845,8 +784,8 @@ export default function PanelInstructor() {
                       {obtenerHorasBloqueDashboard(sesion, index, item.sesiones).inicio} - {obtenerHorasBloqueDashboard(sesion, index, item.sesiones).fin}
                     </span>
                     <strong>{obtenerCompetenciaSesion(sesion)}</strong>
-                    <small>Ficha {obtenerFichaSesion(sesion)} · {obtenerAmbienteSesion(sesion)}</small>
-                    <em>{sesion.estado || "PROGRAMADA"}</em>
+                    <small>Ficha {obtenerFichaSesion(sesion)}</small>
+                    <em>{etiquetaEstadoSesion(sesion.estadoCalendario || sesion.estado)}</em>
                   </div>
                 )) : (
                   <div className="instructor-calendar-empty">
@@ -857,67 +796,52 @@ export default function PanelInstructor() {
               </div>
             ))}
           </div>
-
-          <div className="instructor-calendar-legend">
-            <span><i className="activa"></i> Sesion activa</span>
-            <span><i className="proxima"></i> Proxima sesion</span>
-            <span><i className="cerrada"></i> Cerrada</span>
-            <span><i className="cancelada"></i> Cancelada</span>
-          </div>
         </article>
       </section>
-      <section className="instructor-mini-grid">
-        <article className="coordinador-card instructor-mini-card">
-          <h2>Indicadores rapidos</h2>
-          <div className="instructor-mini-list">
-            <div><UsersRound size={18} /><span>{totalAprendices} aprendices activos</span></div>
-            <div><UserRoundCheck size={18} /><span>{Math.max(0, totalAprendices - alertasActivas.length)} sin alertas activas</span></div>
-            <div><TrendingUp size={18} /><span>{grupos.length} grupos asignados</span></div>
+
+      <section className="instructor-main-grid">
+        <article className="coordinador-card instructor-chart-card">
+          <div className="coordinador-card-header">
+            <h2>Asistencia promedio por grupo (este mes)</h2>
+          </div>
+
+          <div className="instructor-group-chart">
+            <div className="instructor-chart-scale">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
+            </div>
+
+            <div className="instructor-bars-wrap">
+              {barras.map((item) => (
+                <div className="instructor-group-bar-item" key={item.grupo}>
+                  <span>{item.tieneDatos ? `${item.porcentaje}%` : "Sin datos"}</span>
+                  <div className="instructor-group-bar-track">
+                    <span
+                      className={`instructor-group-bar-fill ${item.color}`}
+                      style={{ height: `${item.porcentaje}%` }}
+                    ></span>
+                  </div>
+                  <strong>Grupo {item.grupo}</strong>
+                  <small>{item.programa}</small>
+                </div>
+              ))}
+              {!barras.length && (
+                <div className="instructor-attendance-empty">Sin grupos con datos de asistencia.</div>
+              )}
+            </div>
           </div>
         </article>
 
-        <article className="coordinador-novedades instructor-mini-news">
-          <h2>
-            <PencilLine size={20} />
-            Alertas y observaciones
-          </h2>
-          <div className="coordinador-novedades-list">
-            {alertasActivas.slice(0, 3).map((alerta) => (
-              <div className="coordinador-novedad-item" key={`alerta-${alerta.id_alerta || alerta.id}`}>
-                <AlertTriangle size={22} />
-                <div>
-                  <strong>{nombresRiesgo[alerta.tipo_alerta] || alerta.tipo_alerta || "Alerta abierta"}</strong>
-                  <p>
-                    {obtenerNombreAprendiz(alerta)} · Ficha {obtenerFicha(alerta)} · {alerta.severidad || "Sin severidad"}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {observacionesRecientes.slice(0, 3).map((observacion) => (
-              <div className="coordinador-novedad-item" key={`observacion-${observacion.id_observacion || observacion.id}`}>
-                <PencilLine size={22} />
-                <div>
-                  <strong>{observacion.tipo_observacion || "Observacion abierta"}</strong>
-                  <p>
-                    {obtenerNombreAprendiz(observacion)} · Ficha {obtenerFicha(observacion)} · {observacion.severidad || "Sin severidad"}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {!alertasActivas.length && !observacionesRecientes.length && (
-              <div className="coordinador-novedad-item">
-                <CheckCircle2 size={22} />
-                <div>
-                  <strong>Sin pendientes abiertos</strong>
-                  <p>No hay alertas ni observaciones abiertas para tus grupos.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </article>
       </section>
+
+
     </div>
   );
 }
+
+
+
+

@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════════════════════════════
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Toast.css
-   ═══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .toast-card {
   position: fixed;
@@ -34,14 +34,14 @@
 }
 
 /* Variantes */
-.toast-card.success { border-left: 5px solid #10b981; }
-.toast-card.success .toast-icon { color: #10b981; }
+.toast-card.success { border-left: 5px solid #238500; }
+.toast-card.success .toast-icon { color: #238500; }
 
 .toast-card.error { border-left: 5px solid #ef4444; }
 .toast-card.error .toast-icon { color: #ef4444; }
 
-.toast-card.warning { border-left: 5px solid #f59e0b; }
-.toast-card.warning .toast-icon { color: #f59e0b; }
+.toast-card.warning { border-left: 5px solid #f5b400; }
+.toast-card.warning .toast-icon { color: #f5b400; }
 
 .toast-content {
   display: flex;
@@ -83,11 +83,12 @@
   animation: toast-progress linear forwards;
 }
 
-.success .toast-progress-fill { background: #10b981; }
+.success .toast-progress-fill { background: #238500; }
 .error .toast-progress-fill { background: #ef4444; }
-.warning .toast-progress-fill { background: #f59e0b; }
+.warning .toast-progress-fill { background: #f5b400; }
 
 @keyframes toast-progress {
   from { width: 100%; }
   to { width: 0%; }
 }
+

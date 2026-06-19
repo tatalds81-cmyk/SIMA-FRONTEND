@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import {
   AlertTriangle,
@@ -11,7 +11,6 @@ import {
   QrCode,
   Save,
   Search,
-  Upload,
   X,
 } from "lucide-react";
 import SimaPagination from "../../../components/common/SimaPagination";
@@ -129,11 +128,12 @@ export default function AsistenciaInstructor() {
       try {
         const lista = await obtenerGruposInstructor();
         if (activo && lista.length) {
-          const grupoPendiente = sessionStorage.getItem("sima_asistencia_grupo_activo");
+          const grupoPendiente = localStorage.getItem("sima_asistencia_grupo_activo") || sessionStorage.getItem("sima_asistencia_grupo_activo");
           const grupoInicial = lista.find((grupo) => String(obtenerIdGrupo(grupo)) === grupoPendiente) || lista[0];
 
           setGrupos(lista);
           setGrupoSeleccionado(String(obtenerIdGrupo(grupoInicial)));
+          localStorage.removeItem("sima_asistencia_grupo_activo");
           sessionStorage.removeItem("sima_asistencia_grupo_activo");
         } else if (activo) {
           setGrupos([]);
@@ -256,7 +256,7 @@ export default function AsistenciaInstructor() {
     return listaBase.filter((aprendiz) => {
       const coincideBusqueda = !texto || normalizarTexto(aprendiz.nombre).includes(texto);
       
-      // En modo manual, no filtrar por estado/método/fecha
+      // En modo manual, no filtrar por estado/mÃ©todo/fecha
       if (modoManual) {
         return coincideBusqueda;
       }
@@ -545,7 +545,7 @@ export default function AsistenciaInstructor() {
         margin: 2,
         width: 420,
         color: {
-          dark: "#111827",
+          dark: "#0b2442",
           light: "#ffffff"
         }
       });
@@ -735,7 +735,7 @@ export default function AsistenciaInstructor() {
                       </label>
 
                       <label>
-                        <span>Año</span>
+                        <span>AÃ±o</span>
                         <select
                           value={filtroAnio}
                           onChange={(e) => {
@@ -1181,7 +1181,7 @@ export default function AsistenciaInstructor() {
                     setBusquedaHistorialDetalle(e.target.value);
                     setPaginaHistorialDetalle(1);
                   }}
-                  placeholder="Buscar fecha, mes o año"
+                  placeholder="Buscar fecha, mes o aÃ±o"
                 />
                 {busquedaHistorialDetalle && (
                   <button
@@ -1324,13 +1324,6 @@ export default function AsistenciaInstructor() {
                 />
                 <small className="asistencia-manual-counter">{formManual.descripcion.length}/300</small>
 
-                <label className="mcal-label">Evidencia</label>
-                <label className="asistencia-evidence-btn">
-                  <Upload size={15} />
-                  Adjuntar archivo
-                  <input type="file" />
-                </label>
-
                 <div className="mcal-banner asistencia-manual-note">
                   <p>Este cambio quedara registrado en el historial de auditoria de la sesion.</p>
                 </div>
@@ -1349,3 +1342,4 @@ export default function AsistenciaInstructor() {
     </div>
   );
 }
+

@@ -1,11 +1,11 @@
-.aprendices-page {
-  --sima-navy: #052d4f;
-  --sima-green: #39a900;
+﻿.aprendices-page {
+  --sima-navy: #0b2442;
+  --sima-green: #238500;
   --sima-green-dark: #238500;
   --sima-text: #0b2442;
   --sima-muted: #6b7a8b;
   --sima-border: #e1e8f0;
-  --sima-red: #dc2626;
+  --sima-red: #ef4444;
 
   width: 100%;
   max-width: 1480px;
@@ -101,7 +101,7 @@
 .aprendices-alert.danger {
   border: 1px solid #fecaca;
   background: #fff1f2;
-  color: #b91c1c;
+  color: #ef4444;
 }
 
 .aprendices-toolbar {
@@ -187,7 +187,7 @@
 }
 
 .aprendices-table td {
-  color: #263a52;
+  color: #0b2442;
   font-weight: 400;
 }
 
@@ -459,13 +459,13 @@
 }
 
 .aprendices-icon-btn.danger {
-  color: #c62828;
+  color: #ef4444;
 }
 
 .aprendices-icon-btn.danger:hover {
   background: #fff4f4;
   border-color: #fecaca;
-  color: #b91c1c;
+  color: #ef4444;
 }
 
 .aprendices-detail-modal {
@@ -508,7 +508,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0b3e69, #39a900);
+  background: linear-gradient(135deg, #0b2442, #238500);
   color: #ffffff;
   font-size: 30px;
   font-weight: 900;
@@ -630,3 +630,5 @@
     grid-template-columns: 1fr;
   }
 }
+
+

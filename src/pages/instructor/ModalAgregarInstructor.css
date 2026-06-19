@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════════════════════════════
-   ModalAgregarInstructor.css — no toca fichas.css
-   ═══════════════════════════════════════════════════════════════ */
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ModalAgregarInstructor.css â€” no toca fichas.css
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .mg-modal-overlay {
   position: fixed;
@@ -27,7 +27,7 @@
   gap: 16px;
 }
 
-/* ── Encabezado ─────────────────────────────────────────────── */
+/* â”€â”€ Encabezado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-modal-header {
   display: flex;
@@ -48,7 +48,7 @@
 
 .mg-modal-title {
   margin: 0;
-  color: #092444;
+  color: #0b2442;
   font-size: 20px;
   font-weight: 800;
   line-height: 1.2;
@@ -77,10 +77,10 @@
 
 .mg-modal-close:hover {
   background: #f3f7fb;
-  color: #092444;
+  color: #0b2442;
 }
 
-/* ── Mensajes ────────────────────────────────────────────────── */
+/* â”€â”€ Mensajes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-modal-mensaje {
   display: flex;
@@ -95,16 +95,16 @@
 .mg-modal-mensaje.success {
   background: #dcfce7;
   border: 1px solid rgba(22, 101, 52, 0.2);
-  color: #166534;
+  color: #238500;
 }
 
 .mg-modal-mensaje.error {
   background: #fee2e2;
   border: 1px solid rgba(153, 27, 27, 0.2);
-  color: #991b1b;
+  color: #ef4444;
 }
 
-/* ── Secciones ──────────────────────────────────────────────── */
+/* â”€â”€ Secciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-seccion {
   display: flex;
@@ -116,7 +116,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 800;
-  color: #092444;
+  color: #0b2442;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -126,7 +126,7 @@
   background: #dfe5ec;
 }
 
-/* ── Lista instructores actuales ────────────────────────────── */
+/* â”€â”€ Lista instructores actuales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-actuales-lista {
   display: flex;
@@ -162,7 +162,7 @@
   white-space: nowrap;
 }
 
-.mg-badge.activo  { background: #dcfce7; color: #166534; }
+.mg-badge.activo  { background: #dcfce7; color: #238500; }
 .mg-badge.inactivo { background: #f1f5f9; color: #475569; }
 
 .mg-estado-btn {
@@ -184,13 +184,13 @@
 .mg-estado-btn.desactivar:hover {
   background: #fee2e2;
   border-color: #fca5a5;
-  color: #991b1b;
+  color: #ef4444;
 }
 
 .mg-estado-btn.activar:hover {
   background: #dcfce7;
   border-color: #86efac;
-  color: #166534;
+  color: #238500;
 }
 
 .mg-estado-btn:disabled {
@@ -198,7 +198,7 @@
   cursor: not-allowed;
 }
 
-/* ── Buscador ───────────────────────────────────────────────── */
+/* â”€â”€ Buscador â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-modal-search-wrap {
   display: flex;
@@ -214,7 +214,7 @@
 }
 
 .mg-modal-search-wrap:focus-within {
-  border-color: #39a900;
+  border-color: #238500;
   box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
 }
 
@@ -225,13 +225,13 @@
   background: transparent;
   font-size: 13px;
   font-weight: 600;
-  color: #092444;
+  color: #0b2442;
   font-family: inherit;
 }
 
 .mg-modal-search::placeholder { color: #9ca8b4; }
 
-/* ── Lista disponibles ──────────────────────────────────────── */
+/* â”€â”€ Lista disponibles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-modal-lista {
   display: flex;
@@ -254,10 +254,10 @@
 }
 
 .mg-modal-item:hover  { background: #f0fdf4; border-color: #86efac; }
-.mg-modal-item.selected { background: #dcfce7; border-color: #39a900; }
+.mg-modal-item.selected { background: #dcfce7; border-color: #238500; }
 
 .mg-modal-item input[type="radio"] {
-  accent-color: #39a900;
+  accent-color: #238500;
   width: 15px;
   height: 15px;
   flex: 0 0 auto;
@@ -272,7 +272,7 @@
 .mg-modal-item-nombre {
   font-size: 13px;
   font-weight: 700;
-  color: #092444;
+  color: #0b2442;
 }
 
 .mg-modal-item-esp {
@@ -288,7 +288,7 @@
   font-weight: 600;
 }
 
-/* ── Acciones ───────────────────────────────────────────────── */
+/* â”€â”€ Acciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .mg-modal-actions {
   display: flex;
@@ -314,7 +314,7 @@
 
 .mg-btn-primary {
   border: none;
-  background: #39a900;
+  background: #238500;
   color: #ffffff;
 }
 
@@ -324,16 +324,16 @@
 .mg-btn-secondary {
   border: 1px solid #dfe5ec;
   background: #ffffff;
-  color: #092444;
+  color: #0b2442;
 }
 
 .mg-btn-secondary:hover { background: #f3f7fb; }
 
-/* Botón líder en la tabla */
-.mg-btn-lider { color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+/* BotÃ³n lÃ­der en la tabla */
+.mg-btn-lider { color: #0b2442 !important; border-color: #bfdbfe !important; }
 .mg-btn-lider:hover { background: #eff6ff !important; border-color: #93c5fd !important; }
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 @media (max-width: 540px) {
   .mg-modal-card { padding: 18px; }

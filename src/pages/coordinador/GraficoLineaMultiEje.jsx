@@ -1,4 +1,4 @@
-import {
+﻿import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -10,7 +10,7 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
-// Registramos los elementos necesarios para el gráfico de líneas
+// Registramos los elementos necesarios para el grÃ¡fico de lÃ­neas
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -88,7 +88,7 @@ function GraficoLineaMultiEje({ etiquetas }) {
         }
       },
       tooltip: {
-        backgroundColor: "#111827",
+        backgroundColor: "#0b2442",
         titleColor: "#ffffff",
         bodyColor: "#ffffff",
         borderColor: "#d1d5db",

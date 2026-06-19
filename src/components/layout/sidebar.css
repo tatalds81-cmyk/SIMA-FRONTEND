@@ -1,8 +1,8 @@
-.sima-sidebar-main {
+﻿.sima-sidebar-main {
   --sidebar-width: 128px;
-  --sima-navy: #062b4c;
-  --sima-navy-deep: #021f39;
-  --sima-green: #39a900;
+  --sima-navy: #0b2442;
+  --sima-navy-deep: #0b2442;
+  --sima-green: #238500;
 
   position: fixed;
   inset: 0 auto 0 0;
@@ -223,3 +223,4 @@
   }
 
 }
+

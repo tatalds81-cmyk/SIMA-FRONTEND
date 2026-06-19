@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, BarChart3, CalendarClock, Edit3, Eye, FilterX, RefreshCw, Save, Search, Users, X } from "lucide-react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import SimaPagination from "../../components/common/SimaPagination";
@@ -7,7 +7,7 @@ import { claseEstadoGrupo, etiquetaEstadoGrupo } from "../../services/gruposServ
 import HorarioGrupoModal, { DIAS_SEMANA, consultarHorariosGrupo } from "./HorarioGrupoModal";
 import "./fichas.css";
 
-/* ── helpers ─────────────────────────────── */
+/* â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function SeveridadLabel({ valor }) {
   const map = {
     Critica:  "gd-sev-critica",
@@ -19,15 +19,15 @@ function SeveridadLabel({ valor }) {
 }
 
 const BARRA_ASISTENCIA = [
-  { clave: "presente",   label: "Presente",   color: "#39a900" },
-  { clave: "tarde",      label: "Tarde",       color: "#f59e0b" },
+  { clave: "presente",   label: "Presente",   color: "#238500" },
+  { clave: "tarde",      label: "Tarde",       color: "#f5b400" },
   { clave: "inasistente",label: "Inasistente", color: "#ef4444" },
-  { clave: "justificada",label: "Justificada", color: "#3b82f6" },
+  { clave: "justificada",label: "Justificada", color: "#0b2442" },
 ];
 
 const BARRAS_SEVERIDAD = [
-  { clave: "leves",     label: "Leves",     color: "#f8d41f" },
-  { clave: "moderadas", label: "Moderadas", color: "#f59e0b" },
+  { clave: "leves",     label: "Leves",     color: "#f5b400" },
+  { clave: "moderadas", label: "Moderadas", color: "#f5b400" },
   { clave: "graves",    label: "Graves",    color: "#ef4444" },
 ];
 
@@ -747,7 +747,7 @@ export default function GrupoDetalle() {
     [id, location.state]
   );
 
-  /* ── estado del grupo (ya existente) ── */
+  /* â”€â”€ estado del grupo (ya existente) â”€â”€ */
   const [grupo, setGrupo] = useState(null);
   const [aprendicesGrupo, setAprendicesGrupo] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -758,7 +758,7 @@ export default function GrupoDetalle() {
   const [detalleForm, setDetalleForm] = useState({ numero_ficha: "", jornada: "", trimestres: "", fecha_inicio: "" });
   const [guardandoDetalle, setGuardandoDetalle] = useState(false);
 
-  /* ── estado para metricas del grupo ── */
+  /* â”€â”€ estado para metricas del grupo â”€â”€ */
   const [alertas, setAlertas] = useState(null);
   const [asistencia, setAsistencia] = useState(null);
   const [horariosBackend, setHorariosBackend] = useState([]);
@@ -935,11 +935,11 @@ export default function GrupoDetalle() {
     };
   }, [grupo, id, aprendicesGrupo]);
 
-  /* ── KPIs derivados de datos reales cuando lleguen ── */
+  /* â”€â”€ KPIs derivados de datos reales cuando lleguen â”€â”€ */
   const kpis = useMemo(() => {
     const base = [
       { label: "Aprendices activos",    valor: metricas?.activos ?? detalle?.aprendices ?? 0, sub: "vinculados al grupo", cls: "gd-kpi-green" },
-      { label: "Inasistencias válidas", valor: asistencia?.inasistencias ?? 0, sub: "registradas", cls: "gd-kpi-blue" },
+      { label: "Inasistencias vÃ¡lidas", valor: asistencia?.inasistencias ?? 0, sub: "registradas", cls: "gd-kpi-blue" },
       { label: "Inactivos",             valor: metricas?.inactivos ?? 0, sub: "aprendices", cls: "gd-kpi-gray" },
     ];
     
@@ -1006,7 +1006,7 @@ export default function GrupoDetalle() {
   const desdeAlertas = alertasFiltradas.length === 0 ? 0 : inicioAlertas + 1;
   const hastaAlertas = Math.min(inicioAlertas + REGISTROS_POR_PAGINA, alertasFiltradas.length);
 
-  /* ── funciones de edición (existentes) ── */
+  /* â”€â”€ funciones de ediciÃ³n (existentes) â”€â”€ */
   function cambiarForm(e) {
     const { name, value } = e.target;
     setErrorDetalle("");
@@ -1231,15 +1231,15 @@ export default function GrupoDetalle() {
     }
   }
 
-  if (cargando) return <div className="fichas-modulo fichas-detail-state"><p>Cargando información de la ficha...</p></div>;
+  if (cargando) return <div className="fichas-modulo fichas-detail-state"><p>Cargando informaciÃ³n de la ficha...</p></div>;
   if (error || !detalle) return (
     <div className="fichas-modulo fichas-detail-state">
-      <div className="fichas-alerta error">{error || "No se pudo cargar la información del grupo."}</div>
+      <div className="fichas-alerta error">{error || "No se pudo cargar la informaciÃ³n del grupo."}</div>
       <button className="fichas-btn-cancelar" onClick={() => navigate(rutaRegreso)}>Volver a Grupos</button>
     </div>
   );
 
-  /* ── render ── */
+  /* â”€â”€ render â”€â”€ */
   const asistenciaPeriodo = asistencia?.[periodoAsist.toLowerCase()];
   const hayDatosAsistencia = Boolean(asistencia?.tieneDatos && asistenciaPeriodo);
   const idPerfilAprendiz = String(obtenerIdAprendiz(perfilAprendiz) ?? "");
@@ -1253,7 +1253,7 @@ export default function GrupoDetalle() {
       {mensaje && <div className="grupos-alert info">{mensaje}</div>}
       {errorDetalle && <div className="grupos-alert danger">{errorDetalle}</div>}
 
-      {/* ── BANNER ── */}
+      {/* â”€â”€ BANNER â”€â”€ */}
       <section className="fichas-banner">
         <div className="gd-banner-inner">
           <div>
@@ -1261,12 +1261,12 @@ export default function GrupoDetalle() {
               <h1>{detalle.programa}</h1>
               <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
             </div>
-            <p>Ficha {detalle.ficha} · {detalle.jornada} · Instructor: {detalle.instructor}</p>
+            <p>Ficha {detalle.ficha} Â· {detalle.jornada} Â· Instructor: {detalle.instructor}</p>
           </div>
         </div>
       </section>
 
-      {/* ── KPIs ── */}
+      {/* â”€â”€ KPIs â”€â”€ */}
       <section className="gd-kpi-grid">
         {kpis.map(({ label, valor, sub, cls }) => (
           <article key={label} className={`gd-kpi-card ${cls}`}>
@@ -1296,7 +1296,7 @@ export default function GrupoDetalle() {
         <section className="gd-tab-panel gd-resumen-grid">
           <article className="fichas-panel gd-chart-card gd-panel-priority">
             <div className="gd-card-header">
-              <h2>Asistencia — {periodoAsist}</h2>
+              <h2>Asistencia â€” {periodoAsist}</h2>
               <div className="gd-period-btns">
                 {["Hoy", "Semana", "Mes"].map(p => (
                   <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
@@ -1334,7 +1334,7 @@ export default function GrupoDetalle() {
             <div className="gd-card-header">
               <div>
                 <h2>Datos clave</h2>
-                <p className="gd-card-kicker">Ficha {detalle.ficha} · {detalle.programa}</p>
+                <p className="gd-card-kicker">Ficha {detalle.ficha} Â· {detalle.programa}</p>
               </div>
               {puedeEditarGrupo && (
               <div className="gd-header-actions">
@@ -1407,7 +1407,7 @@ export default function GrupoDetalle() {
         </section>
       )}
 
-      {/* ── FICHA DETALLE / INFO GENERAL ── */}
+      {/* â”€â”€ FICHA DETALLE / INFO GENERAL â”€â”€ */}
       {tabDetalle === "horario" && (
         <article className="fichas-panel gd-tab-panel gd-horario-detail">
           <div className="gd-card-header">
@@ -1460,7 +1460,7 @@ export default function GrupoDetalle() {
 
       <article className="fichas-panel gd-legacy-hidden">
         <div className="gd-card-header" style={{ marginBottom: 18 }}>
-          <h2>Ficha {detalle.ficha} — {detalle.programa}</h2>
+          <h2>Ficha {detalle.ficha} â€” {detalle.programa}</h2>
           {puedeEditarGrupo && (
           <div className="gd-header-actions">
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
@@ -1480,22 +1480,22 @@ export default function GrupoDetalle() {
         <div style={{ width: '100%' }}>
           {/* columna izquierda */}
           <div className="gd-info-col" style={{ flex: 1 }}>
-            <p className="gd-info-section-label" style={{ textAlign: 'center', fontSize: '13px', marginBottom: '24px' }}>Información General</p>
+            <p className="gd-info-section-label" style={{ textAlign: 'center', fontSize: '13px', marginBottom: '24px' }}>InformaciÃ³n General</p>
             <div className="gd-info-rows" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px 16px' }}>
-              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Instructor líder</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.instructor}</strong></div>
-              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Área</span><strong style={{ textAlign: 'center', fontSize: '15px' }}>{detalle.area}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Instructor lÃ­der</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.instructor}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Ãrea</span><strong style={{ textAlign: 'center', fontSize: '15px' }}>{detalle.area}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha inicio</span>
                 {puedeEditarGrupo && modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaInicio}</strong>}
               </div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha fin</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaFin}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Etapa productiva</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.inicioProductiva}</strong></div>
-              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Duración</span>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>DuraciÃ³n</span>
                 {puedeEditarGrupo && modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.trimestres} trimestres</strong>}
               </div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Jornada</span>
                 {puedeEditarGrupo && modoEdicion ? (
                   <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
-                    <option value="Manana">Mañana</option>
+                    <option value="Manana">MaÃ±ana</option>
                     <option value="Tarde">Tarde</option>
                     <option value="Noche">Noche</option>
                   </select>
@@ -1507,12 +1507,12 @@ export default function GrupoDetalle() {
         </div>
       </article>
 
-      {/* ── FILA PRINCIPAL: asistencia + línea de tiempo ── */}
+      {/* â”€â”€ FILA PRINCIPAL: asistencia + lÃ­nea de tiempo â”€â”€ */}
       <section className="gd-main-grid gd-legacy-hidden">
         {/* Asistencia */}
         <article className="fichas-panel gd-chart-card">
           <div className="gd-card-header">
-            <h2>Asistencia — {periodoAsist}</h2>
+            <h2>Asistencia â€” {periodoAsist}</h2>
             <div className="gd-period-btns">
               {["Hoy", "Semana", "Mes"].map(p => (
                 <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
@@ -1546,13 +1546,13 @@ export default function GrupoDetalle() {
           )}
         </article>
 
-        {/* Línea de tiempo */}
+        {/* LÃ­nea de tiempo */}
         <article className="fichas-panel gd-timeline-card">
           <div className="gd-card-header">
-            <h2>Línea de Tiempo — Ficha {detalle.ficha}</h2>
+            <h2>LÃ­nea de Tiempo â€” Ficha {detalle.ficha}</h2>
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
           </div>
-          <p className="gd-timeline-sub">{detalle.programa} · {detalle.jornada} · Instructor: {detalle.instructor}</p>
+          <p className="gd-timeline-sub">{detalle.programa} Â· {detalle.jornada} Â· Instructor: {detalle.instructor}</p>
           <div className="gd-trimestre-track">
             {Array.from({ length: detalle.trimestres || 6 }).map((_, i) => (
               <div key={i} className="gd-trimestre-step">
@@ -1569,7 +1569,7 @@ export default function GrupoDetalle() {
         </article>
       </section>
 
-      {/* ── TABLA APRENDICES ── */}
+      {/* â”€â”€ TABLA APRENDICES â”€â”€ */}
       {tabDetalle === "aprendices" && (
       <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
@@ -1653,7 +1653,7 @@ export default function GrupoDetalle() {
       </article>
       )}
 
-      {/* ── TABLA ALERTAS (Solo Instructor) ── */}
+      {/* â”€â”€ TABLA ALERTAS (Solo Instructor) â”€â”€ */}
       {puedeVerAlertas && tabDetalle === "alertas" && (
         <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
@@ -1772,7 +1772,7 @@ export default function GrupoDetalle() {
         </article>
       )}
 
-      {/* ── GRÁFICAS: severidad (Solo Instructor) ── */}
+      {/* â”€â”€ GRÃFICAS: severidad (Solo Instructor) â”€â”€ */}
       {puedeVerAlertas && tabDetalle === "alertas" && (
         <section className="gd-tab-panel">
         {/* Alertas por Severidad */}
@@ -1816,7 +1816,7 @@ export default function GrupoDetalle() {
               <div>
                 <span className="grupos-eyebrow">Perfil del aprendiz</span>
                 <h2 id="perfil-aprendiz-title">{datosPerfilAprendiz.nombreCompleto}</h2>
-                <p>Ficha {datosPerfilAprendiz.ficha} · {datosPerfilAprendiz.programa}</p>
+                <p>Ficha {datosPerfilAprendiz.ficha} Â· {datosPerfilAprendiz.programa}</p>
               </div>
               <button type="button" className="grupos-close-btn" onClick={cerrarPerfilAprendiz} aria-label="Cerrar ventana">
                 <X size={18} />
@@ -1946,3 +1946,4 @@ export default function GrupoDetalle() {
     </div>
   );
 }
+

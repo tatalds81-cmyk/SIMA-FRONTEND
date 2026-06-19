@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Login from "./pages/Auth/Login";
@@ -19,6 +19,7 @@ import ConsultarAlertas from "./pages/alertas/ConsultarAlertas";
 import AlertasCoordinador from "./pages/alertas/AlertasCoordinador";
 import DetalleAlerta from "./pages/alertas/DetalleAlerta";
 import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
+import { limpiarSesionUsuario } from "./utils/storage";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
@@ -32,16 +33,25 @@ function App() {
   }
 
   function manejarLogout() {
-    localStorage.clear();
-    sessionStorage.clear();
+    limpiarSesionUsuario();
     setToken(null);
     setRol("");
   }
 
   const esInstructor = rol === "instructor";
+  const esCoordinador = rol === "coordinador";
+  const esRolWebValido = esInstructor || esCoordinador;
   const rutaInicio = esInstructor
     ? "/instructor/dashboard"
-    : "/dashboard";
+    : esCoordinador
+      ? "/dashboard"
+      : "/login";
+
+  useEffect(() => {
+    if (token && rol && !esRolWebValido) {
+      manejarLogout();
+    }
+  }, [token, rol, esRolWebValido]);
 
   return (
     <BrowserRouter>

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import "./Navbar.css";
 import NotificacionCampana from "./NotificacionCampana";
+import { limpiarSesionUsuario } from "../../utils/storage";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -15,10 +16,10 @@ function Navbar() {
   const nombreUsuario = localStorage.getItem("username") || localStorage.getItem("usuario") || "Carlos Loda";
   const rolUsuario = (localStorage.getItem("rol") || "Administrador").toLowerCase();
   const esInstructor = rolUsuario === "instructor";
+  const esCoordinador = rolUsuario === "coordinador";
 
   const manejarCerrarSesion = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+    limpiarSesionUsuario();
     navigate("/");
     window.location.reload();
   };
@@ -54,7 +55,7 @@ function Navbar() {
   return (
     <header className={`sima-navbar-main ${esInstructor ? "navbar-instructor" : ""}`}>
       <div className="sima-navbar-right">
-        <NotificacionCampana />
+        <NotificacionCampana esCoordinador={esCoordinador} />
 
         <button className="profile-section" type="button" onClick={toggleProfileMenu}>
           <span className="profile-avatar-circle">{initials || "CL"}</span>
