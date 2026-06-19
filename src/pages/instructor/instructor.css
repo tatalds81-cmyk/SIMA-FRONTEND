@@ -1122,7 +1122,7 @@
   align-items: center;
   justify-content: center;
   padding: 22px;
-  background: rgba(2, 6, 23, 0.58);
+  background: rgba(11, 36, 66, 0.42);
 }
 
 .asistencia-session-modal {
@@ -1131,13 +1131,13 @@
   display: grid;
   justify-items: center;
   gap: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--sima-ui-border, #e1e8f0);
   border-radius: 12px;
   padding: 36px 36px 30px;
-  background: #2d2f2c;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(9, 36, 68, 0.22);
   text-align: center;
-  color: #f8faf5;
+  color: var(--sima-ui-text, #0b2442);
 }
 
 .asistencia-session-close {
@@ -1149,11 +1149,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--sima-ui-border, #e1e8f0);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #ffffff;
+  background: #f8fafc;
+  color: var(--sima-ui-text, #0b2442);
   cursor: pointer;
+}
+
+.asistencia-session-close:hover {
+  border-color: #c8d7e6;
+  background: #eef6ec;
+  color: var(--sima-ui-green, #238500);
 }
 
 .asistencia-session-icon {
@@ -1163,8 +1169,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 15px;
-  background: #e8f5d6;
-  color: #3f7f21;
+  background: var(--sima-ui-green-bg, #edf9e7);
+  color: var(--sima-ui-green, #238500);
 }
 
 .asistencia-session-copy {
@@ -1181,15 +1187,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #e8f5d6;
-  color: #3f7f21;
+  background: var(--sima-ui-green-bg, #edf9e7);
+  color: var(--sima-ui-green, #238500);
   font-size: 13px;
   font-weight: 900;
 }
 
 .asistencia-session-copy h2 {
   margin: 10px 0 0;
-  color: #ffffff;
+  color: var(--sima-ui-text, #0b2442);
   font-size: 20px;
   line-height: 1.15;
   font-weight: 900;
@@ -1197,14 +1203,14 @@
 
 .asistencia-session-copy small {
   margin: 0;
-  color: #c8cac4;
+  color: #6b7a8b;
   font-size: 16px;
   line-height: 1.4;
   font-weight: 800;
 }
 
 .asistencia-session-copy strong {
-  color: #ffffff;
+  color: var(--sima-ui-text, #0b2442);
   font-weight: 900;
 }
 
@@ -1214,8 +1220,9 @@
   grid-template-columns: 1fr 1.15fr;
   gap: 10px;
   border-radius: 9px;
+  border: 1px solid var(--sima-ui-border, #e1e8f0);
   padding: 14px 16px;
-  background: #242522;
+  background: #f8fafc;
 }
 
 .asistencia-session-details div {
@@ -1224,12 +1231,12 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  color: #c8cac4;
+  color: var(--sima-ui-green, #238500);
   text-align: left;
 }
 
 .asistencia-session-details strong {
-  color: #ffffff;
+  color: var(--sima-ui-text, #0b2442);
   font-size: 16px;
   line-height: 1.15;
   font-weight: 900;
@@ -1249,11 +1256,11 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--sima-ui-border, #e1e8f0);
   border-radius: 8px;
-  padding: 0 16px;
-  background: transparent;
-  color: #ffffff;
+  padding: 0 14px;
+  background: #ffffff;
+  color: var(--sima-ui-text, #0b2442);
   font-size: 16px;
   font-weight: 900;
   cursor: pointer;
@@ -1267,15 +1274,27 @@
 .asistencia-session-action.primary {
   grid-column: 1 / -1;
   min-height: 45px;
-  border-color: rgba(255, 255, 255, 0.24);
-  background: transparent;
-}
-
-.asistencia-session-action.secondary {
+  border-color: var(--sima-ui-green, #238500);
+  background: var(--sima-ui-green, #238500);
   color: #ffffff;
 }
 
+.asistencia-session-action.secondary {
+  color: var(--sima-ui-text, #0b2442);
+}
+
 .asistencia-session-action.danger {
+  color: #ef4444;
+}
+
+.asistencia-session-action:hover {
+  border-color: var(--sima-ui-green, #238500);
+  background: #edf9e7;
+  color: var(--sima-ui-green, #238500);
+}
+
+.asistencia-session-action.primary:hover {
+  background: #1f7600;
   color: #ffffff;
 }
 

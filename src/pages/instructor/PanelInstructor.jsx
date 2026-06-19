@@ -345,6 +345,7 @@ const obtenerEstadoSesionCalendario = (sesion, fechaISO, horas = null) => {
   const estadoBackend = String(sesion.estado || "").toUpperCase();
   if (["CANCELADA", "CANCELADO"].includes(estadoBackend)) return "CANCELADA";
   if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estadoBackend)) return "CERRADA";
+  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estadoBackend)) return "ACTIVA";
 
   const hoyISO = formatearFechaISO(new Date());
   if (fechaISO && fechaISO < hoyISO) return "CERRADA";
@@ -358,7 +359,7 @@ const obtenerEstadoSesionCalendario = (sesion, fechaISO, horas = null) => {
   if (ahora < inicio) return "PROGRAMADA";
   if (ahora > fin) return "CERRADA";
 
-  const idSesionActiva = sessionStorage.getItem("sima_asistencia_sesion_activa");
+  const idSesionActiva = localStorage.getItem("sima_asistencia_sesion_activa") || sessionStorage.getItem("sima_asistencia_sesion_activa");
   const idSesion = obtenerIdSesion(sesion);
   const ingresoAAsistencia = idSesionActiva && idSesion && String(idSesionActiva) === String(idSesion);
 

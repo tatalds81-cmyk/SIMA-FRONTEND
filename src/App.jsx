@@ -19,6 +19,7 @@ import ConsultarAlertas from "./pages/alertas/ConsultarAlertas";
 import AlertasCoordinador from "./pages/alertas/AlertasCoordinador";
 import DetalleAlerta from "./pages/alertas/DetalleAlerta";
 import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
+import { limpiarSesionUsuario } from "./utils/storage";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access"));
@@ -32,8 +33,7 @@ function App() {
   }
 
   function manejarLogout() {
-    localStorage.clear();
-    sessionStorage.clear();
+    limpiarSesionUsuario();
     setToken(null);
     setRol("");
   }
