@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import "./Navbar.css";
 import NotificacionCampana from "./NotificacionCampana";
+import { limpiarSesionUsuario } from "../../utils/storage";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -18,8 +19,7 @@ function Navbar() {
   const esCoordinador = rolUsuario === "coordinador";
 
   const manejarCerrarSesion = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+    limpiarSesionUsuario();
     navigate("/");
     window.location.reload();
   };

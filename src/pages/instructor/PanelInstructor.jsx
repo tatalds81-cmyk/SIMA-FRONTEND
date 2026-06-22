@@ -341,28 +341,22 @@ const crearFechaHoraSesion = (fechaISO, hora) => {
   return Number.isNaN(fecha.getTime()) ? null : fecha;
 };
 
-const obtenerEstadoSesionCalendario = (sesion, fechaISO, horas = null) => {
+const obtenerEstadoSesionCalendario = (sesion, fechaISO, horas = null, ahora = new Date()) => {
   const estadoBackend = String(sesion.estado || "").toUpperCase();
   if (["CANCELADA", "CANCELADO"].includes(estadoBackend)) return "CANCELADA";
   if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estadoBackend)) return "CERRADA";
 
-  const hoyISO = formatearFechaISO(new Date());
-  if (fechaISO && fechaISO < hoyISO) return "CERRADA";
-  if (fechaISO && fechaISO > hoyISO) return "PROGRAMADA";
-
-  const inicio = crearFechaHoraSesion(fechaISO, horas?.inicio || obtenerHoraInicioSesion(sesion));
-  const fin = crearFechaHoraSesion(fechaISO, horas?.fin || obtenerHoraFinSesion(sesion));
-  if (!inicio || !fin) return "PROGRAMADA";
-
-  const ahora = new Date();
-  if (ahora < inicio) return "PROGRAMADA";
-  if (ahora > fin) return "CERRADA";
-
-  const idSesionActiva = sessionStorage.getItem("sima_asistencia_sesion_activa");
+  const idSesionActiva = localStorage.getItem("sima_asistencia_sesion_activa") || sessionStorage.getItem("sima_asistencia_sesion_activa");
   const idSesion = obtenerIdSesion(sesion);
   const ingresoAAsistencia = idSesionActiva && idSesion && String(idSesionActiva) === String(idSesion);
+  const estaActiva = ["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estadoBackend) || ingresoAAsistencia;
 
-  if (ingresoAAsistencia) return "ACTIVA";
+  if (estaActiva) {
+    const fin = crearFechaHoraSesion(fechaISO, horas?.fin || obtenerHoraFinSesion(sesion));
+    if (fin && ahora > fin) return "CERRADA";
+    return "ACTIVA";
+  }
+
   return "PROGRAMADA";
 };
 
@@ -380,7 +374,7 @@ const normalizarHorarioComoSesion = (horario, grupo) => ({
   id_grupo: horario.id_grupo || grupo?.id_grupo,
   grupo: horario.grupo || grupo,
   numero_ficha: horario.numero_ficha || grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo,
-  estado: horario.estado || "PROGRAMADA",
+  estado: obtenerFechaSesion(horario) ? (horario.estado || "PROGRAMADA") : "PROGRAMADA",
   dia_semana: horario.dia_semana || horario.dia || horario.nombre_dia || horario.day,
   hora_inicio_programada: obtenerHoraInicioSesion(horario),
   hora_fin_programada: obtenerHoraFinSesion(horario),
@@ -417,10 +411,18 @@ export default function PanelInstructor() {
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [ahora, setAhora] = useState(() => new Date());
   const [semanaReferencia] = useState(() => formatearFechaISO(new Date()));
 
   const inicioSemana = useMemo(() => inicioSemanaActual(semanaReferencia), [semanaReferencia]);
   const finSemana = useMemo(() => finSemanaActual(semanaReferencia), [semanaReferencia]);
+
+  useEffect(() => {
+    const intervalo = window.setInterval(() => {
+      setAhora(new Date());
+    }, 30000);
+    return () => window.clearInterval(intervalo);
+  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -639,7 +641,7 @@ export default function PanelInstructor() {
         const horas = obtenerHorasBloqueDashboard(sesion, index, sesionesDia);
         return {
           ...sesion,
-          estadoCalendario: obtenerEstadoSesionCalendario(sesion, fechaISO, horas)
+          estadoCalendario: obtenerEstadoSesionCalendario(sesion, fechaISO, horas, ahora)
         };
       });
 
@@ -650,7 +652,7 @@ export default function PanelInstructor() {
         sesiones: sesionesConEstado
       };
     });
-  }, [inicioSemana, sesionesSemana]);
+  }, [ahora, inicioSemana, sesionesSemana]);
 
   const totalSesionesSemana = useMemo(
     () => calendarioSemana.reduce((total, item) => total + item.sesiones.length, 0),

@@ -11,7 +11,6 @@ import {
   QrCode,
   Save,
   Search,
-  Upload,
   X,
 } from "lucide-react";
 import SimaPagination from "../../../components/common/SimaPagination";
@@ -129,11 +128,12 @@ export default function AsistenciaInstructor() {
       try {
         const lista = await obtenerGruposInstructor();
         if (activo && lista.length) {
-          const grupoPendiente = sessionStorage.getItem("sima_asistencia_grupo_activo");
+          const grupoPendiente = localStorage.getItem("sima_asistencia_grupo_activo") || sessionStorage.getItem("sima_asistencia_grupo_activo");
           const grupoInicial = lista.find((grupo) => String(obtenerIdGrupo(grupo)) === grupoPendiente) || lista[0];
 
           setGrupos(lista);
           setGrupoSeleccionado(String(obtenerIdGrupo(grupoInicial)));
+          localStorage.removeItem("sima_asistencia_grupo_activo");
           sessionStorage.removeItem("sima_asistencia_grupo_activo");
         } else if (activo) {
           setGrupos([]);
@@ -1323,13 +1323,6 @@ export default function AsistenciaInstructor() {
                   placeholder="Explica brevemente por que se realiza este cambio."
                 />
                 <small className="asistencia-manual-counter">{formManual.descripcion.length}/300</small>
-
-                <label className="mcal-label">Evidencia</label>
-                <label className="asistencia-evidence-btn">
-                  <Upload size={15} />
-                  Adjuntar archivo
-                  <input type="file" />
-                </label>
 
                 <div className="mcal-banner asistencia-manual-note">
                   <p>Este cambio quedara registrado en el historial de auditoria de la sesion.</p>
