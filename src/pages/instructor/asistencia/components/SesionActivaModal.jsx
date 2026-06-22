@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Ban, Building2, CalendarCheck, CheckCircle2, Clock3, X } from "lucide-react";
-import { obtenerSesionesInstructorDia } from "../asistencia.service";
+import {
+  abrirSesionAsistencia,
+  obtenerSesionAbiertaPorGrupo,
+  obtenerSesionesInstructorDia
+} from "../asistencia.service";
 import { formatearFecha, obtenerCodigo, obtenerIdGrupo, obtenerIdSesion, obtenerPrograma } from "../asistencia.utils";
 import "../../instructor.css";
 
@@ -113,6 +117,8 @@ export default function SesionActivaModal() {
   const location = useLocation();
   const [grupoActivo, setGrupoActivo] = useState(null);
   const [visible, setVisible] = useState(false);
+  const [abriendoSesion, setAbriendoSesion] = useState(false);
+  const [mensajeError, setMensajeError] = useState("");
   const [revisionAviso, setRevisionAviso] = useState(0);
   const fechaHoy = useMemo(() => obtenerFechaLocal(), []);
   const rutaActual = location.pathname;
@@ -209,19 +215,45 @@ export default function SesionActivaModal() {
     window.setTimeout(() => setRevisionAviso((valor) => valor + 1), recordarHasta - Date.now() + 250);
   }
 
-  function irAAsistencia() {
-    if (grupoActivo) {
-      guardarDatoPersistente("sima_asistencia_grupo_activo", String(obtenerIdGrupo(grupoActivo)));
+  async function irAAsistencia() {
+    const idGrupo = obtenerIdGrupo(grupoActivo);
+    const sesionProgramada = grupoActivo?.sesion;
+    const idSesion = obtenerIdSesion(sesionProgramada);
+
+    if (!idGrupo || !idSesion) {
+      setMensajeError("No se encontro la ficha o la sesion programada.");
+      return;
     }
 
-    const idSesion = obtenerIdSesion(grupoActivo?.sesion);
-    if (idSesion) {
-      guardarDatoPersistente("sima_asistencia_sesion_activa", String(idSesion));
-    }
+    setAbriendoSesion(true);
+    setMensajeError("");
 
-    guardarDatoPersistente(obtenerClaveAviso(fechaHoy, grupoActivo?.sesion), "cerrado");
-    setVisible(false);
-    navigate("/instructor/asistencia");
+    try {
+      let sesionAbierta = sesionProgramada;
+      const estado = String(sesionProgramada?.estado || "").toUpperCase();
+
+      if (estado === "PROGRAMADA" || estado === "PENDIENTE" || !estado) {
+        try {
+          sesionAbierta = await abrirSesionAsistencia(idSesion);
+        } catch (errorApertura) {
+          const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaHoy).catch(() => null);
+          if (!sesionYaAbierta || String(obtenerIdSesion(sesionYaAbierta)) !== String(idSesion)) {
+            throw errorApertura;
+          }
+          sesionAbierta = sesionYaAbierta;
+        }
+      }
+
+      guardarDatoPersistente("sima_asistencia_grupo_activo", String(idGrupo));
+      guardarDatoPersistente("sima_asistencia_sesion_activa", String(obtenerIdSesion(sesionAbierta) || idSesion));
+      guardarDatoPersistente(obtenerClaveAviso(fechaHoy, sesionProgramada), "cerrado");
+      setVisible(false);
+      navigate("/instructor/asistencia");
+    } catch (error) {
+      setMensajeError(error.message || "No fue posible abrir la sesion de asistencia.");
+    } finally {
+      setAbriendoSesion(false);
+    }
   }
 
   function cancelarAviso() {
@@ -263,10 +295,12 @@ export default function SesionActivaModal() {
           </div>
         </div>
 
+        {mensajeError && <p className="asistencia-session-error">{mensajeError}</p>}
+
         <div className="asistencia-session-actions">
-          <button className="asistencia-session-action primary" type="button" onClick={irAAsistencia}>
+          <button className="asistencia-session-action primary" type="button" onClick={irAAsistencia} disabled={abriendoSesion}>
             <ArrowRight size={18} />
-            Ir a asistencia
+            {abriendoSesion ? "Abriendo sesion..." : "Ir a asistencia"}
           </button>
           <button className="asistencia-session-action secondary" type="button" onClick={recordarMasTarde}>
             <Clock3 size={17} />

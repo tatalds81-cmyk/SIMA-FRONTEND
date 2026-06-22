@@ -175,6 +175,13 @@ export async function obtenerSesionesInstructorDia(fecha) {
   return extraerLista(data, "sesiones");
 }
 
+export async function abrirSesionAsistencia(idSesion) {
+  if (!idSesion) throw new Error("No se encontro la sesion programada para abrir.");
+  return requestJson(`${API_URL}/educational-sessions/${idSesion}/open`, {
+    method: "PATCH"
+  });
+}
+
 export async function obtenerAsistenciasSesion(idSesion) {
   if (!idSesion) return { sesion: null, asistencias: [] };
   const data = await requestJson(`${API_URL}/educational-sessions/${idSesion}/attendances`);
