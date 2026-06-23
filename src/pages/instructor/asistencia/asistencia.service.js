@@ -137,10 +137,11 @@ async function requestJson(endpoint, options = {}) {
 
 export async function obtenerSesionAbiertaPorGrupo(grupoId, fecha) {
   if (!grupoId) return null;
+  const idGrupoConsulta = await resolverIdGrupoBackend(grupoId);
+  if (!idGrupoConsulta) return null;
 
   const params = new URLSearchParams({
-    estado: "ABIERTA",
-    id_grupo: String(grupoId),
+    id_grupo: String(idGrupoConsulta),
     solo_responsable: "true",
     limit: "20"
   });
@@ -148,7 +149,9 @@ export async function obtenerSesionAbiertaPorGrupo(grupoId, fecha) {
 
   const data = await requestJson(`${API_URL}/educational-sessions?${params.toString()}`);
   const sesiones = extraerLista(data, "sesiones");
-  return sesiones[0] || null;
+  return sesiones.find((sesion) =>
+    ["ABIERTA", "ACTIVA", "EN_CURSO"].includes(String(sesion?.estado || "").toUpperCase())
+  ) || null;
 }
 
 export async function obtenerSesionAbiertaInstructor(fecha) {
@@ -173,6 +176,25 @@ export async function obtenerSesionesInstructorDia(fecha) {
 
   const data = await requestJson(`${API_URL}/educational-sessions?${params.toString()}`);
   return extraerLista(data, "sesiones");
+}
+
+export async function generarSesionesFormacion({ idGrupoTrimestre, fechaDesde, fechaHasta }) {
+  if (!idGrupoTrimestre) throw new Error("No se encontro el trimestre del bloque para generar la sesion.");
+  return requestJson(`${API_URL}/educational-sessions/generate`, {
+    method: "POST",
+    body: JSON.stringify({
+      id_grupo_trimestre: Number(idGrupoTrimestre),
+      fecha_desde: fechaDesde,
+      fecha_hasta: fechaHasta || fechaDesde
+    })
+  });
+}
+
+export async function abrirSesionAsistencia(idSesion) {
+  if (!idSesion) throw new Error("No se encontro la sesion programada para abrir.");
+  return requestJson(`${API_URL}/educational-sessions/${idSesion}/open`, {
+    method: "PATCH"
+  });
 }
 
 export async function obtenerAsistenciasSesion(idSesion) {

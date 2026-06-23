@@ -1,15 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  CalendarClock,
   CheckCircle2,
-  Clock,
   PencilLine,
   UsersRound
 } from "lucide-react";
 import "../coordinador/coordinador.css";
 import "./instructor.css";
 import SesionActivaModal from "./asistencia/components/SesionActivaModal";
+import HorarioSemanalInstructor from "./HorarioSemanalInstructor";
+import {
+  combinarSesionesCalendario,
+  finSemanaActual,
+  formatearFechaISO,
+  inicioSemanaActual,
+  normalizarDiaSemana,
+  normalizarHorarioComoSesion,
+  obtenerDiaSemanaSesion,
+  obtenerFechaSesion
+} from "./horarioSemanal.utils";
 
 const obtenerNumero = (valor) => {
   if (typeof valor === "number") return valor;
@@ -34,13 +43,6 @@ const nombresRiesgo = {
   MANUAL: "Manual"
 };
 
-const formatearFechaISO = (fecha) => {
-  const anio = fecha.getFullYear();
-  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-  const dia = String(fecha.getDate()).padStart(2, "0");
-  return `${anio}-${mes}-${dia}`;
-};
-
 const inicioMesActual = (fechaBase = new Date()) => {
   const fecha = new Date(fechaBase);
   return formatearFechaISO(new Date(fecha.getFullYear(), fecha.getMonth(), 1));
@@ -51,28 +53,6 @@ const finMesActual = (fechaBase = new Date()) => {
   return formatearFechaISO(new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0));
 };
 
-const inicioSemanaActual = (fechaBase = new Date()) => {
-  const fecha = new Date(fechaBase);
-  const dia = fecha.getDay() || 7;
-  fecha.setDate(fecha.getDate() - dia + 1);
-  return formatearFechaISO(fecha);
-};
-
-const finSemanaActual = (fechaBase = new Date()) => {
-  const fecha = new Date(`${inicioSemanaActual(fechaBase)}T12:00:00`);
-  fecha.setDate(fecha.getDate() + 4);
-  return formatearFechaISO(fecha);
-};
-
-const formatearFechaCorta = (fechaISO) => {
-  if (!fechaISO) return "";
-  const fecha = new Date(`${fechaISO}T12:00:00`);
-  if (Number.isNaN(fecha.getTime())) return "";
-  return fecha.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
-};
-
-const normalizarHora = (valor) => String(valor || "").slice(0, 5) || "--:--";
-
 const getHeaders = () => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
   const headers = { "Content-Type": "application/json" };
@@ -80,8 +60,11 @@ const getHeaders = () => {
   return headers;
 };
 
-async function fetchJson(url) {
-  const res = await fetch(url, { headers: getHeaders() });
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...getHeaders(), ...options.headers }
+  });
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible cargar la informacion");
   return data?.data ?? data;
@@ -128,79 +111,6 @@ const obtenerPrograma = (grupo) => grupo.programa_formacion?.nombre_programa || 
 const obtenerCodigo = (grupo) => grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || "Sin ficha";
 const obtenerIdSesion = (sesion) => sesion.id_sesion_formacion || sesion.id;
 const obtenerIdGrupoSesion = (sesion) => sesion.id_grupo || sesion.grupo?.id_grupo;
-const obtenerFechaSesion = (sesion) => {
-  const valor = String(sesion.fecha_clase || sesion.fecha || sesion.fecha_sesion || "").slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor : "";
-};
-const normalizarDiaSemana = (valor) => {
-  const texto = String(valor || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-  const equivalencias = {
-    "1": "lunes",
-    "2": "martes",
-    "3": "miercoles",
-    "4": "jueves",
-    "5": "viernes",
-    lunes: "lunes",
-    martes: "martes",
-    miercoles: "miercoles",
-    jueves: "jueves",
-    viernes: "viernes"
-  };
-  return equivalencias[texto] || "";
-};
-const obtenerDiaSemanaSesion = (sesion) =>
-  normalizarDiaSemana(
-    sesion.dia_semana ||
-    sesion.nombre_dia ||
-    sesion.dia_nombre ||
-    sesion.dia ||
-    sesion.numero_dia ||
-    sesion.bloque_jornada?.dia_semana ||
-    sesion.horario?.dia_semana ||
-    sesion.horario?.dia
-  );
-const obtenerFichaSesion = (sesion) => sesion.grupo?.numero_ficha || sesion.numero_ficha || sesion.id_grupo || "Sin ficha";
-const obtenerCompetenciaSesion = (sesion) =>
-  sesion.competencia?.nombre_competencia ||
-  sesion.competencia?.nombre ||
-  sesion.clase_competencia?.competencia?.nombre_competencia ||
-  sesion.clase_competencia?.nombre_competencia ||
-  sesion.nombre_competencia ||
-  sesion.bloque_jornada?.nombre_bloque ||
-  "Sesion de formacion";
-const obtenerAmbienteSesion = (sesion) =>
-  sesion.ambiente?.nombre_ambiente ||
-  sesion.ambiente?.nombre ||
-  sesion.nombre_ambiente ||
-  "Ambiente asignado";
-const obtenerHoraInicioSesion = (sesion) =>
-  sesion.hora_inicio_programada || sesion.hora_inicio || sesion.horaInicio || sesion.inicio || sesion.bloque_jornada?.hora_inicio || "";
-const obtenerHoraFinSesion = (sesion) =>
-  sesion.hora_fin_programada || sesion.hora_fin || sesion.horaFin || sesion.fin || sesion.bloque_jornada?.hora_fin || "";
-const BLOQUES_MANANA_DASHBOARD = [
-  { inicio: "07:00", fin: "09:30" },
-  { inicio: "10:00", fin: "12:30" }
-];
-const obtenerHorasBloqueDashboard = (sesion, index, sesionesDia = []) => {
-  const inicio = normalizarHora(obtenerHoraInicioSesion(sesion));
-  const fin = normalizarHora(obtenerHoraFinSesion(sesion));
-  const sesionesVisibles = sesionesDia.slice(0, 2);
-  const horaBase = normalizarHora(obtenerHoraInicioSesion(sesionesVisibles[0]));
-  const horasRepetidas =
-    sesionesVisibles.length > 1 &&
-    horaBase !== "--:--" &&
-    sesionesVisibles.every((item) => normalizarHora(obtenerHoraInicioSesion(item)) === horaBase);
-
-  if (horasRepetidas && horaBase === "07:00" && index < BLOQUES_MANANA_DASHBOARD.length) {
-    return BLOQUES_MANANA_DASHBOARD[index];
-  }
-
-  return { inicio, fin };
-};
 const agregarValor = (set, valor) => {
   if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
 };
@@ -288,21 +198,6 @@ const horarioPerteneceInstructorActual = (horario, idsAsignacionActual, identida
 
   return tieneInstructor ? itemPerteneceInstructorActual(horario, identidad) : true;
 };
-const esInstructorLiderGrupo = (grupo) => {
-  const identidad = obtenerIdentidadInstructorActual();
-  const idsLider = [
-    grupo?.id_instructor_lider,
-    grupo?.instructor_lider?.id_instructor,
-    grupo?.instructor?.id_instructor
-  ].filter(Boolean).map(String);
-
-  return idsLider.some((idInstructor) => identidad.idsInstructor.has(idInstructor));
-};
-const obtenerRol = (grupo) => {
-  if (esInstructorLiderGrupo(grupo)) return "Lider";
-  return grupo.id_instructor_lider ? "Asignado" : "Instructor";
-};
-
 const combinarGrupos = (...listas) => {
   const grupos = new Map();
   listas.flat().forEach((grupo) => {
@@ -316,99 +211,6 @@ const estadoCuentaComoAsistencia = (estado) => (
   ["PRESENTE", "TARDE", "JUSTIFICADO", "JUSTIFICADA"].includes(String(estado || "").toUpperCase())
 );
 
-const claseEstadoSesion = (estado) => {
-  const valor = String(estado || "").toUpperCase();
-  if (valor === "ABIERTA" || valor === "ACTIVA" || valor === "EN_CURSO") return "activa";
-  if (valor === "PROGRAMADA") return "proxima";
-  if (valor === "CERRADA" || valor === "CERRADO" || valor === "FINALIZADA") return "cerrada";
-  if (valor === "CANCELADA" || valor === "CANCELADO") return "cancelada";
-  return "sin";
-};
-
-const etiquetaEstadoSesion = (estado) => {
-  const valor = String(estado || "PROGRAMADA").toUpperCase();
-  if (valor === "ABIERTA" || valor === "ACTIVA" || valor === "EN_CURSO") return "Activa";
-  if (valor === "PROGRAMADA") return "Programada";
-  if (valor === "CERRADA" || valor === "CERRADO" || valor === "FINALIZADA") return "Cerrada";
-  if (valor === "CANCELADA" || valor === "CANCELADO") return "Cancelada";
-  return String(estado || "Programada");
-};
-
-const crearFechaHoraSesion = (fechaISO, hora) => {
-  const horaNormalizada = normalizarHora(hora);
-  if (!fechaISO || horaNormalizada === "--:--") return null;
-  const fecha = new Date(`${fechaISO}T${horaNormalizada}:00`);
-  return Number.isNaN(fecha.getTime()) ? null : fecha;
-};
-
-const obtenerEstadoSesionCalendario = (sesion, fechaISO, horas = null) => {
-  const estadoBackend = String(sesion.estado || "").toUpperCase();
-  if (["CANCELADA", "CANCELADO"].includes(estadoBackend)) return "CANCELADA";
-  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estadoBackend)) return "CERRADA";
-  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estadoBackend)) return "ACTIVA";
-
-  const hoyISO = formatearFechaISO(new Date());
-  if (fechaISO && fechaISO < hoyISO) return "CERRADA";
-  if (fechaISO && fechaISO > hoyISO) return "PROGRAMADA";
-
-  const inicio = crearFechaHoraSesion(fechaISO, horas?.inicio || obtenerHoraInicioSesion(sesion));
-  const fin = crearFechaHoraSesion(fechaISO, horas?.fin || obtenerHoraFinSesion(sesion));
-  if (!inicio || !fin) return "PROGRAMADA";
-
-  const ahora = new Date();
-  if (ahora < inicio) return "PROGRAMADA";
-  if (ahora > fin) return "CERRADA";
-
-  const idSesionActiva = localStorage.getItem("sima_asistencia_sesion_activa") || sessionStorage.getItem("sima_asistencia_sesion_activa");
-  const idSesion = obtenerIdSesion(sesion);
-  const ingresoAAsistencia = idSesionActiva && idSesion && String(idSesionActiva) === String(idSesion);
-
-  if (ingresoAAsistencia) return "ACTIVA";
-  return "PROGRAMADA";
-};
-
-const obtenerClaseDiaCalendario = (sesiones = [], fechaISO = "") => {
-  if (!sesiones.length) return "sin-sesiones";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario || sesion.estado) === "activa")) return "activa";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario || sesion.estado) === "cerrada")) return "cerrada";
-  if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario || sesion.estado) === "cancelada")) return "cancelada";
-  return "con-sesiones";
-};
-
-const normalizarHorarioComoSesion = (horario, grupo) => ({
-  ...horario,
-  id: horario.id_horario || horario.id_sesion_formacion || horario.id,
-  id_grupo: horario.id_grupo || grupo?.id_grupo,
-  grupo: horario.grupo || grupo,
-  numero_ficha: horario.numero_ficha || grupo?.numero_ficha || grupo?.numero_grupo || grupo?.codigo,
-  estado: horario.estado || "PROGRAMADA",
-  dia_semana: horario.dia_semana || horario.dia || horario.nombre_dia || horario.day,
-  hora_inicio_programada: obtenerHoraInicioSesion(horario),
-  hora_fin_programada: obtenerHoraFinSesion(horario),
-  competencia: horario.competencia || horario.clase_competencia?.competencia || horario.clase_competencia,
-  ambiente: horario.ambiente || horario.bloque_jornada?.ambiente
-});
-
-const obtenerClaveSesionCalendario = (sesion) => [
-  obtenerFechaSesion(sesion) || obtenerDiaSemanaSesion(sesion),
-  obtenerHoraInicioSesion(sesion),
-  obtenerHoraFinSesion(sesion),
-  obtenerIdGrupoSesion(sesion) || sesion.id_grupo,
-  obtenerCompetenciaSesion(sesion)
-].join("|");
-
-const combinarSesionesCalendario = (...listas) => {
-  const sesiones = new Map();
-  listas.flat().forEach((sesion) => {
-    const clave = obtenerClaveSesionCalendario(sesion);
-    if (!clave.replaceAll("|", "")) return;
-    if (!sesiones.has(clave) || obtenerFechaSesion(sesion)) {
-      sesiones.set(clave, sesion);
-    }
-  });
-  return [...sesiones.values()];
-};
-
 export default function PanelInstructor() {
   const [grupos, setGrupos] = useState([]);
   const [alertas, setAlertas] = useState([]);
@@ -418,26 +220,58 @@ export default function PanelInstructor() {
   const [totalObservacionesMes, setTotalObservacionesMes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [semanaReferencia] = useState(() => formatearFechaISO(new Date()));
-
+  const [ahora, setAhora] = useState(() => new Date());
+  const [jornadaHorario, setJornadaHorario] = useState("MANANA");
+  const [revisionDatos, setRevisionDatos] = useState(0);
+  const [modalRevisado, setModalRevisado] = useState(false);
+  const [sesionModalManual, setSesionModalManual] = useState(null);
+  const semanaReferencia = formatearFechaISO(ahora);
   const inicioSemana = useMemo(() => inicioSemanaActual(semanaReferencia), [semanaReferencia]);
   const finSemana = useMemo(() => finSemanaActual(semanaReferencia), [semanaReferencia]);
+  const confirmarRevisionModal = useCallback(() => setModalRevisado(true), []);
 
   useEffect(() => {
+    const intervalo = window.setInterval(() => {
+      setAhora(new Date());
+    }, 30000);
+    return () => window.clearInterval(intervalo);
+  }, []);
+
+  useEffect(() => {
+    const actualizarSesiones = (evento) => {
+      const sesionesActualizadas = Array.isArray(evento?.detail?.sesiones)
+        ? evento.detail.sesiones
+        : [evento?.detail?.sesion].filter(Boolean);
+      const sesionesConId = sesionesActualizadas.filter((sesion) => obtenerIdSesion(sesion));
+      if (sesionesConId.length) {
+        setSesionesSemana((actuales) => {
+          const actualizadasPorId = new Map(sesionesConId.map((sesion) => [String(obtenerIdSesion(sesion)), sesion]));
+          const idsReemplazados = new Set();
+          const siguientes = actuales.map((sesion) => {
+            const idSesion = String(obtenerIdSesion(sesion));
+            const actualizada = actualizadasPorId.get(idSesion);
+            if (!actualizada) return sesion;
+            idsReemplazados.add(idSesion);
+            return { ...sesion, ...actualizada };
+          });
+          const nuevas = sesionesConId.filter((sesion) => !idsReemplazados.has(String(obtenerIdSesion(sesion))));
+          return nuevas.length ? [...siguientes, ...nuevas] : siguientes;
+        });
+      }
+      setRevisionDatos((valor) => valor + 1);
+    };
+    window.addEventListener("sima:sesiones-actualizadas", actualizarSesiones);
+    return () => window.removeEventListener("sima:sesiones-actualizadas", actualizarSesiones);
+  }, []);
+
+  useEffect(() => {
+    if (!modalRevisado) return undefined;
     let activo = true;
 
     async function cargarDashboard() {
       try {
         setCargando(true);
-        const [
-          resumen,
-          alertasResultado,
-          sesionesSemanaResultado
-        ] = await Promise.all([
-          fetchJson("/api/dashboard/instructor/resumen"),
-          fetchJson("/api/alerts?estado=ABIERTA&limit=50").catch(() => ({ alertas: [] })),
-          fetchJson(`/api/educational-sessions?fecha_desde=${inicioSemana}&fecha_hasta=${finSemana}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }))
-        ]);
+        const resumen = await fetchJson("/api/dashboard/instructor/resumen");
 
         if (!activo) return;
 
@@ -445,14 +279,21 @@ export default function PanelInstructor() {
           extraerGrupos(resumen?.grupos_liderados),
           extraerGrupos(resumen?.grupos_asignados)
         );
-        const sesionesSemanaData = extraerSesiones(sesionesSemanaResultado);
 
         setGrupos(gruposInstructor);
-        setAlertas(extraerAlertas(alertasResultado));
-        setSesionesSemana(sesionesSemanaData);
         setTotalObservacionesMes(Number(resumen?.kpis?.total_observaciones_abiertas) || 0);
         setError("");
         setCargando(false);
+
+        const [alertasResultado, sesionesSemanaResultado] = await Promise.all([
+          fetchJson("/api/alerts?estado=ABIERTA&limit=50").catch(() => ({ alertas: [] })),
+          fetchJson(`/api/educational-sessions?fecha_desde=${inicioSemana}&fecha_hasta=${finSemana}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }))
+        ]);
+        if (!activo) return;
+
+        setAlertas(extraerAlertas(alertasResultado));
+        let sesionesSemanaData = extraerSesiones(sesionesSemanaResultado);
+        setSesionesSemana(sesionesSemanaData);
 
         const identidadInstructor = obtenerIdentidadInstructorActual();
         const horariosPorGrupo = await Promise.allSettled(
@@ -477,6 +318,49 @@ export default function PanelInstructor() {
         const horariosInstructor = horariosPorGrupo.flatMap((result) =>
           result.status === "fulfilled" ? result.value : []
         );
+        const numeroDiaHoy = new Date(`${semanaReferencia}T12:00:00`).getDay();
+        const diaHoy = normalizarDiaSemana(["", "lunes", "martes", "miercoles", "jueves", "viernes"][numeroDiaHoy]);
+        const idsHorariosHoy = new Set(
+          sesionesSemanaData
+            .filter((sesion) => obtenerFechaSesion(sesion) === semanaReferencia)
+            .map((sesion) => sesion.id_horario)
+            .filter(Boolean)
+            .map(String)
+        );
+        const trimestresSinSesionHoy = new Set(
+          horariosInstructor
+            .filter((horario) =>
+              obtenerDiaSemanaSesion(horario) === diaHoy &&
+              horario.id_horario &&
+              horario.id_grupo_trimestre &&
+              !idsHorariosHoy.has(String(horario.id_horario))
+            )
+            .map((horario) => String(horario.id_grupo_trimestre))
+        );
+
+        if (trimestresSinSesionHoy.size) {
+          await Promise.allSettled(
+            [...trimestresSinSesionHoy].map((idGrupoTrimestre) =>
+              fetchJson("/api/educational-sessions/generate", {
+                method: "POST",
+                body: JSON.stringify({
+                  id_grupo_trimestre: Number(idGrupoTrimestre),
+                  fecha_desde: semanaReferencia,
+                  fecha_hasta: semanaReferencia
+                })
+              })
+            )
+          );
+          const sesionesHoyGeneradas = await fetchJson(
+            `/api/educational-sessions?fecha=${semanaReferencia}&solo_responsable=true&limit=100`
+          ).catch(() => ({ sesiones: [] }));
+          sesionesSemanaData = combinarSesionesCalendario(
+            sesionesSemanaData,
+            extraerSesiones(sesionesHoyGeneradas)
+          );
+          setSesionesSemana(sesionesSemanaData);
+        }
+
         if (horariosInstructor.length) {
           setSesionesSemana((actual) => combinarSesionesCalendario(actual, horariosInstructor));
         }
@@ -531,7 +415,7 @@ export default function PanelInstructor() {
     return () => {
       activo = false;
     };
-  }, [finSemana, inicioSemana]);
+  }, [finSemana, inicioSemana, modalRevisado, revisionDatos, semanaReferencia]);
 
   const alertasActivas = useMemo(
     () => alertas.filter((alerta) => String(alerta.estado || "").toUpperCase() === "ABIERTA"),
@@ -618,58 +502,40 @@ export default function PanelInstructor() {
     progreso: calcularProgreso(card.valor, card.valor?.toString().includes("%") ? 100 : maximoResumen)
   }));
 
-  const calendarioSemana = useMemo(() => {
-    const dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
-    const inicio = new Date(`${inicioSemana}T12:00:00`);
-
-    return dias.map((dia, index) => {
-      const fecha = new Date(inicio);
-      fecha.setDate(inicio.getDate() + index);
-      const fechaISO = formatearFechaISO(fecha);
-      const diaNormalizado = normalizarDiaSemana(dia);
-      const sesionesDia = sesionesSemana
-        .filter((sesion) => {
-          const fechaSesion = obtenerFechaSesion(sesion);
-          const diaSesion = obtenerDiaSemanaSesion(sesion);
-          return fechaSesion === fechaISO || (!fechaSesion && diaSesion === diaNormalizado);
-        })
-        .sort((a, b) =>
-          String(obtenerHoraInicioSesion(a)).localeCompare(String(obtenerHoraInicioSesion(b)))
-        );
-      const sesionesConEstado = sesionesDia.map((sesion, index) => {
-        const horas = obtenerHorasBloqueDashboard(sesion, index, sesionesDia);
-        return {
-          ...sesion,
-          estadoCalendario: obtenerEstadoSesionCalendario(sesion, fechaISO, horas)
-        };
+  const sesionesHoyParaModal = useMemo(
+    () => {
+      const numeroDiaHoy = new Date(`${semanaReferencia}T12:00:00`).getDay();
+      const diaHoy = normalizarDiaSemana(["", "lunes", "martes", "miercoles", "jueves", "viernes"][numeroDiaHoy]);
+      return sesionesSemana.filter((sesion) => {
+        const fechaSesion = obtenerFechaSesion(sesion);
+        return fechaSesion === semanaReferencia || (!fechaSesion && obtenerDiaSemanaSesion(sesion) === diaHoy);
       });
-
-      return {
-        dia,
-        fecha: fechaISO,
-        clase: obtenerClaseDiaCalendario(sesionesConEstado, fechaISO),
-        sesiones: sesionesConEstado
-      };
-    });
-  }, [inicioSemana, sesionesSemana]);
-
-  const totalSesionesSemana = useMemo(
-    () => calendarioSemana.reduce((total, item) => total + item.sesiones.length, 0),
-    [calendarioSemana]
+    },
+    [semanaReferencia, sesionesSemana]
   );
 
-  if (cargando) {
+  if (cargando || !modalRevisado) {
     return (
       <div className="coordinador-panel instructor-panel-v2">
-        <SesionActivaModal />
-        <div className="grupos-alert info">Cargando dashboard del instructor...</div>
+        <SesionActivaModal
+          onRevisionCompleta={confirmarRevisionModal}
+          sesionesAlternativas={sesionesHoyParaModal}
+          sesionManual={sesionModalManual}
+          onSesionManualAtendida={() => setSesionModalManual(null)}
+        />
+        <div className="grupos-alert info">Revisando sesiones programadas...</div>
       </div>
     );
   }
 
   return (
     <div className="coordinador-panel instructor-panel-v2">
-      <SesionActivaModal />
+      <SesionActivaModal
+        onRevisionCompleta={confirmarRevisionModal}
+        sesionesAlternativas={sesionesHoyParaModal}
+        sesionManual={sesionModalManual}
+        onSesionManualAtendida={() => setSesionModalManual(null)}
+      />
 
       {error && <div className="grupos-alert danger">{error}</div>}
 
@@ -751,52 +617,15 @@ export default function PanelInstructor() {
           </div>
         </article>
 
-        <article className="coordinador-card instructor-calendar-card instructor-calendar-card-dark">
-          <div className="instructor-calendar-top">
-            <div className="instructor-calendar-title-row">
-              <h2>Horario semanal</h2>
-              <span>{formatearFechaCorta(inicioSemana)} - {formatearFechaCorta(finSemana)}</span>
-            </div>
-            <strong>{totalSesionesSemana} sesiones</strong>
-          </div>
-
-          <div className="instructor-calendar-legend">
-            <span><i className="activa"></i> Sesion activa</span>
-            <span><i className="proxima"></i> Proxima sesion</span>
-            <span><i className="cerrada"></i> Cerrada</span>
-            <span><i className="cancelada"></i> Cancelada</span>
-          </div>
-
-          <div className="instructor-calendar-grid">
-            {calendarioSemana.map((item) => (
-              <div key={item.dia} className={`instructor-calendar-day ${item.clase}`}>
-                <div className="instructor-calendar-head">
-                  <strong>{item.dia.slice(0, 3).toUpperCase()}</strong>
-                  <span>{Number(String(item.fecha).slice(8, 10))}</span>
-                </div>
-                {item.sesiones.length ? item.sesiones.slice(0, 2).map((sesion, index) => (
-                  <div
-                    className={`instructor-calendar-session ${claseEstadoSesion(sesion.estadoCalendario || sesion.estado)}`}
-                    key={obtenerIdSesion(sesion) || `${item.dia}-${obtenerClaveSesionCalendario(sesion)}-${index}`}
-                  >
-                    <span className="instructor-calendar-time">
-                      <Clock size={13} />
-                      {obtenerHorasBloqueDashboard(sesion, index, item.sesiones).inicio} - {obtenerHorasBloqueDashboard(sesion, index, item.sesiones).fin}
-                    </span>
-                    <strong>{obtenerCompetenciaSesion(sesion)}</strong>
-                    <small>Ficha {obtenerFichaSesion(sesion)}</small>
-                    <em>{etiquetaEstadoSesion(sesion.estadoCalendario || sesion.estado)}</em>
-                  </div>
-                )) : (
-                  <div className="instructor-calendar-empty">
-                    <CalendarClock size={18} />
-                    <p>Sin sesiones programadas</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </article>
+        <HorarioSemanalInstructor
+          sesionesSemana={sesionesSemana}
+          inicioSemana={inicioSemana}
+          finSemana={finSemana}
+          ahora={ahora}
+          jornada={jornadaHorario}
+          onJornadaChange={setJornadaHorario}
+          onAbrirSesionPendiente={setSesionModalManual}
+        />
       </section>
 
       <section className="instructor-main-grid">

@@ -1,4 +1,4 @@
-import { ChevronDown, Edit3, Eye } from "lucide-react";
+import { ChevronDown, Eye } from "lucide-react";
 import { ESTADOS } from "../asistencia.constants";
 
 export default function TablaAsistencia({
@@ -8,10 +8,10 @@ export default function TablaAsistencia({
   modoManual,
   soloLectura = false,
   onAbrirDetalle,
-  onAbrirManual,
   onCambiarEstado
 }) {
-  const totalColumnas = 4 + (modoManual ? 1 : 0) + (soloLectura ? 0 : 1);
+  const mostrarAcciones = !soloLectura && !modoManual;
+  const totalColumnas = 4 + (modoManual ? 1 : 0) + (mostrarAcciones ? 1 : 0);
 
   return (
     <div className="asistencia-table-wrap">
@@ -23,7 +23,7 @@ export default function TablaAsistencia({
             <th>Estado</th>
             <th>Metodo</th>
             {modoManual && <th>Asistencia manual</th>}
-            {!soloLectura && <th>Acciones</th>}
+            {mostrarAcciones && <th>Acciones</th>}
           </tr>
         </thead>
         <tbody>
@@ -59,16 +59,16 @@ export default function TablaAsistencia({
                     </label>
                   </td>
                 )}
-                {!soloLectura && (
+                {mostrarAcciones && (
                   <td>
                   <button
                     type="button"
                     className="asistencia-icon-action"
-                    aria-label={modoManual ? `Editar asistencia manual de ${aprendiz.nombre}` : `Ver asistencia de ${aprendiz.nombre}`}
-                    onClick={() => (modoManual ? onAbrirManual(aprendiz) : onAbrirDetalle(aprendiz))}
+                    aria-label={`Ver asistencia de ${aprendiz.nombre}`}
+                    onClick={() => onAbrirDetalle(aprendiz)}
                     disabled={guardando}
                   >
-                    {modoManual ? <Edit3 size={15} /> : <Eye size={15} />}
+                    <Eye size={15} />
                   </button>
                   </td>
                 )}
