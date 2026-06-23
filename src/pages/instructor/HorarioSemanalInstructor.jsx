@@ -129,7 +129,7 @@ const obtenerClaseDia = (sesiones) => {
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "cerrada")) return "cerrada";
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "cancelada")) return "cancelada";
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "pendiente")) return "pendiente";
-  return "con-sesiones";
+  return "con-sesiones";//kjij//
 };
 
 const puedeAbrirSesion = (estado) => String(estado || "").toUpperCase() === "PENDIENTE";

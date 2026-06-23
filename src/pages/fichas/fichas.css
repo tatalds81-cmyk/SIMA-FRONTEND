@@ -396,6 +396,31 @@
   box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.12);
 }
 
+.grupos-upload {
+  min-height: 168px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #b7c8da;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.grupos-upload svg {
+  color: var(--sima-green);
+}
+
+.grupos-upload strong {
+  color: var(--sima-text);
+  font-size: 15px;
+}
+
+.grupos-upload input {
+  display: none;
+}
+
 /* =============================================
    GrupoDetalle v3 â€” gd-*
    ============================================= */
