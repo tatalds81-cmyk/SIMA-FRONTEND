@@ -123,6 +123,7 @@ export function prepararAprendiz(aprendiz, index) {
 
   return {
     id: aprendiz.id_aprendiz || aprendiz.id || index + 1,
+    idAsistencia: asistencia.id_asistencia || asistencia.id || aprendiz.id_asistencia || "",
     nombre: obtenerNombreAprendiz(aprendiz, index),
     hora: formatearHoraAsistencia(asistencia.hora_registro || asistencia.hora || aprendiz.hora_registro || aprendiz.hora),
     estado: normalizarEstadoAsistencia(estado),

@@ -631,6 +631,11 @@
   border-color: #fecdd3;
 }
 
+.instructor-calendar-day.pendiente {
+  background: linear-gradient(180deg, #fff7ed 0%, #fffaf5 100%);
+  border-color: #fed7aa;
+}
+
 .instructor-calendar-day.con-sesiones {
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
   border-color: #cbd5e1;
@@ -696,6 +701,15 @@
 .instructor-calendar-session.cancelada {
   border-left-color: #ef4444;
   background: #fef2f2;
+}
+
+.instructor-calendar-session.pendiente {
+  border-left-color: #f97316;
+  background: #fff7ed;
+}
+
+.instructor-calendar-session.clickable {
+  cursor: pointer;
 }
 
 .instructor-calendar-time {
@@ -793,6 +807,10 @@
   background: #ef4444;
 }
 
+.instructor-calendar-legend i.pendiente {
+  background: #f97316;
+}
+
 .instructor-calendar-card-dark {
   background: #ffffff;
   border-color: #dbe5f0;
@@ -807,6 +825,32 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 8px;
+}
+
+.instructor-calendar-jornada-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.instructor-calendar-jornada-control select {
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 32px 0 10px;
+  background: #fff;
+  color: #0b2442;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.instructor-calendar-jornada-control select:focus {
+  border-color: #238500;
+  outline: 2px solid rgba(35, 133, 0, 0.14);
 }
 
 .instructor-calendar-card-dark .instructor-calendar-title-row {
@@ -874,6 +918,10 @@
   background: #ef4444;
 }
 
+.instructor-calendar-card-dark .instructor-calendar-legend i.pendiente {
+  background: #f97316;
+}
+
 .instructor-calendar-card-dark .instructor-calendar-grid {
   grid-template-columns: repeat(5, minmax(132px, 1fr));
   gap: 9px;
@@ -883,6 +931,7 @@
 .instructor-calendar-card-dark .instructor-calendar-day.sin-sesiones,
 .instructor-calendar-card-dark .instructor-calendar-day.activa,
 .instructor-calendar-card-dark .instructor-calendar-day.proxima,
+.instructor-calendar-card-dark .instructor-calendar-day.pendiente,
 .instructor-calendar-card-dark .instructor-calendar-day.cerrada,
 .instructor-calendar-card-dark .instructor-calendar-day.cancelada,
 .instructor-calendar-card-dark .instructor-calendar-day.con-sesiones {
@@ -961,6 +1010,11 @@
   background: #fef2f2;
 }
 
+.instructor-calendar-card-dark .instructor-calendar-session.pendiente {
+  border-left-color: #f97316;
+  background: #fff7ed;
+}
+
 .instructor-calendar-card-dark .instructor-calendar-time {
   color: #38506b;
   font-size: 12px;
@@ -1004,6 +1058,11 @@
 .instructor-calendar-card-dark .instructor-calendar-session.cancelada em {
   background: #fdecec;
   color: #c94444;
+}
+
+.instructor-calendar-card-dark .instructor-calendar-session.pendiente em {
+  background: #ffedd5;
+  color: #c2410c;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-empty {

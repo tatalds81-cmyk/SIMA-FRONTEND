@@ -65,6 +65,14 @@ function obtenerMensajeError(error, fallback) {
   return error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
 }
 
+function obtenerIdAsistenciaRespuesta(respuesta) {
+  return respuesta?.id_asistencia || respuesta?.asistencia?.id_asistencia || respuesta?.data?.id_asistencia || respuesta?.data?.asistencia?.id_asistencia || respuesta?.id || "";
+}
+
+function obtenerIdAprendizRegistro(registro) {
+  return registro?.id_aprendiz || registro?.aprendiz?.id_aprendiz || registro?.aprendiz?.id || "";
+}
+
 function obtenerNombreInstructorLider(grupo) {
   const instructor = grupo?.instructor_lider || grupo?.instructor || {};
   const persona = instructor?.usuario?.persona || instructor?.persona || {};
@@ -79,6 +87,61 @@ function construirPayloadQr(qr, idSesion) {
     id_sesion_formacion: Number(qr?.id_sesion_formacion || idSesion),
     token_qr: qr?.qr_token || "",
   });
+}
+
+function leerJsonPersistente(clave) {
+  const valor = localStorage.getItem(clave) || sessionStorage.getItem(clave);
+  if (!valor) return null;
+  try {
+    return JSON.parse(valor);
+  } catch {
+    return null;
+  }
+}
+
+function limpiarSesionSeleccionadaPersistente() {
+  [
+    "sima_asistencia_sesion_seleccionada",
+    "sima_asistencia_sesion_detalle"
+  ].forEach((clave) => {
+    localStorage.removeItem(clave);
+    sessionStorage.removeItem(clave);
+  });
+}
+
+function normalizarHoraSesion(valor) {
+  return String(valor || "").slice(0, 5) || "";
+}
+
+function obtenerHoraInicioSesion(sesion) {
+  return normalizarHoraSesion(
+    sesion?.hora_inicio_programada ||
+    sesion?.hora_inicio ||
+    sesion?.inicio ||
+    sesion?.bloque_jornada?.hora_inicio
+  );
+}
+
+function obtenerHoraFinSesion(sesion) {
+  return normalizarHoraSesion(
+    sesion?.hora_fin_programada ||
+    sesion?.hora_fin ||
+    sesion?.fin ||
+    sesion?.bloque_jornada?.hora_fin
+  );
+}
+
+function guardarJsonPersistente(clave, valor) {
+  const serializado = JSON.stringify(valor);
+  localStorage.setItem(clave, serializado);
+  sessionStorage.setItem(clave, serializado);
+}
+
+function obtenerFechaLocal() {
+  const fecha = new Date();
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${fecha.getFullYear()}-${mes}-${dia}`;
 }
 
 export default function AsistenciaInstructor() {
@@ -97,7 +160,7 @@ export default function AsistenciaInstructor() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [paginaHistorialDetalle, setPaginaHistorialDetalle] = useState(1);
   const [busquedaHistorialDetalle, setBusquedaHistorialDetalle] = useState("");
-  const [fecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fecha] = useState(() => obtenerFechaLocal());
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
@@ -166,6 +229,26 @@ export default function AsistenciaInstructor() {
   useEffect(() => {
     let activo = true;
 
+    async function cargarDetalleSesion(sesion, grupoReferencia) {
+      const idSesion = obtenerIdSesion(sesion);
+      const idGrupoSesion = sesion.id_grupo || obtenerIdGrupo(grupoReferencia) || grupoSeleccionado;
+      const [detalle, aprendicesGrupo, detalleGrupo] = await Promise.all([
+        obtenerAsistenciasSesion(idSesion).catch(() => ({ sesion: null, asistencias: [] })),
+        obtenerAprendicesPorGrupo(grupoReferencia || grupoSeleccionado).catch(() => []),
+        obtenerDetalleGrupo(idGrupoSesion).catch(() => null)
+      ]);
+
+      const lista = aprendicesGrupo.length
+        ? combinarAprendicesConAsistencias(aprendicesGrupo, detalle.asistencias)
+        : detalle.asistencias.map(prepararAsistenciaSesion);
+
+      return {
+        sesion: detalle.sesion || sesion,
+        grupoDetalle: detalleGrupo || grupoReferencia || null,
+        aprendices: lista
+      };
+    }
+
     async function cargarAsistenciaSesion() {
       if (!grupoSeleccionado) {
         setSesionActiva(null);
@@ -185,28 +268,45 @@ export default function AsistenciaInstructor() {
       setGrupoDetalleActivo(null);
 
       try {
+        const idSesionSeleccionada = localStorage.getItem("sima_asistencia_sesion_seleccionada") || sessionStorage.getItem("sima_asistencia_sesion_seleccionada");
+        if (idSesionSeleccionada) {
+          const sesionGuardada = leerJsonPersistente("sima_asistencia_sesion_detalle") || {};
+          const sesionBase = {
+            ...sesionGuardada,
+            id_sesion_formacion: idSesionSeleccionada,
+            estado: "ABIERTA"
+          };
+          const detalleSeleccionado = await cargarDetalleSesion(sesionBase, grupoActual);
+          if (!activo) return;
+
+          limpiarSesionSeleccionadaPersistente();
+          setSesionActiva({
+            ...sesionBase,
+            ...detalleSeleccionado.sesion,
+            id_sesion_formacion: idSesionSeleccionada,
+            estado: "ABIERTA"
+          });
+          setGrupoDetalleActivo(detalleSeleccionado.grupoDetalle);
+          setAprendices(detalleSeleccionado.aprendices);
+          setPaginaActual(1);
+          setMensajeError(false);
+          setMensaje(detalleSeleccionado.aprendices.length ? "" : "La seccion seleccionada no tiene aprendices para mostrar.");
+          return;
+        }
+
         const sesion = await obtenerSesionAbiertaPorGrupo(grupoSeleccionado, fecha);
         if (!activo) return;
 
         if (sesion) {
-          const idSesion = obtenerIdSesion(sesion);
-          const idGrupoSesion = sesion.id_grupo || obtenerIdGrupo(grupoActual) || grupoSeleccionado;
-          const [detalle, aprendicesGrupo, detalleGrupo] = await Promise.all([
-            obtenerAsistenciasSesion(idSesion),
-            obtenerAprendicesPorGrupo(grupoActual || grupoSeleccionado).catch(() => []),
-            obtenerDetalleGrupo(idGrupoSesion).catch(() => null)
-          ]);
+          const detalleSesion = await cargarDetalleSesion(sesion, grupoActual);
           if (!activo) return;
 
-          const lista = aprendicesGrupo.length
-            ? combinarAprendicesConAsistencias(aprendicesGrupo, detalle.asistencias)
-            : detalle.asistencias.map(prepararAsistenciaSesion);
-          setSesionActiva(detalle.sesion || sesion);
-          setGrupoDetalleActivo(detalleGrupo || grupoActual || null);
-          setAprendices(lista);
+          setSesionActiva(detalleSesion.sesion);
+          setGrupoDetalleActivo(detalleSesion.grupoDetalle);
+          setAprendices(detalleSesion.aprendices);
           setPaginaActual(1);
           setMensajeError(false);
-          setMensaje(lista.length ? "" : "La sesion abierta no tiene aprendices para mostrar.");
+          setMensaje(detalleSesion.aprendices.length ? "" : "La sesion abierta no tiene aprendices para mostrar.");
           return;
         }
 
@@ -239,8 +339,22 @@ export default function AsistenciaInstructor() {
     };
   }, [fecha, grupoActual, grupoSeleccionado]);
 
-  const haySesionActiva = Boolean(obtenerIdSesion(sesionActiva));
+  const estadoSesionActual = String(sesionActiva?.estado || "").toUpperCase();
+  const haySesionActiva = Boolean(obtenerIdSesion(sesionActiva)) &&
+    !["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesionActual);
   const grupoSeccionActiva = haySesionActiva ? (grupoDetalleActivo || grupoActual) : null;
+
+  useEffect(() => {
+    if (!haySesionActiva || !sesionActiva) return;
+
+    guardarJsonPersistente("sima_asistencia_bloque_activo", {
+      fecha: String(sesionActiva.fecha_clase || sesionActiva.fecha || sesionActiva.fecha_sesion || fecha).slice(0, 10),
+      hora_inicio: obtenerHoraInicioSesion(sesionActiva),
+      hora_fin: obtenerHoraFinSesion(sesionActiva),
+      id_grupo: sesionActiva.id_grupo || obtenerIdGrupo(grupoSeccionActiva),
+      numero_ficha: obtenerCodigo(grupoSeccionActiva)
+    });
+  }, [fecha, grupoSeccionActiva, haySesionActiva, sesionActiva]);
 
   const aprendicesRegistrados = useMemo(() => {
     if (!haySesionActiva) return [];
@@ -343,6 +457,7 @@ export default function AsistenciaInstructor() {
     aprendicesSinRegistro.length > 0 &&
     aprendicesSinRegistro.length <= 3 &&
     claveAprendicesSinRegistro !== avisoFaltantesCerrado;
+
   const historialDetalle = useMemo(
     () => (aprendizDetalle ? construirHistorialAsistencia(aprendizDetalle) : []),
     [aprendizDetalle]
@@ -400,19 +515,38 @@ export default function AsistenciaInstructor() {
       throw new Error("No hay una sesion abierta para registrar asistencia.");
     }
     const estadoBackend = estadoFrontendABackend(nuevoEstado);
+    const idSesion = obtenerIdSesion(sesionActiva);
+    let idAsistencia = aprendiz?.idAsistencia || "";
 
-    if (aprendiz?.idAsistencia) {
-      await corregirAsistencia(aprendiz.idAsistencia, {
+    if (!idAsistencia && idSesion) {
+      const detalle = await obtenerAsistenciasSesion(idSesion).catch(() => ({ asistencias: [] }));
+      const asistenciaExistente = detalle.asistencias.find((item) => String(obtenerIdAprendizRegistro(item)) === String(aprendiz.id));
+      idAsistencia = obtenerIdAsistenciaRespuesta(asistenciaExistente);
+    }
+
+    if (idAsistencia) {
+      await corregirAsistencia(idAsistencia, {
+        estado: estadoBackend,
+        observacion
+      });
+    } else if (estadoBackend === "INASISTENCIA") {
+      const asistenciaCreada = await registrarAsistenciaManual({
+        idSesion,
+        idAprendiz: aprendiz.id,
+        estado: "JUSTIFICADO",
+        observacion: "Registro base para correccion manual de inasistencia"
+      });
+      const idAsistenciaCreada = obtenerIdAsistenciaRespuesta(asistenciaCreada);
+      if (!idAsistenciaCreada) {
+        throw new Error("No se pudo crear el registro base para marcar inasistencia.");
+      }
+      await corregirAsistencia(idAsistenciaCreada, {
         estado: estadoBackend,
         observacion
       });
     } else {
-      if (estadoBackend === "INASISTENCIA") {
-        throw new Error("Para marcar inasistencia se necesita un registro creado por la sesion o por cierre automatico.");
-      }
-
       await registrarAsistenciaManual({
-        idSesion: obtenerIdSesion(sesionActiva),
+        idSesion,
         idAprendiz: aprendiz.id,
         estado: estadoBackend,
         observacion
