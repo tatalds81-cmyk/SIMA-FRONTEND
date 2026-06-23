@@ -43,6 +43,13 @@ export default function NotificacionesPage() {
     setProcesando(false);
   }
 
+  function handleEliminar(e, id) {
+    e.stopPropagation();
+    const confirmar = window.confirm("Desea eliminar esta notificacion de la vista?");
+    if (!confirmar) return;
+    setNotifis(prev => prev.filter(n => n.id !== id));
+  }
+
   function getIcon(tipo) {
     if (tipo === 'AUTOMATICA') return <Bot size={20} className="nt-icon-bot" />;
     if (tipo === 'SISTEMA') return <Info size={20} className="nt-icon-sys" />;
@@ -125,7 +132,7 @@ export default function NotificacionesPage() {
                 </div>
 
                 <div className="nt-item-actions">
-                   <button className="nt-btn-action" aria-label="Eliminar">
+                   <button className="nt-btn-action" aria-label="Eliminar" onClick={(e) => handleEliminar(e, n.id)}>
                      <Trash2 size={16} />
                    </button>
                 </div>

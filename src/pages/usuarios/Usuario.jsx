@@ -20,9 +20,13 @@ export default function Usuario() {
   const [roles, setRoles] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [busquedaDocumento, setBusquedaDocumento] = useState("");
+  const [filtroRol, setFiltroRol] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("");
   const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [modalCargaMasivaAbierto, setModalCargaMasivaAbierto] = useState(false);
+  const [archivoCargaMasiva, setArchivoCargaMasiva] = useState(null);
   const [usuarioDetalle, setUsuarioDetalle] = useState(null);
   const [detalleModoEdicion, setDetalleModoEdicion] = useState(false);
   const [detalleForm, setDetalleForm] = useState(detalleVacio);
@@ -181,43 +185,63 @@ export default function Usuario() {
     }
   }
 
-  function buscarUsuarioPorDocumento() {
-    const textoBusqueda = busquedaDocumento.trim().toLowerCase();
-    if (textoBusqueda === "") {
-      setUsuariosFiltrados(usuarios);
-      setPaginaActual(1);
-      setMensaje("Mostrando todos los usuarios");
-      return;
-    }
-
+  function aplicarFiltrosUsuarios({
+    texto = busquedaDocumento,
+    rolFiltro = filtroRol,
+    estadoFiltro = filtroEstado
+  } = {}) {
+    const textoBusqueda = texto.trim().toLowerCase();
     const resultado = usuarios.filter((item) => {
       const documento = item.numero_documento?.toString().toLowerCase() || "";
       const nombres = item.nombres?.toLowerCase() || "";
       const apellidos = item.apellidos?.toLowerCase() || "";
       const nombreCompleto = `${nombres} ${apellidos}`.trim();
-
-      return (
+      const email = item.email?.toLowerCase() || "";
+      const coincideTexto =
+        !textoBusqueda ||
         documento.includes(textoBusqueda) ||
         nombres.includes(textoBusqueda) ||
         apellidos.includes(textoBusqueda) ||
-        nombreCompleto.includes(textoBusqueda)
-      );
+        nombreCompleto.includes(textoBusqueda) ||
+        email.includes(textoBusqueda);
+      const coincideRol = !rolFiltro || String(item.id_rol) === String(rolFiltro);
+      const coincideEstado = !estadoFiltro || String(item.estado || "").toUpperCase() === estadoFiltro;
+
+      return coincideTexto && coincideRol && coincideEstado;
     });
 
     setUsuariosFiltrados(resultado);
     setPaginaActual(1);
+    return resultado;
+  }
+
+  function buscarUsuarioPorDocumento() {
+    const resultado = aplicarFiltrosUsuarios();
     setMensaje(
       resultado.length > 0
         ? "Busqueda realizada correctamente"
-        : "No se encontraron usuarios con ese nombre o documento"
+        : "No se encontraron usuarios con esos filtros"
     );
   }
 
   function limpiarBusqueda() {
     setBusquedaDocumento("");
+    setFiltroRol("");
+    setFiltroEstado("");
     setUsuariosFiltrados(usuarios);
     setPaginaActual(1);
     setMensaje("Busqueda limpiada");
+  }
+
+  function cargarUsuariosMasivo(e) {
+    e.preventDefault();
+    if (!archivoCargaMasiva) {
+      setMensaje("Seleccione un archivo Excel para la carga masiva.");
+      return;
+    }
+    setMensaje(`Archivo ${archivoCargaMasiva.name} listo. Falta conectar el endpoint de carga masiva de usuarios.`);
+    setArchivoCargaMasiva(null);
+    setModalCargaMasivaAbierto(false);
   }
 
   async function guardarUsuario(e) {
@@ -484,7 +508,7 @@ export default function Usuario() {
           <button
             type="button"
             className="usuarios-secondary-btn"
-            onClick={() => setMensaje("La carga masiva de usuarios quedara lista cuando conectes el endpoint.")}
+            onClick={() => setModalCargaMasivaAbierto(true)}
           >
             <Upload size={18} />
             Carga masiva
@@ -506,7 +530,7 @@ export default function Usuario() {
           <Search size={19} />
           <input
             type="text"
-            placeholder="Buscar por nombre o documento"
+            placeholder="Buscar por nombre, documento o correo"
             value={busquedaDocumento}
             onChange={(e) => setBusquedaDocumento(e.target.value)}
             onKeyDown={(e) => {
@@ -514,6 +538,36 @@ export default function Usuario() {
             }}
           />
         </div>
+        <select
+          className="usuarios-select-filtro"
+          value={filtroRol}
+          onChange={(e) => {
+            setFiltroRol(e.target.value);
+            aplicarFiltrosUsuarios({ rolFiltro: e.target.value });
+          }}
+        >
+          <option value="">Todos los roles</option>
+          {roles.map((item) => (
+            <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
+          ))}
+        </select>
+        <select
+          className="usuarios-select-filtro"
+          value={filtroEstado}
+          onChange={(e) => {
+            setFiltroEstado(e.target.value);
+            aplicarFiltrosUsuarios({ estadoFiltro: e.target.value });
+          }}
+        >
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="INACTIVO">Inactivo</option>
+          <option value="SUSPENDIDO">Suspendido</option>
+        </select>
+        <button type="button" onClick={buscarUsuarioPorDocumento}>
+          <Search size={16} />
+          Buscar
+        </button>
         <button type="button" className="ghost" onClick={limpiarBusqueda}>Limpiar</button>
       </section>
 
@@ -815,6 +869,34 @@ export default function Usuario() {
               <div className="usuarios-modal-actions">
                 <button type="button" className="usuarios-secondary-btn" onClick={() => { limpiarFormulario(); setModalCrearAbierto(false); }}>Cancelar</button>
                 <button type="submit" className="usuarios-primary-btn">Guardar usuario</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {modalCargaMasivaAbierto && (
+        <div className="usuarios-modal-backdrop" role="presentation">
+          <section className="usuarios-modal compact" role="dialog" aria-modal="true" aria-labelledby="carga-usuarios-title">
+            <div className="usuarios-modal-header">
+              <div>
+                <span className="usuarios-eyebrow">Carga masiva</span>
+                <h2 id="carga-usuarios-title">Importar usuarios</h2>
+                <p>Archivo Excel con documento, nombres, apellidos, correo, rol y estado.</p>
+              </div>
+            </div>
+
+            <form className="usuarios-form" onSubmit={cargarUsuariosMasivo}>
+              <label className="usuarios-upload">
+                <Upload size={34} />
+                <strong>{archivoCargaMasiva ? archivoCargaMasiva.name : "Seleccionar archivo"}</strong>
+                <span>Formatos preparados: .xlsx, .xls</span>
+                <input type="file" accept=".xlsx,.xls" onChange={(e) => setArchivoCargaMasiva(e.target.files?.[0] || null)} />
+              </label>
+
+              <div className="usuarios-modal-actions">
+                <button type="button" className="usuarios-secondary-btn" onClick={() => { setArchivoCargaMasiva(null); setModalCargaMasivaAbierto(false); }}>Cancelar</button>
+                <button type="submit" className="usuarios-primary-btn">Preparar carga</button>
               </div>
             </form>
           </section>

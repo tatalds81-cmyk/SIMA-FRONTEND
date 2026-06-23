@@ -82,13 +82,30 @@
 
 .usuarios-toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto auto auto auto;
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--sima-border);
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(9, 36, 68, 0.05);
+}
+
+.usuarios-select-filtro {
+  height: 38px;
+  min-width: 150px;
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--sima-navy);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  outline: 0;
+}
+
+.usuarios-select-filtro:focus {
+  border-color: var(--sima-green);
 }
 
 .usuarios-toolbar button:not(.ghost) {
@@ -400,6 +417,31 @@
   color: var(--sima-text);
   font-size: 13px;
   font-weight: 900;
+}
+
+.usuarios-upload {
+  min-height: 168px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #b7c8da;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.usuarios-upload svg {
+  color: var(--sima-green);
+}
+
+.usuarios-upload strong {
+  color: var(--sima-text);
+  font-size: 15px;
+}
+
+.usuarios-upload input {
+  display: none;
 }
 
 .usuarios-modal-actions {
