@@ -175,6 +175,9 @@ export default function AsistenciaInstructor() {
   const [aprendizDetalle, setAprendizDetalle] = useState(null);
   const [aprendizManual, setAprendizManual] = useState(null);
   const [avisoFaltantesCerrado, setAvisoFaltantesCerrado] = useState("");
+  const [modalCancelarSesion, setModalCancelarSesion] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
+  const [modalListaBase, setModalListaBase] = useState(false);
   const [formManual, setFormManual] = useState({
     estado: "presente",
     hora: "",
@@ -730,6 +733,29 @@ export default function AsistenciaInstructor() {
     }
   }
 
+  function confirmarCancelacionSesion() {
+    const motivo = motivoCancelacion.trim();
+    if (motivo.length < 20) {
+      setMensajeError(true);
+      setMensaje("El motivo de cancelacion debe tener minimo 20 caracteres.");
+      return;
+    }
+
+    setSesionActiva((actual) => actual ? {
+      ...actual,
+      estado: "CANCELADA",
+      motivo_cancelacion: motivo,
+      fecha_cancelacion_local: new Date().toISOString()
+    } : actual);
+    setQrSesion(null);
+    setQrAbierto(false);
+    setModoManual(false);
+    setModalCancelarSesion(false);
+    setMotivoCancelacion("");
+    setMensajeError(false);
+    setMensaje("Sesion cancelada en la vista. Falta conectar endpoint para persistir la cancelacion.");
+  }
+
   return (
     <div className="coordinador-panel instructor-panel-v2 asistencia-instructor">
       <section className="dashboard-welcome asistencia-page-title">
@@ -975,6 +1001,22 @@ export default function AsistenciaInstructor() {
                   Finalizar edicion
                 </button>
               )}
+              <button
+                type="button"
+                className="asistencia-manual-toggle"
+                onClick={() => setModalListaBase(true)}
+                disabled={!aprendices.length}
+              >
+                Lista base
+              </button>
+              <button
+                type="button"
+                className="asistencia-manual-toggle"
+                onClick={() => setModalCancelarSesion(true)}
+                disabled={!haySesionActiva || guardandoAsistencia}
+              >
+                Cancelar sesion
+              </button>
               {!modoManual && (
                 <button
                   type="button"
@@ -1467,6 +1509,87 @@ export default function AsistenciaInstructor() {
                   <button type="button" className="mcal-btn-enviar" onClick={guardarCambioManual} disabled={guardandoAsistencia}>
                     {guardandoAsistencia ? "Guardando..." : "Guardar cambio"}
                   </button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </>
+      )}
+
+      {modalListaBase && (
+        <>
+          <div className="mcal-overlay" onClick={() => setModalListaBase(false)} aria-hidden="true" />
+          <div className="mcal-modal asistencia-manual-modal" role="dialog" aria-modal="true" aria-label="Lista base de aprendices">
+            <div className="mcal-header asistencia-manual-modal-header">
+              <h2 className="mcal-titulo">Lista base de la sesion</h2>
+              <button type="button" className="mcal-btn-close" onClick={() => setModalListaBase(false)} aria-label="Cerrar lista base">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="asistencia-manual-modal-body">
+              <section className="asistencia-manual-form">
+                <div className="mcal-banner asistencia-manual-note">
+                  <p>Esta vista muestra los aprendices cargados para la sesion actual. Cuando el backend exponga la lista congelada, se usara esa fuente historica.</p>
+                </div>
+                <div className="gd-table-wrap">
+                  <table className="gd-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Aprendiz</th>
+                        <th>Estado</th>
+                        <th>Metodo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aprendices.map((aprendiz, index) => (
+                        <tr key={aprendiz.id || index}>
+                          <td>{index + 1}</td>
+                          <td>{aprendiz.nombre}</td>
+                          <td>{ESTADOS[aprendiz.estado]?.label || "Sin registro"}</td>
+                          <td>{aprendiz.metodo || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mcal-footer">
+                  <button type="button" className="mcal-btn-enviar" onClick={() => setModalListaBase(false)}>Cerrar</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </>
+      )}
+
+      {modalCancelarSesion && (
+        <>
+          <div className="mcal-overlay" onClick={() => setModalCancelarSesion(false)} aria-hidden="true" />
+          <div className="mcal-modal asistencia-manual-modal" role="dialog" aria-modal="true" aria-label="Cancelar sesion de formacion">
+            <div className="mcal-header asistencia-manual-modal-header">
+              <h2 className="mcal-titulo">Cancelar sesion</h2>
+              <button type="button" className="mcal-btn-close" onClick={() => setModalCancelarSesion(false)} aria-label="Cerrar cancelacion">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="asistencia-manual-modal-body">
+              <section className="asistencia-manual-form">
+                <label className="mcal-label" htmlFor="motivo-cancelacion">Motivo de cancelacion</label>
+                <textarea
+                  id="motivo-cancelacion"
+                  className="mcal-textarea asistencia-manual-textarea"
+                  value={motivoCancelacion}
+                  onChange={(e) => setMotivoCancelacion(e.target.value)}
+                  maxLength={500}
+                  placeholder="Describe el motivo de cancelacion de la sesion."
+                />
+                <small className="asistencia-manual-counter">{motivoCancelacion.trim().length}/20 caracteres minimos</small>
+                <div className="mcal-banner asistencia-manual-note">
+                  <p>La cancelacion queda preparada en frontend. Cuando exista endpoint, esta accion enviara motivo, fecha y usuario responsable.</p>
+                </div>
+                <div className="mcal-footer">
+                  <button type="button" className="mcal-btn-cancelar" onClick={() => setModalCancelarSesion(false)}>Volver</button>
+                  <button type="button" className="mcal-btn-enviar" onClick={confirmarCancelacionSesion}>Cancelar sesion</button>
                 </div>
               </section>
             </div>
