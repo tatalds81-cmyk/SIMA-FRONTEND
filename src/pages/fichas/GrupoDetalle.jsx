@@ -776,6 +776,10 @@ export default function GrupoDetalle() {
   const [cargandoPerfil, setCargandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState("");
   const [filtrosAlertas, setFiltrosAlertas] = useState(FILTROS_ALERTAS_INICIALES);
+  const [modalEstadoGrupo, setModalEstadoGrupo] = useState(false);
+  const [estadoGrupoTemporal, setEstadoGrupoTemporal] = useState("");
+  const [modalInstructorLider, setModalInstructorLider] = useState(false);
+  const [instructorLiderTemporal, setInstructorLiderTemporal] = useState("");
   const puedeGestionarHorario = puedeEditarGrupo || (esInstructor && esInstructorLiderGrupo(grupo));
   const [paginaAprendices, setPaginaAprendices] = useState(1);
   const [paginaAlertas, setPaginaAlertas] = useState(1);
@@ -1029,6 +1033,30 @@ export default function GrupoDetalle() {
 
   function cambiarPaginaAlertas(nuevaPagina) {
     setPaginaAlertas(Math.min(Math.max(nuevaPagina, 1), totalPaginasAlertas));
+  }
+
+  function abrirCambioEstadoGrupo() {
+    setEstadoGrupoTemporal(String(grupo?.estado || "ACTIVO").toUpperCase());
+    setModalEstadoGrupo(true);
+  }
+
+  function guardarCambioEstadoGrupo() {
+    if (!estadoGrupoTemporal) return;
+    setGrupo((actual) => ({ ...actual, estado: estadoGrupoTemporal }));
+    setErrorDetalle("Cambio de estado preparado en frontend. Falta conectar el endpoint para persistirlo.");
+    setModalEstadoGrupo(false);
+  }
+
+  function abrirCambioInstructorLider() {
+    setInstructorLiderTemporal(detalle?.instructor === "Sin asignar" ? "" : detalle?.instructor || "");
+    setModalInstructorLider(true);
+  }
+
+  function guardarCambioInstructorLider() {
+    const nombre = instructorLiderTemporal.trim() || "Sin asignar";
+    setGrupo((actual) => ({ ...actual, instructor_lider_nombre: nombre }));
+    setErrorDetalle("Cambio de instructor lider preparado en frontend. Falta conectar el endpoint para persistirlo.");
+    setModalInstructorLider(false);
   }
 
   function iniciarEdicionGrupo() {
@@ -1472,7 +1500,11 @@ export default function GrupoDetalle() {
                 </button>
               </>
             ) : (
-              <button type="button" className="grupos-secondary-btn" onClick={iniciarEdicionGrupo}><Edit3 size={15} /> Editar</button>
+              <>
+                <button type="button" className="grupos-secondary-btn" onClick={abrirCambioEstadoGrupo}>Cambiar estado</button>
+                <button type="button" className="grupos-secondary-btn" onClick={abrirCambioInstructorLider}>Cambiar lider</button>
+                <button type="button" className="grupos-secondary-btn" onClick={iniciarEdicionGrupo}><Edit3 size={15} /> Editar</button>
+              </>
             )}
           </div>
           )}
@@ -1941,6 +1973,64 @@ export default function GrupoDetalle() {
           grupo={grupoHorario}
           onClose={() => setGrupoHorario(null)}
         />
+      )}
+
+      {modalEstadoGrupo && (
+        <div className="grupos-modal-backdrop" role="presentation">
+          <section className="grupos-modal compact" role="dialog" aria-modal="true" aria-labelledby="estado-grupo-title">
+            <div className="grupos-modal-header">
+              <div>
+                <span className="grupos-eyebrow">Estado de ficha</span>
+                <h2 id="estado-grupo-title">Cambiar estado</h2>
+                <p>Accion preparada en frontend hasta conectar el endpoint definitivo.</p>
+              </div>
+              <button type="button" className="grupos-close-btn" onClick={() => setModalEstadoGrupo(false)} aria-label="Cerrar ventana">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="gd-edit-form">
+              <label>
+                <span>Estado</span>
+                <select value={estadoGrupoTemporal} onChange={(e) => setEstadoGrupoTemporal(e.target.value)}>
+                  <option value="ACTIVO">ACTIVO</option>
+                  <option value="CERRADO">CERRADO</option>
+                  <option value="SUSPENDIDO">SUSPENDIDO</option>
+                </select>
+              </label>
+            </div>
+            <div className="gd-edit-actions">
+              <button type="button" className="grupos-secondary-btn" onClick={() => setModalEstadoGrupo(false)}>Cancelar</button>
+              <button type="button" className="grupos-primary-btn" onClick={guardarCambioEstadoGrupo}>Aplicar en vista</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {modalInstructorLider && (
+        <div className="grupos-modal-backdrop" role="presentation">
+          <section className="grupos-modal compact" role="dialog" aria-modal="true" aria-labelledby="lider-grupo-title">
+            <div className="grupos-modal-header">
+              <div>
+                <span className="grupos-eyebrow">Instructor lider</span>
+                <h2 id="lider-grupo-title">Cambiar instructor lider</h2>
+                <p>Accion preparada en frontend hasta conectar el endpoint definitivo.</p>
+              </div>
+              <button type="button" className="grupos-close-btn" onClick={() => setModalInstructorLider(false)} aria-label="Cerrar ventana">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="gd-edit-form">
+              <label>
+                <span>Nombre del instructor</span>
+                <input value={instructorLiderTemporal} onChange={(e) => setInstructorLiderTemporal(e.target.value)} placeholder="Nombre del instructor lider" />
+              </label>
+            </div>
+            <div className="gd-edit-actions">
+              <button type="button" className="grupos-secondary-btn" onClick={() => setModalInstructorLider(false)}>Cancelar</button>
+              <button type="button" className="grupos-primary-btn" onClick={guardarCambioInstructorLider}>Aplicar en vista</button>
+            </div>
+          </section>
+        </div>
       )}
 
     </div>

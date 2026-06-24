@@ -175,6 +175,8 @@ export default function AsistenciaInstructor() {
   const [aprendizDetalle, setAprendizDetalle] = useState(null);
   const [aprendizManual, setAprendizManual] = useState(null);
   const [avisoFaltantesCerrado, setAvisoFaltantesCerrado] = useState("");
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
+  const [mostrarCancelacionSesion, setMostrarCancelacionSesion] = useState(false);
   const [formManual, setFormManual] = useState({
     estado: "presente",
     hora: "",
@@ -608,6 +610,8 @@ export default function AsistenciaInstructor() {
   function abrirEdicionManual(aprendiz) {
     if (!haySesionActiva) return;
     setAprendizManual(aprendiz);
+    setMostrarCancelacionSesion(false);
+    setMotivoCancelacion("");
     setFormManual({
       estado: aprendiz.estado || "presente",
       hora: aprendiz.hora === "-" ? obtenerHoraActual() : aprendiz.hora,
@@ -728,6 +732,30 @@ export default function AsistenciaInstructor() {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
+  }
+
+  function confirmarCancelacionSesion() {
+    const motivo = motivoCancelacion.trim();
+    if (motivo.length < 20) {
+      setMensajeError(true);
+      setMensaje("El motivo de cancelacion debe tener minimo 20 caracteres.");
+      return;
+    }
+
+    setSesionActiva((actual) => actual ? {
+      ...actual,
+      estado: "CANCELADA",
+      motivo_cancelacion: motivo,
+      fecha_cancelacion_local: new Date().toISOString()
+    } : actual);
+    setQrSesion(null);
+    setQrAbierto(false);
+    setModoManual(false);
+    setAprendizManual(null);
+    setMostrarCancelacionSesion(false);
+    setMotivoCancelacion("");
+    setMensajeError(false);
+    setMensaje("Sesion cancelada en la vista. Falta conectar endpoint para persistir la cancelacion.");
   }
 
   return (
@@ -1462,6 +1490,47 @@ export default function AsistenciaInstructor() {
                   <p>Este cambio quedara registrado en el historial de auditoria de la sesion.</p>
                 </div>
 
+                <div className="mcal-banner asistencia-manual-note">
+                  <button
+                    type="button"
+                    className="mcal-btn-cancelar"
+                    onClick={() => setMostrarCancelacionSesion((actual) => !actual)}
+                    disabled={guardandoAsistencia}
+                  >
+                    Cancelada
+                  </button>
+                </div>
+
+                {mostrarCancelacionSesion && (
+                  <div className="asistencia-manual-cancel-panel">
+                    <label className="mcal-label" htmlFor="motivo-cancelacion-manual">Motivo de cancelacion</label>
+                    <textarea
+                      id="motivo-cancelacion-manual"
+                      className="mcal-textarea asistencia-manual-textarea"
+                      value={motivoCancelacion}
+                      onChange={(e) => setMotivoCancelacion(e.target.value)}
+                      maxLength={500}
+                      placeholder="Describe el motivo de cancelacion de la sesion."
+                    />
+                    <small className="asistencia-manual-counter">{motivoCancelacion.trim().length}/20 caracteres minimos</small>
+                    <div className="mcal-footer">
+                      <button
+                        type="button"
+                        className="mcal-btn-cancelar"
+                        onClick={() => {
+                          setMostrarCancelacionSesion(false);
+                          setMotivoCancelacion("");
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      <button type="button" className="mcal-btn-enviar" onClick={confirmarCancelacionSesion}>
+                        Cerrar sesion
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mcal-footer">
                   <button type="button" className="mcal-btn-cancelar" onClick={() => setAprendizManual(null)}>Cancelar</button>
                   <button type="button" className="mcal-btn-enviar" onClick={guardarCambioManual} disabled={guardandoAsistencia}>
@@ -1473,6 +1542,7 @@ export default function AsistenciaInstructor() {
           </div>
         </>
       )}
+
     </div>
   );
 }

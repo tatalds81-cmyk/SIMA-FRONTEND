@@ -14,6 +14,8 @@ import "./fichas.css";
 export default function GruposFormativos() {
   const navigate = useNavigate();
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [modalCargaMasivaAbierto, setModalCargaMasivaAbierto] = useState(false);
+  const [archivoCargaMasiva, setArchivoCargaMasiva] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
   const [busqueda, setBusqueda] = useState("");
@@ -316,6 +318,20 @@ export default function GruposFormativos() {
     }
   }
 
+  function cargarGruposMasivo(e) {
+    e.preventDefault();
+    if (!archivoCargaMasiva) {
+      setMensajeError(true);
+      setMensaje("Seleccione un archivo Excel para la carga masiva de grupos.");
+      return;
+    }
+
+    setMensajeError(false);
+    setMensaje(`Archivo ${archivoCargaMasiva.name} listo. Falta conectar el endpoint de carga masiva de grupos.`);
+    setArchivoCargaMasiva(null);
+    setModalCargaMasivaAbierto(false);
+  }
+
   function obtenerPrograma(grupo) {
     return grupo.programa_formacion?.nombre_programa || grupo.programa || grupo.nombre_programa || "No especificado";
   }
@@ -359,7 +375,7 @@ export default function GruposFormativos() {
           <button
             type="button"
             className="grupos-secondary-btn"
-            onClick={() => setMensaje("La carga masiva de grupos aun no tiene endpoint disponible en el backend.")}
+            onClick={() => setModalCargaMasivaAbierto(true)}
           >
             <Upload size={18} />
             Carga masiva
@@ -586,6 +602,34 @@ export default function GruposFormativos() {
                   Cancelar
                 </button>
                 <button type="submit" className="grupos-primary-btn">Crear grupo</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {modalCargaMasivaAbierto && (
+        <div className="grupos-modal-backdrop" role="presentation">
+          <section className="grupos-modal compact" role="dialog" aria-modal="true" aria-labelledby="carga-grupos-title">
+            <div className="grupos-modal-header">
+              <div>
+                <span className="grupos-eyebrow">Carga masiva</span>
+                <h2 id="carga-grupos-title">Importar grupos</h2>
+                <p>Archivo Excel con ficha, programa, area, jornada, trimestres, fecha de inicio e instructor lider.</p>
+              </div>
+            </div>
+
+            <form className="grupos-form" onSubmit={cargarGruposMasivo}>
+              <label className="grupos-upload">
+                <Upload size={34} />
+                <strong>{archivoCargaMasiva ? archivoCargaMasiva.name : "Seleccionar archivo"}</strong>
+                <span>Formatos preparados: .xlsx, .xls</span>
+                <input type="file" accept=".xlsx,.xls" onChange={(e) => setArchivoCargaMasiva(e.target.files?.[0] || null)} />
+              </label>
+
+              <div className="grupos-modal-actions">
+                <button type="button" className="grupos-secondary-btn" onClick={() => { setArchivoCargaMasiva(null); setModalCargaMasivaAbierto(false); }}>Cancelar</button>
+                <button type="submit" className="grupos-primary-btn">Preparar carga</button>
               </div>
             </form>
           </section>
