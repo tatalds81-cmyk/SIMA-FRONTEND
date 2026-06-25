@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Search, Eye, RefreshCw,
   ChevronsUpDown
@@ -50,7 +50,7 @@ function formatearTipoAlerta(tipo) {
   return etiquetas[tipo] || (tipo ?? '').replace(/_/g, ' ');
 }
 
-// â”€â”€ PaginaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Paginación ──────────────────────────────────────────────────
 function Paginacion({ paginaActual, total, limite, onCambiarPagina }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
   const desde = total === 0 ? 0 : ((paginaActual - 1) * limite) + 1;
@@ -279,7 +279,7 @@ export default function ConsultarAlertas() {
               <option value="LEVE">Leve</option>
               <option value="MODERADA">Moderada</option>
               <option value="GRAVE">Grave</option>
-              <option value="CRITICA">CrÃ­tica</option>
+              <option value="CRITICA">Crítica</option>
             </select>
           </div>
 
@@ -400,7 +400,7 @@ export default function ConsultarAlertas() {
                 <th>Severidad</th>
                 <th>Estado</th>
                 <th className="ca-th-sortable">
-                  Fecha creaciÃ³n <ChevronsUpDown size={13} />
+                  Fecha creación <ChevronsUpDown size={13} />
                 </th>
                 <th>Responsable</th>
                 <th aria-label="Acciones" />
@@ -463,7 +463,7 @@ export default function ConsultarAlertas() {
         </div>
       )}
 
-      {/* PaginaciÃ³n */}
+      {/* Paginación */}
       {!loading && !error && total > 0 && (
         <Paginacion
           paginaActual={paginaActual}

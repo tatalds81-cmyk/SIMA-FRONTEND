@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, BarChart3, CalendarClock, Edit3, Eye, FilterX, RefreshCw, Save, Search, Users, X } from "lucide-react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import SimaPagination from "../../components/common/SimaPagination";
@@ -739,7 +739,7 @@ export default function GrupoDetalle() {
   const esInstructor = rol === "instructor" || rol === "instructor_lider" || rol === "instructor_asignado";
   const puedeEditarGrupo = rol === "coordinador";
   const puedeVerAlertas = puedeEditarGrupo || esInstructor;
-  const puedeVerPerfilAprendiz = esInstructor;
+  const puedeVerPerfilAprendiz = puedeEditarGrupo || esInstructor;
   const rutaRegreso = esInstructor ? "/instructor/grupos" : "/fichas";
   const textoRegreso = esInstructor ? "Volver a Mis Grupos" : "Volver a Gestion de grupos";
   const grupoNavegacion = useMemo(
@@ -1639,28 +1639,31 @@ export default function GrupoDetalle() {
                     <td className={inasis > 0 ? "gd-num-inasis" : ""}>{inasis}</td>
                     {(puedeEditarGrupo || puedeVerPerfilAprendiz) && (
                     <td>
-                      {puedeVerPerfilAprendiz ? (
-                        <button
-                          type="button"
-                          className="gd-action-btn gd-action-btn-icon"
-                          onClick={() => abrirPerfilAprendiz(item)}
-                          title="Ver perfil"
-                          aria-label={`Ver perfil de ${nombre}`}
-                        >
-                          <Eye size={15} />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="gd-action-btn"
-                          onClick={() => abrirEdicionAprendiz(item)}
-                          disabled={!puedeEditar}
-                          title={puedeEditar ? "Editar aprendiz" : "Sin usuario asociado"}
-                        >
-                          <Edit3 size={14} />
-                          Editar
-                        </button>
-                      )}
+                      <div className="aprendices-actions" style={{ display: 'flex', gap: '8px' }}>
+                        {puedeVerPerfilAprendiz && (
+                          <button
+                            type="button"
+                            className="gd-action-btn gd-action-btn-icon"
+                            onClick={() => abrirPerfilAprendiz(item)}
+                            title="Ver perfil"
+                            aria-label={`Ver perfil de ${nombre}`}
+                          >
+                            <Eye size={15} />
+                          </button>
+                        )}
+                        {puedeEditarGrupo && (
+                          <button
+                            type="button"
+                            className="gd-action-btn"
+                            onClick={() => abrirEdicionAprendiz(item)}
+                            disabled={!puedeEditar}
+                            title={puedeEditar ? "Editar aprendiz" : "Sin usuario asociado"}
+                          >
+                            <Edit3 size={14} />
+                            Editar
+                          </button>
+                        )}
+                      </div>
                     </td>
                     )}
                   </tr>

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Edit3, Eye, Mail, Phone, Plus, Save, Search, Trash2, Upload } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
 import "./usuario.css";
@@ -162,7 +162,7 @@ export default function Usuario() {
         return;
       }
 
-      const res = await fetch(`${URL_GRUPOS}?estado=ACTIVO&limit=1000`, {
+      const res = await fetch(`${URL_GRUPOS}?estado=EN_FORMACION&limit=1000`, {
         method: "GET",
         headers: obtenerHeaders()
       });

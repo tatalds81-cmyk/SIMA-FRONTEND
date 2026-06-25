@@ -206,10 +206,10 @@ export async function cerrarAlerta(id, justificacion) {
 
 export async function obtenerGruposAlertasCoordinador() {
   try {
-    const { data: respGrupos } = await api.get('/api/groups', { params: { limit: 1000 } });
+    const { data: respGrupos } = await api.get('/api/groups', { params: { limit: 50 } });
     const listaGrupos = extraerListaRespuesta(respGrupos, ['grupos', 'fichas']);
 
-    const { data: respAlertas } = await api.get('/api/alerts', { params: { limit: 1000 } });
+    const { data: respAlertas } = await api.get('/api/alerts', { params: { limit: 50 } });
     const arrAlertas = extraerListaRespuesta(respAlertas, ['alerts', 'alertas']);
 
     const resumen = {};
