@@ -372,7 +372,7 @@ export default function AsistenciaInstructor() {
     return listaBase.filter((aprendiz) => {
       const coincideBusqueda = !texto || normalizarTexto(aprendiz.nombre).includes(texto);
       
-      // En modo manual, no filtrar por estado/mÃ©todo/fecha
+      // En modo manual, no filtrar por estado/método/fecha
       if (modoManual) {
         return coincideBusqueda;
       }
@@ -897,7 +897,7 @@ export default function AsistenciaInstructor() {
                       </label>
 
                       <label>
-                        <span>AÃ±o</span>
+                        <span>Año</span>
                         <select
                           value={filtroAnio}
                           onChange={(e) => {
@@ -1343,7 +1343,7 @@ export default function AsistenciaInstructor() {
                     setBusquedaHistorialDetalle(e.target.value);
                     setPaginaHistorialDetalle(1);
                   }}
-                  placeholder="Buscar fecha, mes o aÃ±o"
+                  placeholder="Buscar fecha, mes o año"
                 />
                 {busquedaHistorialDetalle && (
                   <button

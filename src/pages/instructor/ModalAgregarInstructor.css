@@ -1,6 +1,6 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   ModalAgregarInstructor.css â€” no toca fichas.css
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+﻿/* ===============================================================
+   ModalAgregarInstructor.css - no toca fichas.css
+   =============================================================== */
 
 .mg-modal-overlay {
   position: fixed;
@@ -27,7 +27,7 @@
   gap: 16px;
 }
 
-/* â”€â”€ Encabezado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Encabezado ----------------------------------------------- */
 
 .mg-modal-header {
   display: flex;
@@ -80,31 +80,7 @@
   color: #0b2442;
 }
 
-/* â”€â”€ Mensajes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
-.mg-modal-mensaje {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.mg-modal-mensaje.success {
-  background: #dcfce7;
-  border: 1px solid rgba(22, 101, 52, 0.2);
-  color: #238500;
-}
-
-.mg-modal-mensaje.error {
-  background: #fee2e2;
-  border: 1px solid rgba(153, 27, 27, 0.2);
-  color: #ef4444;
-}
-
-/* â”€â”€ Secciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Secciones ------------------------------------------------ */
 
 .mg-seccion {
   display: flex;
@@ -126,7 +102,7 @@
   background: #dfe5ec;
 }
 
-/* â”€â”€ Lista instructores actuales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Lista instructores actuales ------------------------------ */
 
 .mg-actuales-lista {
   display: flex;
@@ -198,7 +174,7 @@
   cursor: not-allowed;
 }
 
-/* â”€â”€ Buscador â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Buscador ------------------------------------------------- */
 
 .mg-modal-search-wrap {
   display: flex;
@@ -231,7 +207,7 @@
 
 .mg-modal-search::placeholder { color: #9ca8b4; }
 
-/* â”€â”€ Lista disponibles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Lista disponibles ---------------------------------------- */
 
 .mg-modal-lista {
   display: flex;
@@ -288,7 +264,7 @@
   font-weight: 600;
 }
 
-/* â”€â”€ Acciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Acciones ------------------------------------------------- */
 
 .mg-modal-actions {
   display: flex;
@@ -329,15 +305,155 @@
 
 .mg-btn-secondary:hover { background: #f3f7fb; }
 
-/* BotÃ³n lÃ­der en la tabla */
+/* Botón líder en la tabla */
 .mg-btn-lider { color: #0b2442 !important; border-color: #bfdbfe !important; }
 .mg-btn-lider:hover { background: #eff6ff !important; border-color: #93c5fd !important; }
 
-/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Confirmacion con react-toastify -------------------------- */
+
+.Toastify__toast.mg-toast-shell {
+  width: min(420px, calc(100vw - 28px));
+  min-height: auto;
+  padding: 0;
+  border: 1px solid #e1e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 22px 50px rgba(9, 36, 68, 0.18);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.mg-toast-body {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.mg-confirm-toast {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  border-left: 5px solid #ef4444;
+}
+
+.mg-confirm-toast.activar {
+  border-left-color: #238500;
+}
+
+.mg-confirm-toast-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #fce4e4;
+  color: #ef4444;
+}
+
+.mg-confirm-toast.activar .mg-confirm-toast-icon {
+  background: #edf9e7;
+  color: #238500;
+}
+
+.mg-confirm-toast-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mg-confirm-toast-body strong {
+  color: #0b2442;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.mg-confirm-toast-body span {
+  color: #6d7c8d;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.mg-confirm-toast-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mg-confirm-toast-actions button {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.mg-confirm-toast-cancel {
+  border: 1px solid #d7e0ea;
+  background: #ffffff;
+  color: #0b2442;
+}
+
+.mg-confirm-toast-cancel:hover {
+  background: #f8fafc;
+  border-color: #b8c6d6;
+}
+
+.mg-confirm-toast-confirm {
+  border: 1px solid #ef4444;
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.mg-confirm-toast-confirm.inactivar:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.mg-confirm-toast-confirm.activar {
+  border-color: #238500;
+  background: #238500;
+}
+
+.mg-confirm-toast-confirm.activar:hover {
+  background: #1d6f00;
+  border-color: #1d6f00;
+}
+
+/* -- Responsive ----------------------------------------------- */
 
 @media (max-width: 540px) {
   .mg-modal-card { padding: 18px; }
   .mg-modal-title { font-size: 18px; }
   .mg-modal-actions { flex-direction: column; }
   .mg-btn-primary, .mg-btn-secondary { width: 100%; justify-content: center; }
+}
+
+/* Ajuste final: negrita solo en titulos/subtitulos del modal. */
+.mg-modal-item-nombre,
+.mg-modal-item-esp,
+.mg-badge,
+.mg-estado-btn,
+.mg-modal-search,
+.mg-modal-empty,
+.mg-btn-primary,
+.mg-btn-secondary,
+.mg-confirm-toast-body span,
+.mg-confirm-toast-actions button {
+  font-weight: 400 !important;
+}
+
+.mg-modal-title,
+.mg-modal-tag,
+.mg-seccion-titulo,
+.mg-confirm-toast-body strong {
+  font-weight: 800 !important;
 }

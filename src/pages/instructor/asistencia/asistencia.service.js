@@ -129,7 +129,10 @@ async function requestJson(endpoint, options = {}) {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || "No fue posible completar la solicitud.");
+    const error = new Error(data?.message || data?.error || "No fue posible completar la solicitud.");
+    error.status = res.status;
+    error.data = data;
+    throw error;
   }
 
   return extraerPayload(data);

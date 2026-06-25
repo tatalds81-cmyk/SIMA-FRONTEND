@@ -1,6 +1,6 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+﻿/* ===============================================================
    notificacionesPage.css
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   =============================================================== */
 
 .nt-page {
   --sima-navy: #0b2442;
@@ -19,7 +19,7 @@
   color: var(--sima-text);
 }
 
-/* â”€â”€ Breadcrumb â”€â”€ */
+/* -- Breadcrumb -- */
 .nt-breadcrumb {
   display: flex;
   gap: 8px;
@@ -33,7 +33,7 @@
 .nt-sep { color: #cbd5e1; cursor: default !important; }
 .nt-active { color: #0b2442; font-weight: 700; cursor: default !important; }
 
-/* â”€â”€ Title Row â”€â”€ */
+/* -- Title Row -- */
 .nt-title-row {
   display: flex;
   justify-content: space-between;
@@ -74,7 +74,7 @@
   color: var(--sima-muted);
 }
 
-/* â”€â”€ Back Button â”€â”€ */
+/* -- Back Button -- */
 .nt-btn-back {
   width: 32px;
   height: 32px;
@@ -95,7 +95,7 @@
   border-color: #cbd5e1;
 }
 
-/* â”€â”€ Actions â”€â”€ */
+/* -- Actions -- */
 .nt-actions { display: flex; gap: 12px; }
 
 .nt-btn-secondary {
@@ -129,7 +129,7 @@
 }
 .nt-btn-refresh:hover:not(:disabled) { background: #e2e8f0; color: #0b2442; }
 
-/* â”€â”€ List â”€â”€ */
+/* -- List -- */
 .nt-content {
   background: #fff;
   border-radius: 12px;
@@ -212,7 +212,7 @@
 }
 .nt-btn-action:hover { background: #fee2e2; color: #ef4444; }
 
-/* â”€â”€ States â”€â”€ */
+/* -- States -- */
 .nt-state-msg {
   padding: 80px 40px;
   display: flex;

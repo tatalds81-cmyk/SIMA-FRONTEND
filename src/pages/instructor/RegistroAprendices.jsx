@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Edit3, Eye, FileSpreadsheet, Mail, Phone, Plus, Save, Search, Trash2, Upload } from "lucide-react";
+import { toast } from "react-toastify";
 import SimaPagination from "../../components/common/SimaPagination";
 import "./registroAprendices.css";
 
@@ -16,6 +17,85 @@ const detalleVacio = {
   estado: "ACTIVO"
 };
 
+function textoError(valor, fallback = "Ocurrio un error inesperado.") {
+  if (!valor) return fallback;
+  if (typeof valor === "string") return valor;
+  if (Array.isArray(valor)) return valor.map((item) => textoError(item, "")).filter(Boolean).join(" | ") || fallback;
+  if (typeof valor === "object") {
+    if (valor.message) return textoError(valor.message, fallback);
+    if (valor.error) return textoError(valor.error, fallback);
+    if (valor.detail) return textoError(valor.detail, fallback);
+    if (valor.errores) return textoError(valor.errores, fallback);
+    if (valor.errors) return textoError(valor.errors, fallback);
+    return JSON.stringify(valor);
+  }
+  return String(valor);
+}
+
+function agregarValor(set, valor) {
+  if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
+}
+
+function leerUsuarioActual() {
+  try {
+    return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function obtenerIdsInstructorActual() {
+  const usuario = leerUsuarioActual();
+  const instructor = usuario.instructor || usuario.informacion_rol?.instructor || {};
+  const ids = new Set();
+
+  [
+    localStorage.getItem("id_instructor"),
+    usuario.id_instructor,
+    instructor.id_instructor,
+    usuario.informacion_rol?.id_instructor,
+  ].forEach((valor) => agregarValor(ids, valor));
+
+  return ids;
+}
+
+function esInstructorSesionActual() {
+  const rol = (localStorage.getItem("rol") || "").toLowerCase();
+  return rol === "instructor" || rol === "instructor_lider" || rol === "instructor_asignado";
+}
+
+function esGrupoLideradoPorInstructorActual(grupo) {
+  const idsInstructor = obtenerIdsInstructorActual();
+  if (!idsInstructor.size) return false;
+
+  const candidatos = [
+    grupo?.id_instructor_lider,
+    grupo?.instructor_lider?.id_instructor,
+    grupo?.instructor?.id_instructor,
+  ].filter(Boolean).map(String);
+
+  return candidatos.some((id) => idsInstructor.has(id));
+}
+
+function ConfirmacionEliminarAprendiz({ nombre, onConfirmar, onCancelar }) {
+  return (
+    <div className="aprendices-confirm-toast">
+      <div>
+        <strong>¿Seguro que quieres inactivar este aprendiz?</strong>
+        <span>{nombre || "El aprendiz"} se marcará como inactivo.</span>
+      </div>
+      <div className="aprendices-confirm-toast-actions">
+        <button type="button" className="aprendices-confirm-cancel" onClick={onCancelar}>
+          No
+        </button>
+        <button type="button" className="aprendices-confirm-danger" onClick={onConfirmar}>
+          Sí
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Aprendices() {
   const [aprendices, setAprendices] = useState([]);
   const [grupos, setGrupos] = useState([]);
@@ -23,8 +103,13 @@ export default function Aprendices() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [modalIndividual, setModalIndividual] = useState(false);
   const [modalMasivo, setModalMasivo] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [mensajeError, setMensajeError] = useState(false);
+  const mensajeErrorRef = useRef(false);
+  const setMensajeError = (valor) => { mensajeErrorRef.current = Boolean(valor); };
+  const setMensaje = (texto) => {
+    if (!texto) return;
+    const tipo = mensajeErrorRef.current ? "error" : "success";
+    toast[tipo](texto, { autoClose: 3200, closeOnClick: true });
+  };
   const [aprendizDetalle, setAprendizDetalle] = useState(null);
   const [detalleModoEdicion, setDetalleModoEdicion] = useState(false);
   const [detalleForm, setDetalleForm] = useState(detalleVacio);
@@ -87,14 +172,17 @@ export default function Aprendices() {
       const res = await fetch(URL_GRUPOS_ACTIVOS, { headers: getHeaders() });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.message || data?.error || "No fue posible cargar los grupos activos");
+        throw new Error(textoError(data, "No fue posible cargar los grupos activos"));
       }
 
       const data = await res.json().catch(() => null);
       const lista = data?.data || data?.results || (Array.isArray(data) ? data : []);
       const gruposActivos = Array.isArray(lista) ? lista : [];
-      setGrupos(gruposActivos);
-      return gruposActivos;
+      const gruposPermitidos = esInstructorSesionActual()
+        ? gruposActivos.filter(esGrupoLideradoPorInstructorActual)
+        : gruposActivos;
+      setGrupos(gruposPermitidos);
+      return gruposPermitidos;
     } catch (error) {
       setGrupos([]);
       setMensajeError(true);
@@ -267,12 +355,12 @@ export default function Aprendices() {
       const data = await res.json().catch(() => null);
 
       if (res.status === 409) {
-        setErrores({ numero_documento: data?.message || "Ya existe un aprendiz con este documento" });
+        setErrores({ numero_documento: textoError(data, "Ya existe un aprendiz con este documento") });
         return;
       }
 
       if (!res.ok) {
-        throw new Error(data?.message || data?.error || "No fue posible registrar el aprendiz");
+        throw new Error(textoError(data, "No fue posible registrar el aprendiz"));
       }
 
       setMensajeError(false);
@@ -311,7 +399,7 @@ export default function Aprendices() {
       });
 
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible actualizar el aprendiz");
+      if (!res.ok) throw new Error(textoError(data, "No fue posible actualizar el aprendiz"));
 
       const aprendizActualizado = {
         ...aprendizDetalle,
@@ -342,9 +430,29 @@ export default function Aprendices() {
       return;
     }
 
-    const confirmar = window.confirm("Esta seguro de eliminar este aprendiz? Se marcara como inactivo.");
-    if (!confirmar) return;
+    const nombreAprendiz = `${aprendiz.nombres || ""} ${aprendiz.apellidos || ""}`.trim();
+    let toastId;
+    toastId = toast(
+      <ConfirmacionEliminarAprendiz
+        nombre={nombreAprendiz}
+        onCancelar={() => toast.dismiss(toastId)}
+        onConfirmar={() => {
+          toast.dismiss(toastId);
+          ejecutarEliminarAprendiz(aprendiz);
+        }}
+      />,
+      {
+        className: "aprendices-toast-shell",
+        bodyClassName: "aprendices-toast-body",
+        closeButton: false,
+        icon: false,
+        autoClose: false,
+        closeOnClick: false,
+      }
+    );
+  }
 
+  async function ejecutarEliminarAprendiz(aprendiz) {
     try {
       const res = await fetch(`${URL_USERS}/${aprendiz.id_usuario}`, {
         method: "DELETE",
@@ -352,7 +460,7 @@ export default function Aprendices() {
       });
 
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible eliminar el aprendiz");
+      if (!res.ok) throw new Error(textoError(data, "No fue posible eliminar el aprendiz"));
 
       setAprendices((actuales) => actuales.filter((item) => item.id_usuario !== aprendiz.id_usuario));
       if (aprendizDetalle?.id_usuario === aprendiz.id_usuario) cerrarDetalle();
@@ -383,10 +491,10 @@ export default function Aprendices() {
       });
 
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible cargar el archivo");
+      if (!res.ok) throw new Error(textoError(data, "No fue posible cargar el archivo"));
 
       setMensajeError(false);
-      setMensaje(data?.message || "Carga masiva procesada correctamente.");
+      setMensaje(textoError(data.message || data, "Carga masiva procesada correctamente."));
       setModalMasivo(false);
       setArchivo(null);
       const gruposActivos = grupos.length > 0 ? grupos : await cargarGrupos();
@@ -400,6 +508,11 @@ export default function Aprendices() {
   function obtenerCodigoGrupo(grupo) {
     return grupo.numero_ficha || grupo.numero_grupo || grupo.codigo || grupo.id_grupo || grupo.id;
   }
+
+  const grupoSeleccionado = useMemo(
+    () => grupos.find((grupo) => String(obtenerCodigoGrupo(grupo)) === String(form.numero_ficha)),
+    [form.numero_ficha, grupos]
+  );
 
   const detalleNombreCompleto = `${aprendizDetalle?.nombres || ""} ${aprendizDetalle?.apellidos || ""}`.trim();
   const detalleIniciales = `${aprendizDetalle?.nombres?.[0] || "A"}${aprendizDetalle?.apellidos?.[0] || "P"}`.toUpperCase();
@@ -423,8 +536,6 @@ export default function Aprendices() {
           </button>
         </div>
       </header>
-
-      {mensaje && <div className={`aprendices-alert ${mensajeError ? "danger" : "info"}`}>{mensaje}</div>}
 
       <section className="aprendices-toolbar">
         <div className="aprendices-search">
@@ -678,6 +789,17 @@ export default function Aprendices() {
                 {errores.numero_ficha && <small className="error">{errores.numero_ficha}</small>}
               </label>
 
+              <div className="aprendices-grupo-visible" aria-live="polite">
+                <span>Ficha seleccionada</span>
+                <strong>{form.numero_ficha || "Sin seleccionar"}</strong>
+                <small>
+                  {grupoSeleccionado
+                    ?
+                     grupoSeleccionado.programa_formacion.nombre_programa || grupoSeleccionado.programa || "Programa de formacion"
+                    : "Selecciona el grupo al que pertenece el aprendiz."}
+                </small>
+              </div>
+
               <div className="aprendices-modal-actions">
                 <button type="button" className="aprendices-secondary-btn" onClick={() => { limpiarFormulario(); setModalIndividual(false); }}>Cancelar</button>
                 <button type="submit" className="aprendices-primary-btn">Guardar aprendiz</button>
@@ -727,3 +849,4 @@ function Campo({ label, name, value, onChange, error, type = "text" }) {
     </label>
   );
 }
+

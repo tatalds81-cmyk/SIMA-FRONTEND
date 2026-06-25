@@ -7,7 +7,7 @@ import { claseEstadoGrupo, etiquetaEstadoGrupo } from "../../services/gruposServ
 import HorarioGrupoModal, { DIAS_SEMANA, consultarHorariosGrupo } from "./HorarioGrupoModal";
 import "./fichas.css";
 
-/* â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- helpers ------------------------------- */
 function SeveridadLabel({ valor }) {
   const map = {
     Critica:  "gd-sev-critica",
@@ -85,6 +85,14 @@ function normalizarTexto(valor) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
+}
+
+function obtenerInicialesHorario(nombre) {
+  const partes = String(nombre || "SI")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return `${partes[0]?.[0] || "S"}${partes[1]?.[0] || ""}`.toUpperCase();
 }
 
 function numeroSeguro(valor) {
@@ -320,6 +328,28 @@ function normalizarFechaInput(valor) {
   if (typeof valor === "string") return valor.split("T")[0];
   const fecha = new Date(valor);
   return Number.isNaN(fecha.getTime()) ? "" : fecha.toISOString().split("T")[0];
+}
+
+function obtenerRangoFechaInicio() {
+  const hoy = new Date();
+  const minimo = new Date(hoy);
+  const maximo = new Date(hoy);
+  minimo.setMonth(minimo.getMonth() - 6);
+  maximo.setFullYear(maximo.getFullYear() + 1);
+
+  return {
+    min: minimo.toISOString().split("T")[0],
+    max: maximo.toISOString().split("T")[0],
+  };
+}
+
+function validarRangoFechaInicio(valor, rango) {
+  const fecha = normalizarFechaInput(valor);
+  if (!fecha) return "La fecha de inicio es obligatoria.";
+  if (fecha < rango.min || fecha > rango.max) {
+    return "La fecha de inicio debe estar entre 6 meses atras y 1 ano hacia adelante.";
+  }
+  return "";
 }
 
 function calcularFechaFinLocal(fechaInicio, trimestres, fallback = "") {
@@ -747,7 +777,7 @@ export default function GrupoDetalle() {
     [id, location.state]
   );
 
-  /* â”€â”€ estado del grupo (ya existente) â”€â”€ */
+  /* -- estado del grupo (ya existente) -- */
   const [grupo, setGrupo] = useState(null);
   const [aprendicesGrupo, setAprendicesGrupo] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -758,7 +788,7 @@ export default function GrupoDetalle() {
   const [detalleForm, setDetalleForm] = useState({ numero_ficha: "", jornada: "", trimestres: "", fecha_inicio: "" });
   const [guardandoDetalle, setGuardandoDetalle] = useState(false);
 
-  /* â”€â”€ estado para metricas del grupo â”€â”€ */
+  /* -- estado para metricas del grupo -- */
   const [alertas, setAlertas] = useState(null);
   const [asistencia, setAsistencia] = useState(null);
   const [horariosBackend, setHorariosBackend] = useState([]);
@@ -780,6 +810,9 @@ export default function GrupoDetalle() {
   const [estadoGrupoTemporal, setEstadoGrupoTemporal] = useState("");
   const [modalInstructorLider, setModalInstructorLider] = useState(false);
   const [instructorLiderTemporal, setInstructorLiderTemporal] = useState("");
+  const [confirmarHorarioGrupo, setConfirmarHorarioGrupo] = useState(false);
+  const [horarioReasignando, setHorarioReasignando] = useState(null);
+  const rangoFechaInicio = useMemo(() => obtenerRangoFechaInicio(), []);
   const puedeGestionarHorario = puedeEditarGrupo || (esInstructor && esInstructorLiderGrupo(grupo));
   const [paginaAprendices, setPaginaAprendices] = useState(1);
   const [paginaAlertas, setPaginaAlertas] = useState(1);
@@ -902,6 +935,8 @@ export default function GrupoDetalle() {
       const idGrupoActualizado = evento.detail?.idGrupo;
 
       if (!idGrupoActualizado || String(idGrupoActualizado) === String(idGrupo)) {
+        setGrupoHorario(null);
+        setTabDetalle("horario");
         cargarHorarioBackend();
       }
     }
@@ -939,11 +974,11 @@ export default function GrupoDetalle() {
     };
   }, [grupo, id, aprendicesGrupo]);
 
-  /* â”€â”€ KPIs derivados de datos reales cuando lleguen â”€â”€ */
+  /* -- KPIs derivados de datos reales cuando lleguen -- */
   const kpis = useMemo(() => {
     const base = [
       { label: "Aprendices activos",    valor: metricas?.activos ?? detalle?.aprendices ?? 0, sub: "vinculados al grupo", cls: "gd-kpi-green" },
-      { label: "Inasistencias vÃ¡lidas", valor: asistencia?.inasistencias ?? 0, sub: "registradas", cls: "gd-kpi-blue" },
+      { label: "Inasistencias válidas", valor: asistencia?.inasistencias ?? 0, sub: "registradas", cls: "gd-kpi-blue" },
       { label: "Inactivos",             valor: metricas?.inactivos ?? 0, sub: "aprendices", cls: "gd-kpi-gray" },
     ];
     
@@ -966,11 +1001,12 @@ export default function GrupoDetalle() {
   );
   const horariosPorDia = useMemo(() => {
     return DIAS_SEMANA.reduce((acc, dia) => {
-      acc[dia] = horarioDetalle.horarios.filter((horario) => horario.dia === dia);
+      acc[dia] = horarioDetalle.horarios
+        .filter((horario) => horario.dia === dia)
+        .sort((a, b) => String(a.horaInicio).localeCompare(String(b.horaInicio)));
       return acc;
     }, {});
   }, [horarioDetalle.horarios]);
-
   const conteoTab = {
     horario: horarioDetalle.horarios.length,
     aprendices: detalle?.aprendices ?? 0,
@@ -1010,7 +1046,7 @@ export default function GrupoDetalle() {
   const desdeAlertas = alertasFiltradas.length === 0 ? 0 : inicioAlertas + 1;
   const hastaAlertas = Math.min(inicioAlertas + REGISTROS_POR_PAGINA, alertasFiltradas.length);
 
-  /* â”€â”€ funciones de ediciÃ³n (existentes) â”€â”€ */
+  /* -- funciones de edición (existentes) -- */
   function cambiarForm(e) {
     const { name, value } = e.target;
     setErrorDetalle("");
@@ -1057,6 +1093,18 @@ export default function GrupoDetalle() {
     setGrupo((actual) => ({ ...actual, instructor_lider_nombre: nombre }));
     setErrorDetalle("Cambio de instructor lider preparado en frontend. Falta conectar el endpoint para persistirlo.");
     setModalInstructorLider(false);
+    setConfirmarHorarioGrupo(true);
+  }
+
+  function abrirHorarioDesdeConfirmacion() {
+    setConfirmarHorarioGrupo(false);
+    setTabDetalle("horario");
+    setGrupoHorario(grupo);
+  }
+
+  function abrirReasignacionHorario(horario) {
+    setHorarioReasignando(horario);
+    setGrupoHorario(grupo);
   }
 
   function iniciarEdicionGrupo() {
@@ -1079,7 +1127,8 @@ export default function GrupoDetalle() {
 
   function validarDetalleGrupo() {
     const trimestres = Number.parseInt(detalleForm.trimestres, 10);
-    if (!detalleForm.fecha_inicio) return "La fecha de inicio es obligatoria.";
+    const errorFecha = validarRangoFechaInicio(detalleForm.fecha_inicio, rangoFechaInicio);
+    if (errorFecha) return errorFecha;
     if (!detalleForm.jornada) return "La jornada es obligatoria.";
     if (!Number.isInteger(trimestres) || trimestres < 1) return "La duracion debe ser un numero de trimestres mayor a 0.";
     return "";
@@ -1259,15 +1308,15 @@ export default function GrupoDetalle() {
     }
   }
 
-  if (cargando) return <div className="fichas-modulo fichas-detail-state"><p>Cargando informaciÃ³n de la ficha...</p></div>;
+  if (cargando) return <div className="fichas-modulo fichas-detail-state"><p>Cargando información de la ficha...</p></div>;
   if (error || !detalle) return (
     <div className="fichas-modulo fichas-detail-state">
-      <div className="fichas-alerta error">{error || "No se pudo cargar la informaciÃ³n del grupo."}</div>
+      <div className="fichas-alerta error">{error || "No se pudo cargar la información del grupo."}</div>
       <button className="fichas-btn-cancelar" onClick={() => navigate(rutaRegreso)}>Volver a Grupos</button>
     </div>
   );
 
-  /* â”€â”€ render â”€â”€ */
+  /* -- render -- */
   const asistenciaPeriodo = asistencia?.[periodoAsist.toLowerCase()];
   const hayDatosAsistencia = Boolean(asistencia?.tieneDatos && asistenciaPeriodo);
   const idPerfilAprendiz = String(obtenerIdAprendiz(perfilAprendiz) ?? "");
@@ -1281,7 +1330,17 @@ export default function GrupoDetalle() {
       {mensaje && <div className="grupos-alert info">{mensaje}</div>}
       {errorDetalle && <div className="grupos-alert danger">{errorDetalle}</div>}
 
-      {/* â”€â”€ BANNER â”€â”€ */}
+      {confirmarHorarioGrupo && (
+        <div className="grupos-alert info grupos-confirmacion-horario">
+          <span>¿Quieres agregarle un horario a la ficha {detalle.ficha}</span>
+          <div>
+            <button type="button" className="grupos-primary-btn" onClick={abrirHorarioDesdeConfirmacion}>Si</button>
+            <button type="button" className="grupos-secondary-btn" onClick={() => setConfirmarHorarioGrupo(false)}>No</button>
+          </div>
+        </div>
+      )}
+
+      {/* -- BANNER -- */}
       <section className="fichas-banner">
         <div className="gd-banner-inner">
           <div>
@@ -1289,12 +1348,12 @@ export default function GrupoDetalle() {
               <h1>{detalle.programa}</h1>
               <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
             </div>
-            <p>Ficha {detalle.ficha} Â· {detalle.jornada} Â· Instructor: {detalle.instructor}</p>
+            <p>Ficha {detalle.ficha} · {detalle.jornada} · Instructor: {detalle.instructor}</p>
           </div>
         </div>
       </section>
 
-      {/* â”€â”€ KPIs â”€â”€ */}
+      {/* -- KPIs -- */}
       <section className="gd-kpi-grid">
         {kpis.map(({ label, valor, sub, cls }) => (
           <article key={label} className={`gd-kpi-card ${cls}`}>
@@ -1324,7 +1383,7 @@ export default function GrupoDetalle() {
         <section className="gd-tab-panel gd-resumen-grid">
           <article className="fichas-panel gd-chart-card gd-panel-priority">
             <div className="gd-card-header">
-              <h2>Asistencia â€” {periodoAsist}</h2>
+              <h2>Asistencia - {periodoAsist}</h2>
               <div className="gd-period-btns">
                 {["Hoy", "Semana", "Mes"].map(p => (
                   <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
@@ -1362,7 +1421,7 @@ export default function GrupoDetalle() {
             <div className="gd-card-header">
               <div>
                 <h2>Datos clave</h2>
-                <p className="gd-card-kicker">Ficha {detalle.ficha} Â· {detalle.programa}</p>
+                <p className="gd-card-kicker">Ficha {detalle.ficha} · {detalle.programa}</p>
               </div>
               {puedeEditarGrupo && (
               <div className="gd-header-actions">
@@ -1391,7 +1450,17 @@ export default function GrupoDetalle() {
               </div>
               <div className="gd-summary-item">
                 <span>Fecha inicio</span>
-                {puedeEditarGrupo && modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong>{detalle.fechaInicio}</strong>}
+                {puedeEditarGrupo && modoEdicion ? (
+                  <input
+                    type="date"
+                    name="fecha_inicio"
+                    value={detalleForm.fecha_inicio}
+                    min={rangoFechaInicio.min}
+                    max={rangoFechaInicio.max}
+                    onChange={cambiarForm}
+                    className="gd-inline-input"
+                  />
+                ) : <strong>{detalle.fechaInicio}</strong>}
               </div>
               <div className="gd-summary-item">
                 <span>Fecha fin</span>
@@ -1435,7 +1504,7 @@ export default function GrupoDetalle() {
         </section>
       )}
 
-      {/* â”€â”€ FICHA DETALLE / INFO GENERAL â”€â”€ */}
+      {/* -- FICHA DETALLE / INFO GENERAL -- */}
       {tabDetalle === "horario" && (
         <article className="fichas-panel gd-tab-panel gd-horario-detail">
           <div className="gd-card-header">
@@ -1444,12 +1513,6 @@ export default function GrupoDetalle() {
               <p className="gd-card-kicker">Ficha {detalle.ficha} - {detalle.jornada}</p>
             </div>
             <div className="gd-header-actions">
-              {puedeGestionarHorario && (
-                <button type="button" className="grupos-primary-btn" onClick={() => setGrupoHorario(grupo)}>
-                  <CalendarClock size={15} />
-                  Asignar horario
-                </button>
-              )}
               <button type="button" className="grupos-secondary-btn" onClick={cargarHorarioBackend} disabled={cargandoHorario}>
                 <RefreshCw size={15} />
                 {cargandoHorario ? "Actualizando..." : "Actualizar"}
@@ -1471,11 +1534,33 @@ export default function GrupoDetalle() {
                 <h3>{dia}</h3>
                 {horariosPorDia[dia]?.length ? (
                   horariosPorDia[dia].map((horario) => (
-                    <div className="grupos-horario-slot" key={horario.id}>
-                      <strong>{horario.horaInicio} - {horario.horaFin}</strong>
-                      <span>{horario.actividad}</span>
-                      <small>{(horario.ambiente === "Ambiente por asignar" ? detalle.ambiente : horario.ambiente)} - {horario.instructor}</small>
-                    </div>
+                      <div
+                        className={`grupos-horario-slot ${puedeGestionarHorario ? "editable" : ""}`}
+                        key={horario.id}
+                        role={puedeGestionarHorario ? "button" : undefined}
+                        tabIndex={puedeGestionarHorario ? 0 : undefined}
+                        title={puedeGestionarHorario ? "Clic para reasignar horario" : undefined}
+                        onClick={() => {
+                          if (puedeGestionarHorario) abrirReasignacionHorario(horario);
+                        }}
+                        onKeyDown={(evento) => {
+                          if (!puedeGestionarHorario) return;
+                          if (evento.key === "Enter" || evento.key === " ") {
+                            evento.preventDefault();
+                            abrirReasignacionHorario(horario);
+                          }
+                        }}
+                      >
+                        <div className="grupos-horario-slot-head">
+                          <strong>{horario.horaInicio} - {horario.horaFin}</strong>
+                          {puedeGestionarHorario && <span className="grupos-horario-edit-chip">Editar</span>}
+                        </div>
+                        <span>{horario.actividad}</span>
+                        <small>
+                          <b>{obtenerInicialesHorario(horario.instructor)}</b>
+                          <span>{horario.instructor}</span>
+                        </small>
+                      </div>
                   ))
                 ) : (
                   <p>Sin bloques</p>
@@ -1488,7 +1573,7 @@ export default function GrupoDetalle() {
 
       <article className="fichas-panel gd-legacy-hidden">
         <div className="gd-card-header" style={{ marginBottom: 18 }}>
-          <h2>Ficha {detalle.ficha} â€” {detalle.programa}</h2>
+          <h2>Ficha {detalle.ficha} - {detalle.programa}</h2>
           {puedeEditarGrupo && (
           <div className="gd-header-actions">
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
@@ -1512,22 +1597,32 @@ export default function GrupoDetalle() {
         <div style={{ width: '100%' }}>
           {/* columna izquierda */}
           <div className="gd-info-col" style={{ flex: 1 }}>
-            <p className="gd-info-section-label" style={{ textAlign: 'center', fontSize: '13px', marginBottom: '24px' }}>InformaciÃ³n General</p>
+            <p className="gd-info-section-label" style={{ textAlign: 'center', fontSize: '13px', marginBottom: '24px' }}>Información General</p>
             <div className="gd-info-rows" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px 16px' }}>
-              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Instructor lÃ­der</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.instructor}</strong></div>
-              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Ãrea</span><strong style={{ textAlign: 'center', fontSize: '15px' }}>{detalle.area}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Instructor líder</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.instructor}</strong></div>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Área</span><strong style={{ textAlign: 'center', fontSize: '15px' }}>{detalle.area}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha inicio</span>
-                {puedeEditarGrupo && modoEdicion ? <input type="date" name="fecha_inicio" value={detalleForm.fecha_inicio} onChange={cambiarForm} className="gd-inline-input" /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaInicio}</strong>}
+                {puedeEditarGrupo && modoEdicion ? (
+                  <input
+                    type="date"
+                    name="fecha_inicio"
+                    value={detalleForm.fecha_inicio}
+                    min={rangoFechaInicio.min}
+                    max={rangoFechaInicio.max}
+                    onChange={cambiarForm}
+                    className="gd-inline-input"
+                  />
+                ) : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaInicio}</strong>}
               </div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Fecha fin</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.fechaFin}</strong></div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Etapa productiva</span><strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.inicioProductiva}</strong></div>
-              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>DuraciÃ³n</span>
+              <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Duración</span>
                 {puedeEditarGrupo && modoEdicion ? <input type="number" name="trimestres" value={detalleForm.trimestres} onChange={cambiarForm} className="gd-inline-input" style={{ width: 80 }} /> : <strong style={{ fontSize: '15px', textAlign: 'center' }}>{detalle.trimestres} trimestres</strong>}
               </div>
               <div className="gd-info-row" style={{ borderBottom: 'none', flexDirection: 'column', alignItems: 'center', gap: '6px' }}><span>Jornada</span>
                 {puedeEditarGrupo && modoEdicion ? (
                   <select name="jornada" value={detalleForm.jornada} onChange={cambiarForm} className="gd-inline-input">
-                    <option value="Manana">MaÃ±ana</option>
+                    <option value="Manana">Mañana</option>
                     <option value="Tarde">Tarde</option>
                     <option value="Noche">Noche</option>
                   </select>
@@ -1539,12 +1634,12 @@ export default function GrupoDetalle() {
         </div>
       </article>
 
-      {/* â”€â”€ FILA PRINCIPAL: asistencia + lÃ­nea de tiempo â”€â”€ */}
+      {/* -- FILA PRINCIPAL: asistencia + línea de tiempo -- */}
       <section className="gd-main-grid gd-legacy-hidden">
         {/* Asistencia */}
         <article className="fichas-panel gd-chart-card">
           <div className="gd-card-header">
-            <h2>Asistencia â€” {periodoAsist}</h2>
+            <h2>Asistencia - {periodoAsist}</h2>
             <div className="gd-period-btns">
               {["Hoy", "Semana", "Mes"].map(p => (
                 <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
@@ -1578,13 +1673,13 @@ export default function GrupoDetalle() {
           )}
         </article>
 
-        {/* LÃ­nea de tiempo */}
+        {/* Línea de tiempo */}
         <article className="fichas-panel gd-timeline-card">
           <div className="gd-card-header">
-            <h2>LÃ­nea de Tiempo â€” Ficha {detalle.ficha}</h2>
+            <h2>Línea de Tiempo - Ficha {detalle.ficha}</h2>
             <span className={`fichas-banner-badge ${detalle.estadoClase}`}>{detalle.estadoTexto}</span>
           </div>
-          <p className="gd-timeline-sub">{detalle.programa} Â· {detalle.jornada} Â· Instructor: {detalle.instructor}</p>
+          <p className="gd-timeline-sub">{detalle.programa} · {detalle.jornada} · Instructor: {detalle.instructor}</p>
           <div className="gd-trimestre-track">
             {Array.from({ length: detalle.trimestres || 6 }).map((_, i) => (
               <div key={i} className="gd-trimestre-step">
@@ -1601,7 +1696,7 @@ export default function GrupoDetalle() {
         </article>
       </section>
 
-      {/* â”€â”€ TABLA APRENDICES â”€â”€ */}
+      {/* -- TABLA APRENDICES -- */}
       {tabDetalle === "aprendices" && (
       <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
@@ -1685,7 +1780,7 @@ export default function GrupoDetalle() {
       </article>
       )}
 
-      {/* â”€â”€ TABLA ALERTAS (Solo Instructor) â”€â”€ */}
+      {/* -- TABLA ALERTAS (Solo Instructor) -- */}
       {puedeVerAlertas && tabDetalle === "alertas" && (
         <article className="fichas-panel gd-tab-panel">
         <div className="fichas-panel-header-actions">
@@ -1804,7 +1899,7 @@ export default function GrupoDetalle() {
         </article>
       )}
 
-      {/* â”€â”€ GRÃFICAS: severidad (Solo Instructor) â”€â”€ */}
+      {/* -- GRÁFICAS: severidad (Solo Instructor) -- */}
       {puedeVerAlertas && tabDetalle === "alertas" && (
         <section className="gd-tab-panel">
         {/* Alertas por Severidad */}
@@ -1848,7 +1943,7 @@ export default function GrupoDetalle() {
               <div>
                 <span className="grupos-eyebrow">Perfil del aprendiz</span>
                 <h2 id="perfil-aprendiz-title">{datosPerfilAprendiz.nombreCompleto}</h2>
-                <p>Ficha {datosPerfilAprendiz.ficha} Â· {datosPerfilAprendiz.programa}</p>
+                <p>Ficha {datosPerfilAprendiz.ficha} · {datosPerfilAprendiz.programa}</p>
               </div>
               <button type="button" className="grupos-close-btn" onClick={cerrarPerfilAprendiz} aria-label="Cerrar ventana">
                 <X size={18} />
@@ -1971,7 +2066,17 @@ export default function GrupoDetalle() {
       {grupoHorario && puedeGestionarHorario && (
         <HorarioGrupoModal
           grupo={grupoHorario}
-          onClose={() => setGrupoHorario(null)}
+          onClose={() => {
+            setGrupoHorario(null);
+            setHorarioReasignando(null);
+          }}
+          horarioReasignando={horarioReasignando}
+          onSaved={() => {
+            setGrupoHorario(null);
+            setHorarioReasignando(null);
+            setTabDetalle("horario");
+            setMensaje("Horario actualizado correctamente.");
+          }}
         />
       )}
 

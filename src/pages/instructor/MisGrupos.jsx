@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarClock, ClipboardList, Eye, FilterX, Search, UserPlus } from "lucide-react";
+import { toast } from "react-toastify";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -254,10 +255,16 @@ export default function MisGrupos() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [mensajeError, setMensajeError] = useState(false);
+  const mensajeErrorRef = useRef(false);
+  const setMensajeError = (valor) => { mensajeErrorRef.current = Boolean(valor); };
+  const setMensaje = (texto) => {
+    if (!texto) return;
+    const tipo = mensajeErrorRef.current ? "error" : "success";
+    toast[tipo](texto, { autoClose: 3200, closeOnClick: true });
+  };
   const [grupoHorario, setGrupoHorario] = useState(null);
   const [grupoModal, setGrupoModal] = useState(null);
+  const [grupoConfirmarHorario, setGrupoConfirmarHorario] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -393,6 +400,22 @@ export default function MisGrupos() {
     navigate(`/instructor/grupos/${idGrupo}/asistencias`, { state: { grupo: grupoDetalle } });
   }
 
+  function abrirHorarioDesdeAsignacion(grupo) {
+    setGrupoModal(null);
+    setGrupoConfirmarHorario(grupo);
+    setMensajeError(false);
+    setMensaje(`Instructor asignado a la ficha ${obtenerCodigo(grupo)}.`);
+  }
+
+  function confirmarAgregarHorario() {
+    setGrupoHorario(grupoConfirmarHorario);
+    setGrupoConfirmarHorario(null);
+  }
+
+  function omitirAgregarHorario() {
+    setGrupoConfirmarHorario(null);
+  }
+
   return (
     <div className="grupos-page mis-grupos-page">
       <header className="grupos-header">
@@ -403,9 +426,13 @@ export default function MisGrupos() {
         </div>
       </header>
 
-      {mensaje && (
-        <div className={`grupos-alert ${mensajeError ? "danger" : "info"}`}>
-          {mensaje}
+      {grupoConfirmarHorario && (
+        <div className="grupos-alert info grupos-confirmacion-horario">
+          <span>¿Quieres agregarle un horario a la ficha {obtenerCodigo(grupoConfirmarHorario)}</span>
+          <div>
+            <button type="button" className="grupos-primary-btn" onClick={confirmarAgregarHorario}>Si</button>
+            <button type="button" className="grupos-secondary-btn" onClick={omitirAgregarHorario}>No</button>
+          </div>
         </div>
       )}
 
@@ -527,15 +554,6 @@ export default function MisGrupos() {
                               <CalendarClock size={16} />
                             </button>
                           )}
-                          <button
-                            type="button"
-                            className="grupos-icon-btn"
-                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
-                            title="Filtrar asistencias"
-                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
-                          >
-                            <ClipboardList size={16} />
-                          </button>
                           {esLider && (
                             <button
                               type="button"
@@ -547,6 +565,15 @@ export default function MisGrupos() {
                               <UserPlus size={16} />
                             </button>
                           )}
+                          <button
+                            type="button"
+                            className="grupos-icon-btn"
+                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
+                            title="Filtrar asistencias"
+                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
+                          >
+                            <ClipboardList size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -580,6 +607,11 @@ export default function MisGrupos() {
         <HorarioGrupoModal
           grupo={grupoHorario}
           onClose={() => setGrupoHorario(null)}
+          onSaved={() => {
+            setGrupoHorario(null);
+            setMensajeError(false);
+            setMensaje("Horario actualizado correctamente.");
+          }}
           obtenerCodigo={obtenerCodigo}
           obtenerPrograma={obtenerPrograma}
         />
@@ -589,6 +621,7 @@ export default function MisGrupos() {
         <ModalAgregarInstructor
           grupo={grupoModal}
           onCerrar={() => setGrupoModal(null)}
+          onAsignacionCompleta={abrirHorarioDesdeAsignacion}
         />
       )}
     </div>

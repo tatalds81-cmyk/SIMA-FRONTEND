@@ -41,11 +41,17 @@ const BLOQUES_MANANA = [
   { inicio: "07:00", fin: "09:30" },
   { inicio: "10:00", fin: "12:30" }
 ];
+const RANGOS_JORNADA = {
+  MANANA: { inicio: 6, fin: 12 },
+  TARDE: { inicio: 12, fin: 18 },
+  NOCHE: { inicio: 18, fin: 24 }
+};
 
 const obtenerJornadaSesion = (sesion) => {
   const hora = Number.parseInt(normalizarHora(obtenerHoraInicioSesion(sesion)).slice(0, 2), 10);
-  if (!Number.isFinite(hora) || hora < 14) return "MANANA";
-  if (hora < 20) return "TARDE";
+  if (!Number.isFinite(hora)) return "MANANA";
+  if (hora >= RANGOS_JORNADA.MANANA.inicio && hora < RANGOS_JORNADA.MANANA.fin) return "MANANA";
+  if (hora >= RANGOS_JORNADA.TARDE.inicio && hora < RANGOS_JORNADA.TARDE.fin) return "TARDE";
   return "NOCHE";
 };
 
@@ -73,11 +79,11 @@ const claseEstadoSesion = (estado) => {
 const etiquetaEstadoSesion = (estado) => {
   const clase = claseEstadoSesion(estado);
   if (clase === "activa") return "Activa";
-  if (clase === "proxima") return "Proxima seccion";
+  if (clase === "proxima") return "Proxima sesion";
   if (clase === "pendiente") return "Pendiente";
   if (clase === "cerrada") return "Cerrada";
   if (clase === "cancelada") return "Cancelada";
-  return String(estado || "Proxima seccion");
+  return String(estado || "Proxima sesion");
 };
 
 const sesionFueAbiertaDesdeAsistencia = (sesion) => {
@@ -129,7 +135,7 @@ const obtenerClaseDia = (sesiones) => {
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "cerrada")) return "cerrada";
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "cancelada")) return "cancelada";
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "pendiente")) return "pendiente";
-  return "con-sesiones";
+  return "con-sesiones";//kjij//
 };
 
 const puedeAbrirSesion = (estado) => String(estado || "").toUpperCase() === "PENDIENTE";
