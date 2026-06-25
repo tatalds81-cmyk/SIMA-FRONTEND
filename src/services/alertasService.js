@@ -157,7 +157,7 @@ export async function obtenerAlertas(filtros = {}) {
     }
 
     const { data } = await api.get('/api/alerts', { params });
-    const res = data.data || data;
+    const res = data?.data || data;
     let arr = res.alerts || res.alertas || res.data || (Array.isArray(res) ? res : []);
 
     if (Array.isArray(arr)) {
@@ -180,7 +180,7 @@ export async function obtenerAlertas(filtros = {}) {
 export async function obtenerAlertaPorId(id) {
   try {
     const { data } = await api.get(`/api/alerts/${id}`);
-    const res = data.data || data;
+    const res = data?.data || data;
     return { data: mapBackendAlerta(res), error: null };
   } catch (error) {
     return { data: null, error: mensajeError(error) };
@@ -347,7 +347,7 @@ export async function obtenerObservacionesAbiertasPorAprendiz(grupoId, aprendizI
 export async function obtenerNotificaciones() {
   try {
     const { data } = await api.get('/api/notifications');
-    const res = data?.data || data;
+    const res = data.data || data;
     const lista = res?.notificaciones || res?.data || (Array.isArray(res) ? res : []);
     return { data: lista, error: null };
   } catch (error) {

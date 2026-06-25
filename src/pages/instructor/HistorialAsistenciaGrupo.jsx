@@ -328,19 +328,19 @@ export default function HistorialAsistenciaGrupo() {
     try {
       const respuesta = await listarSesionesGrupo({
         idGrupo: grupoConsulta,
-        soloResponsable: true,
+        soloResponsable: false,
         limit: 100,
       });
 
       if (!activo) return;
       const sesionesFiltradas = respuesta.sesiones;
       setSesiones(sesionesFiltradas);
-      const primeraFecha = obtenerFechaSesion(sesionesFiltradas[0]);
       const fechaActualValida = fechaSeleccionada && sesionesFiltradas.some((sesion) => obtenerFechaSesion(sesion) === fechaSeleccionada);
-      const fechaParaMostrar = fechaActualValida ? fechaSeleccionada : primeraFecha || "";
+      const fechaHoy = formatearFechaISO(new Date());
+      const fechaParaMostrar = fechaActualValida ? fechaSeleccionada : fechaHoy;
       const sesionesIniciales = sesionesFiltradas.filter((sesion) => obtenerFechaSesion(sesion) === fechaParaMostrar);
       setFechaSeleccionada(fechaParaMostrar);
-      if (fechaParaMostrar) setMesCalendario(crearFechaLocal(fechaParaMostrar));
+      setMesCalendario(crearFechaLocal(fechaParaMostrar));
       setMensaje(sesionesFiltradas.length ? "" : "No hay secciones con esos filtros.");
       if (sesionesIniciales.length) await cargarRegistrosSesionesDia(sesionesIniciales, activo);
     } catch (error) {

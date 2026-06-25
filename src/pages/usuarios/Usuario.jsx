@@ -15,6 +15,21 @@ const detalleVacio = {
   telefono: ""
 };
 
+function textoError(valor, fallback = "Error al guardar el usuario") {
+  if (!valor) return fallback;
+  if (typeof valor === "string") return valor;
+  if (Array.isArray(valor)) return valor.map((item) => textoError(item, "")).filter(Boolean).join(" | ") || fallback;
+  if (typeof valor === "object") {
+    if (valor.message) return textoError(valor.message, fallback);
+    if (valor.error) return textoError(valor.error, fallback);
+    if (valor.detail) return textoError(valor.detail, fallback);
+    if (valor.errores) return textoError(valor.errores, fallback);
+    if (valor.errors) return textoError(valor.errors, fallback);
+    return JSON.stringify(valor);
+  }
+  return String(valor);
+}
+
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -420,9 +435,7 @@ export default function Usuario() {
 
   function mostrarError(error) {
     console.error(error);
-    if (error?.message) setMensaje(error.message);
-    else if (error?.detail) setMensaje(error.detail);
-    else setMensaje("Error al guardar el usuario");
+    setMensaje(textoError(error));
   }
 
   function limpiarFormulario() {
