@@ -9,7 +9,7 @@
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 
-// Registramos los elementos necesarios para el grÃ¡fico de barras apiladas
+// Registramos los elementos necesarios para el gráfico de barras apiladas
 ChartJS.register(
   CategoryScale,
   LinearScale,

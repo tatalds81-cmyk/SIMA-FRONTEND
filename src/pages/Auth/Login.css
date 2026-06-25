@@ -41,6 +41,10 @@
   color: #ffffff;
 }
 
+.login-sima-hero::after {
+  content: none;
+}
+
 .login-sima-brand {
   position: relative;
   z-index: 4;
@@ -49,7 +53,7 @@
 }
 
 .login-sima-brand-logo {
-  width: clamp(102px, 10vw, 126px);
+  width: clamp(94px, 9.2vw, 116px);
   height: auto;
   display: block;
 }
@@ -63,7 +67,7 @@
 
 .login-sima-eyebrow {
   margin-bottom: 14px;
-  color: var(--sima-cyan);
+  color: #ffffff;
   font-size: clamp(20px, 2.2vw, 28px);
   font-weight: 600;
 }
@@ -75,6 +79,10 @@
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.login-sima-copy h1 span {
+  color: var(--sima-green);
 }
 
 .login-sima-copy p:last-child {
@@ -392,7 +400,7 @@
   }
 
   .login-sima-brand-logo {
-    width: 82px;
+    width: 76px;
   }
 
   .login-sima-copy {

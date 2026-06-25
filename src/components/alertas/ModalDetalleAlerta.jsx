@@ -13,7 +13,7 @@ import './modal.css';
 import '../../pages/alertas/detalleAlerta.css';
 
 function formatFechaLarga(isoStr) {
-  if (!isoStr) return 'â€”';
+  if (!isoStr) return '-';
   const d = new Date(isoStr);
   return d.toLocaleString('es-CO', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -54,7 +54,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
 
   const esCoordinador = getRolActual() === 'coordinador';
   const puedeCerrar = esCoordinador && (alerta?.estado === 'ABIERTA' || alerta?.estado === 'ACTIVA');
-  const nombreAprendiz = alerta?.aprendizNombre || alerta?.aprendiz?.nombre || 'â€”';
+  const nombreAprendiz = alerta?.aprendizNombre || alerta?.aprendiz?.nombre || '-';
 
   return (
     <>
@@ -142,7 +142,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                     </div>
                     <div className="da-info-item">
                       <label><Users size={14} /> Grupo</label>
-                      <p>{alerta.grupoCodigo || alerta.grupo?.codigo || 'â€”'}</p>
+                      <p>{alerta.grupoCodigo || alerta.grupo?.codigo || '-'}</p>
                     </div>
                     <div className="da-info-item">
                       <label><ShieldAlert size={14} /> Tipo de alerta</label>

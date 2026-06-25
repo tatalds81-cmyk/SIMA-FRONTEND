@@ -422,7 +422,7 @@
 }
 
 /* =============================================
-   GrupoDetalle v3 â€” gd-*
+   GrupoDetalle v3 - gd-*
    ============================================= */
 
 /* Banner */
@@ -1039,7 +1039,7 @@
   font-weight: 900;
 }
 
-/* Alertas por Tipo â€” barras horizontales */
+/* Alertas por Tipo - barras horizontales */
 .gd-tipo-bars { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
 .gd-tipo-bar-row {
   display: grid;
@@ -1895,11 +1895,407 @@
 }
 
 .grupos-horario-modal {
-  width: min(100%, 940px);
+  width: min(100%, 545px);
+  overflow: hidden;
+  border: 1px solid #454541;
+  border-radius: 10px;
+  background: #2f302d;
+  color: #f8fafc;
+}
+
+.grupos-horario-modal.reasignacion {
+  width: min(100%, 500px);
+}
+
+.grupos-horario-shell {
+  display: flex;
+  flex-direction: column;
+  max-height: min(92vh, 780px);
+  background: #2f302d;
 }
 
 .grupos-horario-body {
-  padding: 18px 22px 22px;
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 22px 24px;
+}
+
+.grupos-horario-dark-header {
+  min-height: 102px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid #464844;
+  background: #2f302d;
+}
+
+.grupos-horario-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #238500;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grupos-horario-kicker.danger {
+  color: #ef4444;
+}
+
+.grupos-horario-dark-header h2 {
+  margin: 5px 0 2px;
+  color: #ffffff;
+  font-size: 23px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.grupos-horario-dark-header p {
+  margin: 0;
+  color: #c7c7c1;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.grupos-horario-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #676962;
+  border-radius: 8px;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.grupos-horario-create-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.grupos-horario-create-grid label,
+.grupos-horario-reassign-grid label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.grupos-horario-create-grid label > span,
+.grupos-horario-reassign-grid label > span,
+.grupos-horario-form-field > span {
+  color: #c7c7c1;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.grupos-horario-modal select,
+.grupos-horario-modal input,
+.grupos-horario-combobox,
+.grupos-horario-dropdown-control {
+  min-height: 36px;
+  border-color: #555750;
+  background: #2f302d;
+  color: #ffffff;
+}
+
+.grupos-horario-modal select,
+.grupos-horario-modal input {
+  height: 36px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.grupos-horario-modal input::placeholder {
+  color: #ffffff;
+}
+
+.grupos-horario-arrow-btn {
+  color: #c7c7c1;
+}
+
+.grupos-horario-dropdown-panel {
+  border-color: #555750;
+  background: #2f302d;
+}
+
+.grupos-horario-instructor-option {
+  border-color: #555750;
+  background: #343530;
+  color: #ffffff;
+}
+
+.grupos-horario-instructor-option span {
+  color: #ffffff;
+}
+
+.grupos-horario-form-wide {
+  grid-column: span 1;
+}
+
+.grupos-horario-form-full {
+  grid-column: 1 / -1;
+}
+
+.grupos-horario-check-grid.bloques {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grupos-horario-form .grupos-horario-check,
+.grupos-horario-check {
+  min-height: 58px;
+  border-color: #9fd8ae;
+  background: #edf9e7;
+  color: #238500;
+}
+
+.grupos-horario-form .grupos-horario-check.selected,
+.grupos-horario-check.selected {
+  border-color: #5fbf72;
+  background: #edf9e7;
+}
+
+.grupos-horario-check input {
+  display: none;
+}
+
+.grupos-horario-form .grupos-horario-check span,
+.grupos-horario-check span {
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr);
+  gap: 2px 7px;
+  color: #238500;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.grupos-horario-check span b {
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: #238500;
+  color: #ffffff;
+  grid-row: span 2;
+}
+
+.grupos-horario-form .grupos-horario-check small,
+.grupos-horario-check small {
+  grid-column: 2;
+  color: #8a9588;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.grupos-horario-block-summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #555750;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #2f302d;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.grupos-horario-reassign-view {
+  display: grid;
+  gap: 16px;
+}
+
+.grupos-horario-warning {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 13px 14px;
+  background: #fce4e4;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.grupos-horario-current,
+.grupos-horario-new {
+  display: grid;
+  gap: 8px;
+}
+
+.grupos-horario-current h3,
+.grupos-horario-new h3 {
+  margin: 0;
+  color: #a8aaa3;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grupos-horario-current-table {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) 168px;
+  overflow: hidden;
+  border: 1px solid #4f514b;
+  border-radius: 8px;
+}
+
+.grupos-horario-current-table .head {
+  padding: 9px 11px;
+  border-bottom: 1px solid #4f514b;
+  background: #2b2c29;
+  color: #a8aaa3;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.grupos-horario-current-row {
+  display: contents;
+}
+
+.grupos-horario-current-row > strong,
+.grupos-horario-current-blocks,
+.grupos-horario-current-instructor {
+  min-height: 58px;
+  padding: 10px 11px;
+  border-bottom: 1px solid #4a4c46;
+}
+
+.grupos-horario-current-row:last-child > strong,
+.grupos-horario-current-row:last-child .grupos-horario-current-blocks,
+.grupos-horario-current-row:last-child .grupos-horario-current-instructor {
+  border-bottom: 0;
+}
+
+.grupos-horario-current-row > strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.grupos-horario-current-blocks {
+  display: flex;
+  align-content: start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 5px;
+  border-left: 1px solid #4f514b;
+  border-right: 1px solid #4f514b;
+}
+
+.grupos-horario-current-blocks span {
+  min-height: 19px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: #edf9e7;
+  color: #238500;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.grupos-horario-current-instructor {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #c7c7c1;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.grupos-horario-current-instructor b {
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #edf9e7;
+  color: #238500;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.grupos-horario-down {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  border-radius: 999px;
+  color: #a8aaa3;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.grupos-horario-reassign-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.grupos-horario-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #464844;
+  background: #2f302d;
+}
+
+.grupos-horario-primary,
+.grupos-horario-secondary {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.grupos-horario-primary {
+  border: 1px solid #676962;
+  background: transparent;
+}
+
+.grupos-horario-secondary {
+  border: 1px solid #676962;
+  background: transparent;
+}
+
+.grupos-horario-primary:disabled,
+.grupos-horario-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.grupos-horario-empty.dark,
+.grupos-horario-empty.compact {
+  border-color: #555750;
+  background: #2b2c29;
+  color: #c7c7c1;
 }
 
 .grupos-horario-tabs {
@@ -1958,66 +2354,151 @@
 
 .grupos-horario-week {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
   gap: 12px;
+  padding: 8px 0 2px;
 }
 
 .grupos-horario-day {
-  min-height: 158px;
-  border: 1px solid var(--sima-border);
-  border-radius: 10px;
-  background: #ffffff;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 218px;
 }
 
 .grupos-horario-day h3 {
   margin: 0;
-  padding: 10px 12px;
-  border-bottom: 1px solid #edf2f7;
-  background: #f8fafc;
-  color: var(--sima-text);
-  font-size: 13px;
+  padding: 0 4px 2px;
+  border-bottom: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
   font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
 }
 
 .grupos-horario-day p {
   margin: 0;
-  padding: 16px 12px;
+  min-height: 184px;
+  display: grid;
+  place-items: center;
+  padding: 18px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
   color: var(--sima-muted);
   font-size: 12px;
   font-weight: 800;
+  text-align: center;
 }
 
 .grupos-horario-slot {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 11px 12px;
-  border-bottom: 1px solid #edf2f7;
+  gap: 8px;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid #dbe5f0;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.grupos-horario-slot:last-child {
-  border-bottom: 0;
+.grupos-horario-slot.editable {
+  cursor: pointer;
+}
+
+.grupos-horario-slot.editable:hover,
+.grupos-horario-slot.editable:focus-visible {
+  outline: 0;
+  border-color: #cbd5e1;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.grupos-horario-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .grupos-horario-slot strong,
 .grupos-horario-row strong {
   color: var(--sima-text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .grupos-horario-slot span,
 .grupos-horario-row span {
-  color: #38506b;
-  font-size: 12px;
-  font-weight: 750;
+  color: var(--sima-text);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .grupos-horario-slot small {
-  color: var(--sima-muted);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #475569;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.grupos-horario-slot small b {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #edf2f7;
+  color: var(--sima-text);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.grupos-horario-slot small span {
+  min-width: 0;
+  overflow: hidden;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grupos-horario-edit-chip {
+  flex: 0 0 auto;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--sima-text) !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+.grupos-confirmacion-horario {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grupos-confirmacion-horario > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .grupos-horario-list {
@@ -2360,6 +2841,670 @@
   .grupos-horario-form-wide {
     grid-column: auto;
   }
+}
+
+/* Modal de horario: paleta SIMA y vista compacta. */
+.grupos-horario-modal,
+.grupos-horario-modal.reasignacion {
+  width: min(100%, 560px);
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--sima-text);
+  box-shadow: var(--sima-card-shadow);
+}
+
+.grupos-horario-shell {
+  max-height: none;
+  background: #ffffff;
+}
+
+.grupos-horario-dark-header {
+  min-height: 74px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--sima-border);
+  background: #ffffff;
+}
+
+.grupos-horario-kicker {
+  color: var(--sima-green);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.grupos-horario-kicker.danger {
+  color: var(--sima-red);
+}
+
+.grupos-horario-dark-header h2 {
+  margin: 3px 0 1px;
+  color: var(--sima-text);
+  font-size: 22px;
+}
+
+.grupos-horario-dark-header p {
+  color: var(--sima-muted);
+  font-size: 13px;
+}
+
+.grupos-horario-close {
+  width: 31px;
+  height: 31px;
+  border-color: #d7e0ea;
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.grupos-horario-close:hover {
+  border-color: var(--sima-green);
+  background: var(--sima-green-bg);
+  color: var(--sima-green);
+}
+
+.grupos-horario-body {
+  gap: 10px;
+  overflow: visible;
+  padding: 14px 18px;
+}
+
+.grupos-horario-create-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px 12px;
+}
+
+.grupos-horario-create-grid label,
+.grupos-horario-reassign-grid label,
+.grupos-horario-form-field {
+  gap: 5px;
+}
+
+.grupos-horario-create-grid label > span,
+.grupos-horario-reassign-grid label > span,
+.grupos-horario-form-field > span {
+  color: var(--sima-muted);
+  font-size: 11px;
+}
+
+.grupos-horario-modal select,
+.grupos-horario-modal input,
+.grupos-horario-combobox,
+.grupos-horario-dropdown-control {
+  min-height: 34px;
+  border-color: #d7e0ea;
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.grupos-horario-modal select,
+.grupos-horario-modal input {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.grupos-horario-modal input::placeholder {
+  color: #8292a5;
+}
+
+.grupos-horario-combobox input {
+  height: 32px;
+}
+
+.grupos-horario-arrow-btn {
+  width: 34px;
+  height: 34px;
+  color: var(--sima-muted);
+}
+
+.grupos-horario-dropdown-panel {
+  border-color: var(--sima-border);
+  background: #ffffff;
+}
+
+.grupos-horario-instructor-option {
+  min-height: 40px;
+  border-color: #d7e0ea;
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.grupos-horario-instructor-option span {
+  color: var(--sima-text);
+}
+
+.grupos-horario-instructor-option.selected {
+  border-color: var(--sima-green);
+  background: var(--sima-green-bg);
+}
+
+.grupos-horario-check-grid {
+  gap: 8px;
+}
+
+.grupos-horario-check-grid.bloques {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grupos-horario-form .grupos-horario-check,
+.grupos-horario-check {
+  min-height: 46px;
+  padding: 8px 9px;
+  border-color: #d7e0ea;
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.grupos-horario-form .grupos-horario-check.selected,
+.grupos-horario-check.selected {
+  border-color: var(--sima-green);
+  background: var(--sima-green-bg);
+}
+
+/* Vista semanal de la ficha. */
+.gd-horario-detail {
+  border: 1px solid var(--sima-border);
+  background: #ffffff;
+  color: var(--sima-text);
+  box-shadow: var(--sima-card-shadow);
+}
+
+.gd-horario-detail .gd-card-header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.gd-horario-detail .gd-card-header h2 {
+  color: var(--sima-text);
+  font-size: 18px;
+}
+
+.gd-horario-detail .gd-card-kicker {
+  color: var(--sima-muted);
+}
+
+.gd-horario-detail .gd-header-actions .grupos-primary-btn {
+  border-color: var(--sima-green);
+  background: var(--sima-green);
+  color: #ffffff;
+}
+
+.gd-horario-detail .gd-header-actions .grupos-secondary-btn {
+  border-color: var(--sima-border);
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.gd-horario-detail .grupos-horario-week {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(104px, 1fr));
+  gap: 12px;
+  padding: 0;
+}
+
+.gd-horario-detail .grupos-horario-day {
+  min-height: 210px;
+  gap: 9px;
+}
+
+.gd-horario-detail .grupos-horario-day h3 {
+  color: var(--sima-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.gd-horario-detail .grupos-horario-day p {
+  min-height: 116px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  border: 1px dashed #d7e0ea;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--sima-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.gd-horario-detail .grupos-horario-slot {
+  min-height: 96px;
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 11px;
+  overflow: hidden;
+  border: 1px solid #bfe5b4;
+  border-left: 5px solid var(--sima-green);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--sima-soft-shadow);
+}
+
+.gd-horario-detail .grupos-horario-slot:last-child {
+  margin-bottom: 0;
+}
+
+.gd-horario-detail .grupos-horario-slot.editable:hover,
+.gd-horario-detail .grupos-horario-slot.editable:focus-visible {
+  border-color: var(--sima-green);
+  box-shadow: 0 12px 24px rgba(35, 133, 0, 0.12);
+}
+
+.gd-horario-detail .grupos-horario-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.gd-horario-detail .grupos-horario-slot-head::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sima-green);
+  color: var(--sima-green);
+}
+
+.gd-horario-detail .grupos-horario-slot strong {
+  color: var(--sima-green);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.gd-horario-detail .grupos-horario-edit-chip {
+  display: none;
+}
+
+.gd-horario-detail .grupos-horario-slot > span {
+  color: var(--sima-text);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.gd-horario-detail .grupos-horario-slot small {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--sima-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.gd-horario-detail .grupos-horario-slot small b {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--sima-green-bg);
+  color: var(--sima-green);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.gd-horario-detail .grupos-horario-slot small span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--sima-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+  .gd-horario-detail .grupos-horario-week {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+}
+
+.grupos-horario-form .grupos-horario-check span,
+.grupos-horario-check span {
+  grid-template-columns: minmax(0, 1fr);
+  color: var(--sima-text);
+  font-size: 11px;
+}
+
+.grupos-horario-form .grupos-horario-check.selected span,
+.grupos-horario-check.selected span {
+  grid-template-columns: 16px minmax(0, 1fr);
+  color: var(--sima-text);
+}
+
+.grupos-horario-check span b {
+  width: 16px;
+  height: 16px;
+  background: var(--sima-green);
+}
+
+.grupos-horario-form .grupos-horario-check small,
+.grupos-horario-check small {
+  color: var(--sima-muted);
+  font-size: 10px;
+}
+
+.grupos-horario-form-msg {
+  padding: 8px 10px;
+  border-color: #bbf7d0;
+  background: var(--sima-green-bg);
+  color: var(--sima-green);
+  font-size: 11px;
+}
+
+.grupos-horario-footer {
+  min-height: 56px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--sima-border);
+  background: #fbfdff;
+}
+
+.grupos-horario-primary,
+.grupos-horario-secondary {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+.grupos-horario-primary {
+  border-color: var(--sima-green);
+  background: var(--sima-green);
+  color: #ffffff;
+}
+
+.grupos-horario-secondary {
+  border-color: #d7e0ea;
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.grupos-horario-warning {
+  padding: 10px 12px;
+  border-color: #fecaca;
+  background: var(--sima-red-bg);
+  color: var(--sima-red);
+  font-size: 12px;
+}
+
+.grupos-horario-current h3,
+.grupos-horario-new h3 {
+  color: var(--sima-muted);
+  font-size: 11px;
+}
+
+.grupos-horario-current-table {
+  grid-template-columns: 82px minmax(0, 1fr) 150px;
+  border-color: var(--sima-border);
+}
+
+.grupos-horario-current-table .head {
+  padding: 8px 10px;
+  border-bottom-color: var(--sima-border);
+  background: var(--sima-head-bg);
+  color: var(--sima-muted);
+}
+
+.grupos-horario-current-row > strong,
+.grupos-horario-current-blocks,
+.grupos-horario-current-instructor {
+  min-height: 46px;
+  padding: 8px 10px;
+  border-bottom-color: var(--sima-border);
+}
+
+.grupos-horario-current-row > strong {
+  color: var(--sima-text);
+}
+
+.grupos-horario-current-blocks {
+  border-left-color: var(--sima-border);
+  border-right-color: var(--sima-border);
+}
+
+.grupos-horario-current-blocks span,
+.grupos-horario-current-instructor b {
+  background: var(--sima-green-bg);
+  color: var(--sima-green);
+}
+
+.grupos-horario-current-instructor {
+  color: var(--sima-muted);
+}
+
+.grupos-horario-down {
+  height: 18px;
+  color: var(--sima-muted);
+  font-size: 16px;
+}
+
+.grupos-horario-block-summary {
+  min-height: 34px;
+  border-color: #d7e0ea;
+  background: #ffffff;
+  color: var(--sima-text);
+}
+
+.grupos-horario-empty.dark,
+.grupos-horario-empty.compact {
+  border-color: var(--sima-border);
+  background: var(--sima-head-bg);
+  color: var(--sima-muted);
+}
+
+/* Redondeo moderado del modal de horario. */
+.grupos-horario-modal,
+.grupos-horario-close,
+.grupos-horario-modal select,
+.grupos-horario-modal input,
+.grupos-horario-combobox,
+.grupos-horario-dropdown-control,
+.grupos-horario-dropdown-panel,
+.grupos-horario-instructor-option,
+.grupos-horario-check,
+.grupos-horario-form-msg,
+.grupos-horario-warning,
+.grupos-horario-current-table,
+.grupos-horario-day-card,
+.grupos-horario-day-card > em,
+.grupos-horario-new,
+.grupos-horario-block-summary,
+.grupos-horario-empty,
+.grupos-horario-primary,
+.grupos-horario-secondary {
+  border-radius: 10px;
+}
+
+.grupos-horario-modal {
+  border-radius: 12px;
+}
+
+.grupos-horario-dark-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.grupos-horario-footer {
+  border-radius: 0 0 12px 12px;
+}
+
+.grupos-horario-check span b,
+.grupos-horario-current-blocks span,
+.grupos-horario-current-instructor b {
+  border-radius: 999px;
+}
+
+/* Ajuste final: modal horario alineado al diseño del proyecto. */
+.grupos-horario-modal {
+  width: min(100%, 620px);
+}
+
+.grupos-horario-modal.reasignacion {
+  width: min(100%, 860px);
+}
+
+.grupos-horario-shell {
+  max-height: min(92vh, 720px);
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-shell {
+  max-height: none;
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-body {
+  overflow: visible;
+  padding: 12px 16px;
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-create-grid {
+  grid-template-columns: 1fr 1fr 0.7fr 0.45fr;
+  gap: 10px;
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-create-grid .grupos-horario-form-full {
+  grid-column: 1 / -1;
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-check-grid.bloques {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-check {
+  min-height: 42px;
+  padding: 7px 8px;
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-form-msg {
+  padding: 7px 9px;
+}
+
+.grupos-horario-modal:not(.reasignacion) .grupos-horario-footer {
+  min-height: 50px;
+  padding: 8px 16px;
+}
+
+.grupos-horario-modal.reasignacion .grupos-horario-body {
+  overflow-y: auto;
+}
+
+.grupos-horario-reassign-view {
+  gap: 12px;
+}
+
+.grupos-horario-current-vertical {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.grupos-horario-day-card {
+  min-height: 118px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 7px;
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.grupos-horario-day-card > strong {
+  color: var(--sima-text);
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.grupos-horario-day-card > em {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: var(--sima-head-bg);
+  color: var(--sima-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  text-align: center;
+}
+
+.grupos-horario-day-card .grupos-horario-current-blocks {
+  display: grid;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+}
+
+.grupos-horario-day-card .grupos-horario-current-blocks span {
+  min-height: 20px;
+  justify-content: center;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.grupos-horario-day-card .grupos-horario-current-instructor {
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.grupos-horario-day-card .grupos-horario-current-instructor span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grupos-horario-new {
+  border: 1px solid var(--sima-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.grupos-horario-reassign-grid {
+  grid-template-columns: 190px minmax(280px, 1fr);
+}
+
+.grupos-horario-modal.reasignacion .grupos-horario-check-grid.bloques {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .grupos-horario-modal:not(.reasignacion) .grupos-horario-create-grid,
+  .grupos-horario-current-vertical,
+  .grupos-horario-modal:not(.reasignacion) .grupos-horario-check-grid.bloques,
+  .grupos-horario-modal.reasignacion .grupos-horario-check-grid.bloques {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grupos-horario-reassign-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grupos-horario-check:not(.selected) span {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grupos-horario-check:not(.selected) small {
+  grid-column: 1;
+}
+
+.grupos-horario-check.selected {
+  border-color: var(--sima-green);
+  background: var(--sima-green-bg);
 }
 
 .fichas-panel-header-actions {
@@ -3570,6 +4715,45 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.35;
+}
+
+/* Ajuste final de lectura: negrita solo para titulos/subtitulos. */
+.grupos-table th,
+.grupos-table td,
+.gd-info-row strong,
+.gd-timeline-row strong,
+.gd-alertas-table td strong,
+.gd-aprendices-table td strong,
+.gd-profile-grid strong,
+.gd-horario-detail .grupos-horario-slot strong,
+.gd-horario-detail .grupos-horario-slot > span,
+.gd-horario-detail .grupos-horario-slot small,
+.gd-horario-detail .grupos-horario-slot small b,
+.gd-horario-detail .grupos-horario-day h3,
+.gd-horario-detail .grupos-horario-day p,
+.grupos-status,
+.grupos-icon-btn,
+.grupos-secondary-btn,
+.grupos-primary-btn,
+.grupos-select-filtro,
+.grupos-search input,
+.grupos-form input,
+.grupos-form select,
+.grupos-form small,
+.gd-card-kicker {
+  font-weight: 400 !important;
+}
+
+.grupos-page h1,
+.grupos-page h2,
+.grupos-page h3,
+.fichas-detail-page-v2 h1,
+.fichas-detail-page-v2 h2,
+.fichas-detail-page-v2 h3,
+.grupos-eyebrow,
+.grupos-form label > span,
+.gd-horario-detail .grupos-horario-day h3 {
+  font-weight: 800 !important;
 }
 
 

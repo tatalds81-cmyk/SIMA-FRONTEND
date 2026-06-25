@@ -1,6 +1,6 @@
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+﻿/* ===============================================================
    modal.css (Rediseño Premium)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   =============================================================== */
 
 .mcal-overlay {
   position: fixed;
@@ -30,7 +30,7 @@
 @keyframes mcal-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mcal-slide { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
 
-/* â”€â”€ Header â”€â”€ */
+/* -- Header -- */
 .mcal-header {
   display: flex;
   justify-content: space-between;
@@ -60,7 +60,7 @@
 }
 .mcal-btn-close:hover { background: #e2e8f0; color: #0b2442; }
 
-/* â”€â”€ Banner Info â”€â”€ */
+/* -- Banner Info -- */
 .mcal-banner {
   background: #f0f7ff;
   border: 1px solid #cce3ff;
@@ -73,7 +73,7 @@
 .mcal-banner-icon { color: #0b2442; flex-shrink: 0; margin-top: 2px; }
 .mcal-banner p { margin: 0; font-size: 13.5px; color: #0b2442; line-height: 1.5; font-weight: 500; }
 
-/* â”€â”€ Formulario â”€â”€ */
+/* -- Formulario -- */
 .mcal-form { display: flex; flex-direction: column; gap: 20px; }
 
 .mcal-label {
@@ -110,7 +110,7 @@
 
 .mcal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
-/* â”€â”€ Severidad Leyenda â”€â”€ */
+/* -- Severidad Leyenda -- */
 .mcal-sev-leyenda {
   display: flex;
   gap: 12px;
@@ -130,7 +130,7 @@
 .mcal-dot.grave { background: #ef4444; }
 .mcal-dot.critica { background: #7f1d1d; }
 
-/* â”€â”€ Checkboxes NotificaciÃ³n â”€â”€ */
+/* -- Checkboxes Notificación -- */
 .mcal-notif-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -182,7 +182,7 @@
 .mcal-check-text strong { font-size: 13.5px; color: #334155; }
 .mcal-check-text span { font-size: 11px; color: #64748b; font-weight: 500; }
 
-/* â”€â”€ DescripciÃ³n â”€â”€ */
+/* -- Descripción -- */
 .mcal-textarea { resize: none; min-height: 100px; }
 .mcal-desc-footer {
   display: flex;
@@ -191,7 +191,7 @@
 }
 .mcal-contador { font-size: 11px; color: #94a3b8; font-weight: 600; }
 
-/* â”€â”€ Dropdown BÃºsqueda â”€â”€ */
+/* -- Dropdown Búsqueda -- */
 .mcal-dropdown {
   position: absolute;
   top: 100%; left: 0; right: 0;
@@ -217,7 +217,7 @@
 .mcal-drop-nombre { font-size: 13.5px; font-weight: 700; color: #0b2442; }
 .mcal-drop-doc { font-size: 11px; color: #64748b; }
 
-/* â”€â”€ Footer â”€â”€ */
+/* -- Footer -- */
 .mcal-footer {
   display: flex;
   justify-content: flex-end;

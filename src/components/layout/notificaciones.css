@@ -1,6 +1,6 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+﻿/* ===============================================================
    notificaciones.css
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   =============================================================== */
 
 .notif-container {
   position: relative;
@@ -8,7 +8,7 @@
   align-items: center;
 }
 
-/* â”€â”€ BotÃ³n Campana â”€â”€ */
+/* -- Botón Campana -- */
 .notif-btn {
   background: none;
   border: none;
@@ -48,7 +48,7 @@
   border: 2px solid #fff;
 }
 
-/* â”€â”€ Dropdown â”€â”€ */
+/* -- Dropdown -- */
 .notif-dropdown {
   position: absolute;
   top: calc(100% + 12px);
@@ -95,7 +95,7 @@
 }
 .notif-ver-todas:hover { text-decoration: underline; }
 
-/* â”€â”€ Lista de items â”€â”€ */
+/* -- Lista de items -- */
 .notif-list {
   max-height: 380px;
   overflow-y: auto;
@@ -174,7 +174,7 @@
   top: 18px;
 }
 
-/* â”€â”€ VacÃ­o â”€â”€ */
+/* -- Vacío -- */
 .notif-empty {
   padding: 40px 20px;
   text-align: center;
@@ -183,7 +183,7 @@
 .notif-empty svg { margin-bottom: 10px; opacity: 0.3; }
 .notif-empty p { font-size: 13px; font-weight: 600; margin: 0; }
 
-/* â”€â”€ Footer â”€â”€ */
+/* -- Footer -- */
 .notif-footer {
   padding: 10px;
   border-top: 1px solid #f1f5f9;

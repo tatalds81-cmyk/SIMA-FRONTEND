@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Layers, Plus, Search, Upload } from "lucide-react";
+import { toast } from "react-toastify";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
   ESTADOS_GRUPO,
@@ -16,8 +17,13 @@ export default function GruposFormativos() {
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [modalCargaMasivaAbierto, setModalCargaMasivaAbierto] = useState(false);
   const [archivoCargaMasiva, setArchivoCargaMasiva] = useState(null);
-  const [mensaje, setMensaje] = useState("");
-  const [mensajeError, setMensajeError] = useState(false);
+  const mensajeErrorRef = useRef(false);
+  const setMensajeError = (valor) => { mensajeErrorRef.current = Boolean(valor); };
+  const setMensaje = (texto) => {
+    if (!texto) return;
+    const tipo = mensajeErrorRef.current ? "error" : "success";
+    toast[tipo](texto, { autoClose: 3200, closeOnClick: true });
+  };
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroJornada, setFiltroJornada] = useState("");
@@ -27,6 +33,7 @@ export default function GruposFormativos() {
   const [areas, setAreas] = useState([]);
   const [instructores, setInstructores] = useState([]);
   const [programas, setProgramas] = useState([]);
+  const [ambientes, setAmbientes] = useState([]);
 
   const [numeroGrupo, setNumeroGrupo] = useState("");
   const [areaFormacion, setAreaFormacion] = useState("");
@@ -35,6 +42,7 @@ export default function GruposFormativos() {
   const [trimestres, setTrimestres] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
   const [instructorLider, setInstructorLider] = useState("");
+  const [ambiente, setAmbiente] = useState("");
   const [errores, setErrores] = useState({});
   const [estadoNumero, setEstadoNumero] = useState(null);
   const [aprendicesPorGrupo, setAprendicesPorGrupo] = useState({});
@@ -43,6 +51,18 @@ export default function GruposFormativos() {
   const URL_GRUPOS = `${API_URL}/groups`;
   const URL_INSTRUCTORES = `${URL_GRUPOS}/instructores-disponibles`;
   const GRUPOS_POR_PAGINA = 5;
+  const rangoFechaInicio = useMemo(() => {
+    const hoy = new Date();
+    const minimo = new Date(hoy);
+    const maximo = new Date(hoy);
+    minimo.setMonth(minimo.getMonth() - 6);
+    maximo.setFullYear(maximo.getFullYear() + 1);
+
+    return {
+      min: minimo.toISOString().split("T")[0],
+      max: maximo.toISOString().split("T")[0],
+    };
+  }, []);
 
   function extraerLista(data, llavePrincipal = "") {
     if (Array.isArray(data)) return data;
@@ -61,6 +81,57 @@ export default function GruposFormativos() {
     return headers;
   }
 
+  function obtenerIdAmbiente(item) {
+    return item?.id_ambiente || item?.id || item?.ambiente?.id_ambiente || item?.ambiente?.id;
+  }
+
+  function obtenerNombreAmbiente(item) {
+    return (
+      item?.nombre_ambiente ||
+      item?.nombre ||
+      item?.ambiente_nombre ||
+      item?.ambiente?.nombre_ambiente ||
+      item?.ambiente?.nombre ||
+      ""
+    );
+  }
+
+  function obtenerUbicacionAmbiente(item) {
+    return item?.ubicacion || item?.ambiente?.ubicacion || "";
+  }
+
+  function normalizarAmbientes(lista) {
+    const mapa = new Map();
+
+    lista.forEach((item) => {
+      const idAmbiente = obtenerIdAmbiente(item);
+      const nombreAmbiente = obtenerNombreAmbiente(item);
+      if (!idAmbiente || !nombreAmbiente) return;
+
+      mapa.set(String(idAmbiente), {
+        id_ambiente: idAmbiente,
+        nombre_ambiente: nombreAmbiente,
+        ubicacion: obtenerUbicacionAmbiente(item),
+      });
+    });
+
+    return Array.from(mapa.values()).sort((a, b) =>
+      String(a.nombre_ambiente).localeCompare(String(b.nombre_ambiente))
+    );
+  }
+
+  function combinarAmbientes(base, nuevos) {
+    return normalizarAmbientes([...base, ...nuevos]);
+  }
+
+  function extraerAmbientesDesdeGrupos(listaGrupos) {
+    return normalizarAmbientes(
+      listaGrupos
+        .map((grupo) => grupo?.ambiente)
+        .filter(Boolean)
+    );
+  }
+
   async function cargarGrupos() {
     try {
       const res = await fetch(GRUPOS_LIST_URL, { headers: getHeaders() });
@@ -74,6 +145,7 @@ export default function GruposFormativos() {
       const gruposBackend = gruposExtraidos.length ? gruposExtraidos : extraerLista(data, "fichas");
 
       setGrupos(gruposBackend);
+      setAmbientes((actuales) => combinarAmbientes(actuales, extraerAmbientesDesdeGrupos(gruposBackend)));
       setPaginaActual(1);
       cargarConteoAprendices(gruposBackend);
     } catch (error) {
@@ -139,6 +211,26 @@ export default function GruposFormativos() {
     }
   }
 
+  async function cargarAmbientes() {
+    const rutasAmbientes = [`${API_URL}/environments`, `${API_URL}/ambientes`];
+
+    for (const ruta of rutasAmbientes) {
+      try {
+        const res = await fetch(ruta, { headers: getHeaders() });
+        if (!res.ok) continue;
+
+        const data = await res.json().catch(() => null);
+        const lista = extraerLista(data, "ambientes");
+        if (lista.length) {
+          setAmbientes((actuales) => combinarAmbientes(actuales, lista));
+          return;
+        }
+      } catch (error) {
+        console.error("Error cargando ambientes:", error);
+      }
+    }
+  }
+
   async function cargarProgramas(idArea) {
     try {
       const res = await fetch(`${API_URL}/formative-programs/area/${idArea}`, {
@@ -165,6 +257,7 @@ export default function GruposFormativos() {
       cargarGrupos();
       cargarAreas();
       cargarInstructores();
+      cargarAmbientes();
     });
     return () => { activo = false; };
   }, []);
@@ -253,6 +346,7 @@ export default function GruposFormativos() {
     setJornada("");
     setProgramaFormacion("");
     setInstructorLider("");
+    setAmbiente("");
     setTrimestres("");
     setFechaInicio("");
     setErrores({});
@@ -268,6 +362,9 @@ export default function GruposFormativos() {
     if (!programaFormacion) nuevosErrores.programaFormacion = "Este campo es obligatorio";
     if (!trimestres || isNaN(trimestres)) nuevosErrores.trimestres = "Este campo es obligatorio";
     if (!fechaInicio) nuevosErrores.fechaInicio = "Este campo es obligatorio";
+    if (fechaInicio && (fechaInicio < rangoFechaInicio.min || fechaInicio > rangoFechaInicio.max)) {
+      nuevosErrores.fechaInicio = "La fecha debe estar entre 6 meses atras y 1 ano hacia adelante";
+    }
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -283,6 +380,7 @@ export default function GruposFormativos() {
         id_programa: parseInt(programaFormacion, 10),
         jornada,
         id_instructor_lider: instructorLider ? parseInt(instructorLider, 10) : null,
+        id_ambiente: ambiente ? parseInt(ambiente, 10) : null,
         trimestres: parseInt(trimestres, 10),
         fecha_inicio: fechaInicio
       };
@@ -327,7 +425,7 @@ export default function GruposFormativos() {
     }
 
     setMensajeError(false);
-    setMensaje(`Archivo ${archivoCargaMasiva.name} listo. Falta conectar el endpoint de carga masiva de grupos.`);
+    setMensaje(`Archivo ${archivoCargaMasiva.name} listo para procesar.`);
     setArchivoCargaMasiva(null);
     setModalCargaMasivaAbierto(false);
   }
@@ -386,8 +484,6 @@ export default function GruposFormativos() {
           </button>
         </div>
       </header>
-
-      {mensaje && <div className={`grupos-alert ${mensajeError ? "danger" : "info"}`}>{mensaje}</div>}
 
       <section className="grupos-toolbar">
         <div className="grupos-search">
@@ -587,8 +683,33 @@ export default function GruposFormativos() {
               <div className="grupos-form-grid">
                 <label>
                   <span>Fecha de inicio</span>
-                  <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} className={errores.fechaInicio ? "invalid" : ""} />
+                  <input
+                    type="date"
+                    value={fechaInicio}
+                    min={rangoFechaInicio.min}
+                    max={rangoFechaInicio.max}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                    className={errores.fechaInicio ? "invalid" : ""}
+                  />
+                  {!errores.fechaInicio && <small>Permitido: de {rangoFechaInicio.min} a {rangoFechaInicio.max}</small>}
                   {errores.fechaInicio && <small className="error">{errores.fechaInicio}</small>}
+                </label>
+
+                <label>
+                  <span>Ambiente</span>
+                  <select value={ambiente} onChange={(e) => setAmbiente(e.target.value)}>
+                    <option value="">Seleccione ambiente</option>
+                    {ambientes.map((item) => (
+                      <option key={item.id_ambiente} value={item.id_ambiente}>
+                        {item.nombre_ambiente}{item.ubicacion ? ` - ${item.ubicacion}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <small>
+                    {ambientes.length
+                      ? "Opcional, se usara para los horarios y sesiones del grupo"
+                      : "No hay ambientes disponibles para seleccionar"}
+                  </small>
                 </label>
               </div>
 

@@ -44,11 +44,11 @@ export default function AlertasCoordinador() {
   const [paginaGrupos, setPaginaGrupos] = useState(1);
   const [paginaAprendices, setPaginaAprendices] = useState(1);
 
-  // â”€â”€ Filtros vista GRUPOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtros vista GRUPOS --------------------------------------------------
   const [busquedaGrupo, setBusquedaGrupo] = useState('');
   const [filtroSevGrupo, setFiltroSevGrupo] = useState(''); // 'graves'|'moderadas'|'leves'|''
 
-  // â”€â”€ Filtros vista APRENDICES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtros vista APRENDICES ----------------------------------------------
   const [busquedaAprendiz, setBusquedaAprendiz] = useState('');
   const [filtroSev, setFiltroSev] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
@@ -110,7 +110,7 @@ export default function AlertasCoordinador() {
     return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  // â”€â”€ Filtrado local: GRUPOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtrado local: GRUPOS ------------------------------------------------
   const gruposFiltrados = useMemo(() => {
     return grupos.filter(g => {
       const texto = busquedaGrupo.toLowerCase();
@@ -127,7 +127,7 @@ export default function AlertasCoordinador() {
     });
   }, [grupos, busquedaGrupo, filtroSevGrupo]);
 
-  // â”€â”€ Filtrado local: APRENDICES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtrado local: APRENDICES --------------------------------------------
   const aprendicesFiltrados = useMemo(() => {
     return aprendices.filter(a => {
       const texto = busquedaAprendiz.toLowerCase();
@@ -212,13 +212,13 @@ export default function AlertasCoordinador() {
             <p>
               {vistaActual === 'GRUPOS' 
                 ? 'Consulta y gestiona las alertas academicas y convivenciales por ficha de formación.'
-                : `Instructor lider: ${grupoSeleccionado?.instructorLider || 'â€”'}`}
+                : `Instructor lider: ${grupoSeleccionado?.instructorLider || '-'}`}
             </p>
           </div>
         </div>
       </header>
 
-      {/* â”€â”€ Barra de filtros â”€â”€ */}
+      {/* -- Barra de filtros -- */}
       <section className="grupos-toolbar">
         {vistaActual === 'GRUPOS' ? (
           /* Filtros para la vista de Grupos */
@@ -302,7 +302,7 @@ export default function AlertasCoordinador() {
         )}
       </section>
 
-      {/* â”€â”€ Panel principal â”€â”€ */}
+      {/* -- Panel principal -- */}
       <section className="grupos-card">
         <div className="grupos-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>

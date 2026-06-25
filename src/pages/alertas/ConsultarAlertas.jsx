@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Search, Eye, RefreshCw,
   ChevronsUpDown
@@ -12,9 +12,9 @@ import SimaPagination from '../../components/common/SimaPagination';
 import { obtenerAprendicesPorGrupo, obtenerGrupos } from '../../services/alertasService';
 import './consultarAlertas.css';
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Helpers ------------------------------------------------------------------
 function formatFecha(isoStr) {
-  if (!isoStr) return { fecha: 'â€”', hora: '' };
+  if (!isoStr) return { fecha: '-', hora: '' };
   const d = new Date(isoStr);
   return {
     fecha: d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
@@ -50,7 +50,7 @@ function formatearTipoAlerta(tipo) {
   return etiquetas[tipo] || (tipo ?? '').replace(/_/g, ' ');
 }
 
-// ── Paginación ──────────────────────────────────────────────────
+// -- Paginación ----------------------------------------------------------------
 function Paginacion({ paginaActual, total, limite, onCambiarPagina }) {
   const totalPaginas = Math.max(1, Math.ceil(total / limite));
   const desde = total === 0 ? 0 : ((paginaActual - 1) * limite) + 1;
@@ -68,7 +68,7 @@ function Paginacion({ paginaActual, total, limite, onCambiarPagina }) {
     />
   );
 }
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// =============================================================================
 export default function ConsultarAlertas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleAlertaId, setDetalleAlertaId] = useState(null);
@@ -86,7 +86,7 @@ export default function ConsultarAlertas() {
     cargarAlertas 
   } = useAlertas();
 
-  // â”€â”€ Filtros locales (se aplican al hacer clic en Buscar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtros locales (se aplican al hacer clic en Buscar) ------------------
   const [filtrosLocales, setFiltrosLocales] = useState({ ...filtros });
 
   const aprendicesFiltrados = useMemo(() => {
@@ -195,7 +195,7 @@ export default function ConsultarAlertas() {
   return (
     <div className="ca-page">
 
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* -- Header -- */}
       <div className="ca-page-header">
         <div>
           <h1 className="ca-page-title">Consultar alertas</h1>
@@ -213,7 +213,7 @@ export default function ConsultarAlertas() {
         </div>
       </div>
 
-      {/* â”€â”€ Filtros â”€â”€ */}
+      {/* -- Filtros -- */}
       <div className="ca-filtros-card">
         <div className="ca-filtros-fila">
           {/* Buscar aprendiz */}
@@ -354,7 +354,7 @@ export default function ConsultarAlertas() {
         </div>
       </div>
 
-      {/* â”€â”€ Resultados â”€â”€ */}
+      {/* -- Resultados -- */}
       <div className="ca-resultados-header">
         <span className="ca-resultados-count">
           Resultados <strong>({total})</strong>
@@ -382,7 +382,7 @@ export default function ConsultarAlertas() {
       {/* Sin resultados */}
       {!loading && !error && alertas.length === 0 && (
         <div className="ca-estado-vacio">
-          <div className="ca-vacio-icono">ðŸ”</div>
+          <div className="ca-vacio-icono"><Search size={34} strokeWidth={2.4} /></div>
           <p className="ca-vacio-titulo">No se encontraron alertas</p>
           <p className="ca-vacio-sub">Prueba ajustando los filtros aplicados</p>
         </div>
@@ -410,7 +410,7 @@ export default function ConsultarAlertas() {
               {alertas.map(alerta => {
                 const { fecha, hora } = formatFecha(alerta.fechaCreacion ?? alerta.createdAt);
                 const esGrave = alerta.severidad === 'GRAVE';
-                const nombre  = alerta.aprendiz?.nombre ?? alerta.aprendizNombre ?? 'â€”';
+                const nombre  = alerta.aprendiz?.nombre ?? alerta.aprendizNombre ?? '-';
                 const doc     = alerta.aprendiz?.documento ?? alerta.aprendizDocumento ?? '';
 
                 return (
@@ -427,7 +427,7 @@ export default function ConsultarAlertas() {
                       </div>
                     </td>
                     <td className="ca-cell-texto">
-                      {alerta.grupo?.codigo ?? alerta.grupoCodigo ?? alerta.grupoId ?? 'â€”'}
+                      {alerta.grupo?.codigo ?? alerta.grupoCodigo ?? alerta.grupoId ?? '-'}
                     </td>
                     <td className="ca-cell-texto">
                       {formatearTipoAlerta(alerta.tipoAlerta)}
