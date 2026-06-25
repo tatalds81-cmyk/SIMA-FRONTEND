@@ -46,7 +46,7 @@ export default function Observaciones() {
 
 
 
-  // Fecha mÃ¡xima = hoy (no se permiten fechas futuras en los filtros)
+  // Fecha máxima = hoy (no se permiten fechas futuras en los filtros)
   const hoy = new Date().toISOString().split("T")[0];
 
   // Formatea ISO a dd/mm/aaaa hh:mm
@@ -114,7 +114,7 @@ export default function Observaciones() {
   // Aprendices del grupo para poblar los dropdowns (sin paginar)
   const [aprendices, setAprendices] = useState([]);
 
-  // Modal registro / ediciÃ³n
+  // Modal registro / edición
   const [mostrarModal, setMostrarModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState({
@@ -145,7 +145,7 @@ export default function Observaciones() {
     fetchAprendices();
   }, [grupoSeleccionado, pagina, filtros]);
 
-  // â”€â”€â”€ Fetch fichas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Fetch fichas -------------------------------------------------------------
   async function fetchFichas() {
     try {
       const res = await fetch(`${API_URL}/apprentices/grupos-activos`, {
@@ -166,7 +166,7 @@ export default function Observaciones() {
     }
   }
 
-  // â”€â”€â”€ Fetch aprendices (limit=1000 para poblar selects sin paginar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Fetch aprendices (limit=1000 para poblar selects sin paginar) ------------
   async function fetchAprendices() {
     try {
       const res = await fetch(
@@ -184,7 +184,7 @@ export default function Observaciones() {
     }
   }
 
-  // â”€â”€â”€ Fetch observaciones (H18) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Fetch observaciones (H18) ------------------------------------------------
   async function fetchObservaciones(opciones = {}) {
     const filtrosConsulta = opciones.filtros || filtros;
     const paginaConsulta = opciones.pagina || pagina;
@@ -235,7 +235,7 @@ export default function Observaciones() {
     }
   }
 
-  // â”€â”€â”€ Fetch historial (H19) â€” requiere id_grupo como query param â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Fetch historial (H19) - requiere id_grupo como query param ---------------
   async function fetchHistorial(idAprendiz, nombreAprendiz) {
     try {
       const params = new URLSearchParams();
@@ -256,7 +256,7 @@ export default function Observaciones() {
     }
   }
 
-  // â”€â”€â”€ Submit (H17 POST / H20 PATCH) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Submit (H17 POST / H20 PATCH) -------------------------------------------
   async function handleSubmit() {
     if (!grupoSeleccionado) { alert("Debes seleccionar una ficha"); return; }
     if (!form.id_aprendiz)  { alert("Selecciona un aprendiz"); return; }
@@ -299,7 +299,7 @@ export default function Observaciones() {
     }
   }
 
-  // â”€â”€â”€ Helpers UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Helpers UI ---------------------------------------------------------------
   function handleEditar(obs) {
     setEditando(obs.id_observacion || obs.id);
     setForm({
@@ -353,7 +353,7 @@ export default function Observaciones() {
     getNombreAprendizLista(a).toLowerCase().includes(busquedaModal.toLowerCase())
   );
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Render -------------------------------------------------------------------
   return (
     <div className="obs-page">
       <header className="obs-main-header">
@@ -380,7 +380,7 @@ export default function Observaciones() {
         )}
       </header>
 
-      {/* â”€â”€ Encabezado + filtros â”€â”€ */}
+      {/* -- Encabezado + filtros -- */}
       <section className="obs-toolbar">
         <div className="obs-filters">
           <select
@@ -477,7 +477,7 @@ export default function Observaciones() {
         {errorFiltros && <p className="obs-filter-warning">{errorFiltros}</p>}
       </section>
 
-      {/* â”€â”€ Tabla observaciones (H18) â”€â”€ */}
+      {/* -- Tabla observaciones (H18) -- */}
       <section className="obs-card obs-table-card">
         <div className="obs-card-header">
           <div>
@@ -539,8 +539,8 @@ export default function Observaciones() {
                                 type="button"
                                 className="obs-icon-btn obs-action-edit"
                                 onClick={() => handleEditar(obs)}
-                                title="Editar observaciÃ³n"
-                                aria-label="Editar observaciÃ³n"
+                                title="Editar observación"
+                                aria-label="Editar observación"
                               >
                                 <Edit3 size={16} strokeWidth={2.2} />
                               </button>
@@ -577,7 +577,7 @@ export default function Observaciones() {
         )}
       </section>
 
-      {/* â”€â”€ Modal registro / ediciÃ³n (H17 + H20) â”€â”€ */}
+      {/* -- Modal registro / edición (H17 + H20) -- */}
       {mostrarModal && (
         <div className="modal-overlay">
           <div className="modal-card">
@@ -733,7 +733,7 @@ export default function Observaciones() {
             <h2>
               Historial de observaciones
               {aprendizHistorial && (
-                <span className="obs-historial-nombre"> â€” {aprendizHistorial}</span>
+                <span className="obs-historial-nombre"> - {aprendizHistorial}</span>
               )}
             </h2>
             <p className="obs-historial-total">

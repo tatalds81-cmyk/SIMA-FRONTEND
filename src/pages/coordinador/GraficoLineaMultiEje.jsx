@@ -10,7 +10,7 @@
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
-// Registramos los elementos necesarios para el grÃ¡fico de lÃ­neas
+// Registramos los elementos necesarios para el gráfico de líneas
 ChartJS.register(
   CategoryScale,
   LinearScale,

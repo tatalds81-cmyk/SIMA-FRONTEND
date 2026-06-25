@@ -44,11 +44,11 @@ export default function AlertasCoordinador() {
   const [paginaGrupos, setPaginaGrupos] = useState(1);
   const [paginaAprendices, setPaginaAprendices] = useState(1);
 
-  // â”€â”€ Filtros vista GRUPOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtros vista GRUPOS --------------------------------------------------
   const [busquedaGrupo, setBusquedaGrupo] = useState('');
   const [filtroSevGrupo, setFiltroSevGrupo] = useState(''); // 'graves'|'moderadas'|'leves'|''
 
-  // â”€â”€ Filtros vista APRENDICES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtros vista APRENDICES ----------------------------------------------
   const [busquedaAprendiz, setBusquedaAprendiz] = useState('');
   const [filtroSev, setFiltroSev] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
@@ -108,7 +108,7 @@ export default function AlertasCoordinador() {
     return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  // â”€â”€ Filtrado local: GRUPOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtrado local: GRUPOS ------------------------------------------------
   const gruposFiltrados = useMemo(() => {
     return grupos.filter(g => {
       const texto = busquedaGrupo.toLowerCase();
@@ -125,7 +125,7 @@ export default function AlertasCoordinador() {
     });
   }, [grupos, busquedaGrupo, filtroSevGrupo]);
 
-  // â”€â”€ Filtrado local: APRENDICES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Filtrado local: APRENDICES --------------------------------------------
   const aprendicesFiltrados = useMemo(() => {
     return aprendices.filter(a => {
       const texto = busquedaAprendiz.toLowerCase();
@@ -139,7 +139,7 @@ export default function AlertasCoordinador() {
       const fechaA = a.fechaCreacion ? new Date(a.fechaCreacion) : null;
       let coincideFecha = true;
       if (filtroFecha && fechaA) {
-        // Comprobar que sea el mismo dÃ­a (ignorando la hora)
+        // Comprobar que sea el mismo día (ignorando la hora)
         const d = new Date(filtroFecha + 'T00:00:00');
         coincideFecha = fechaA.getFullYear() === d.getFullYear() &&
                         fechaA.getMonth() === d.getMonth() &&
@@ -200,7 +200,7 @@ export default function AlertasCoordinador() {
               type="button" 
               className="grupos-icon-btn" 
               onClick={volverAGrupos}
-              title="Volver a GestiÃ³n de Alertas"
+              title="Volver a Gestión de Alertas"
               style={{ marginTop: '4px' }}
             >
               <ArrowLeft size={20} />
@@ -216,13 +216,13 @@ export default function AlertasCoordinador() {
             <p>
               {vistaActual === 'GRUPOS' 
                 ? 'Consulta y gestiona las alertas academicas y convivenciales por ficha de formación.'
-                : `Instructor lider: ${grupoSeleccionado?.instructorLider || 'â€”'}`}
+                : `Instructor lider: ${grupoSeleccionado?.instructorLider || '-'}`}
             </p>
           </div>
         </div>
       </header>
 
-      {/* â”€â”€ Barra de filtros â”€â”€ */}
+      {/* -- Barra de filtros -- */}
       <section className="grupos-toolbar">
         {vistaActual === 'GRUPOS' ? (
           /* Filtros para la vista de Grupos */
@@ -274,7 +274,7 @@ export default function AlertasCoordinador() {
               <option value="LEVE">Leve</option>
               <option value="MODERADA">Moderada</option>
               <option value="GRAVE">Grave</option>
-              <option value="CRITICA">CrÃ­tica</option>
+              <option value="CRITICA">Crítica</option>
             </select>
 
             <select className="grupos-select-filtro" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPaginaAprendices(1); }}>
@@ -306,7 +306,7 @@ export default function AlertasCoordinador() {
         )}
       </section>
 
-      {/* â”€â”€ Panel principal â”€â”€ */}
+      {/* -- Panel principal -- */}
       <section className="grupos-card">
         <div className="grupos-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
@@ -343,7 +343,7 @@ export default function AlertasCoordinador() {
         {loading ? (
           <div className="ac-empty-state">
             <Loader2 className="spin" size={40} style={{ color: '#0b2442', marginBottom: 16 }} />
-            <p>Cargando informaciÃ³n...</p>
+            <p>Cargando información...</p>
           </div>
         ) : vistaActual === 'GRUPOS' ? (
           /* VISTA 1: TABLA DE GRUPOS */
@@ -353,11 +353,11 @@ export default function AlertasCoordinador() {
                 <thead>
                   <tr>
                     <th>Ficha y Programa</th>
-                    <th>Instructor LÃ­der</th>
+                    <th>Instructor Líder</th>
                     <th>Total Alertas</th>
                     <th>Desglose Severidad</th>
-                    <th>Ãšltimo Reporte</th>
-                    <th>AcciÃ³n</th>
+                    <th>Último Reporte</th>
+                    <th>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -406,7 +406,7 @@ export default function AlertasCoordinador() {
                 <p>
                   {hayFiltrosGrupo
                     ? 'No se encontraron fichas con los filtros aplicados.'
-                    : 'Todas las fichas se encuentran sin alertas acadÃ©micas o convivenciales.'}
+                    : 'Todas las fichas se encuentran sin alertas académicas o convivenciales.'}
                 </p>
               </div>
             )}
@@ -423,7 +423,7 @@ export default function AlertasCoordinador() {
                     <th>Severidad</th>
                     <th>Reportado Por</th>
                     <th>Fecha</th>
-                    <th>AcciÃ³n</th>
+                    <th>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -473,7 +473,7 @@ export default function AlertasCoordinador() {
                 <h3>{hayFiltrosAprendiz ? 'Sin resultados' : 'No hay aprendices con alertas'}</h3>
                 <p>
                   {hayFiltrosAprendiz
-                    ? 'NingÃºn aprendiz coincide con los filtros aplicados.'
+                    ? 'Ningún aprendiz coincide con los filtros aplicados.'
                     : 'No se encontraron alertas activas para esta ficha.'}
                 </p>
               </div>

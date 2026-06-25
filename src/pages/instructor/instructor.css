@@ -632,8 +632,8 @@
 }
 
 .instructor-calendar-day.pendiente {
-  background: linear-gradient(180deg, #fff7ed 0%, #fffaf5 100%);
-  border-color: #fed7aa;
+  background: linear-gradient(180deg, #fff7e6 0%, #fffbeb 100%);
+  border-color: #f8d79a;
 }
 
 .instructor-calendar-day.con-sesiones {
@@ -704,8 +704,8 @@
 }
 
 .instructor-calendar-session.pendiente {
-  border-left-color: #f97316;
-  background: #fff7ed;
+  border-left-color: #f5b400;
+  background: #fffbeb;
 }
 
 .instructor-calendar-session.clickable {
@@ -808,7 +808,7 @@
 }
 
 .instructor-calendar-legend i.pendiente {
-  background: #f97316;
+  background: #f5b400;
 }
 
 .instructor-calendar-card-dark {
@@ -919,7 +919,7 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-legend i.pendiente {
-  background: #f97316;
+  background: #f5b400;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-grid {
@@ -955,6 +955,12 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-day.proxima .instructor-calendar-head {
+  border-color: #f5b400;
+  background: #fff5d9;
+  color: #0b2442;
+}
+
+.instructor-calendar-card-dark .instructor-calendar-day.pendiente .instructor-calendar-head {
   border-color: #f5b400;
   background: #fff5d9;
   color: #0b2442;
@@ -1011,8 +1017,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-session.pendiente {
-  border-left-color: #f97316;
-  background: #fff7ed;
+  border-left-color: #f5b400;
+  background: #fffbeb;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-time {
@@ -1061,8 +1067,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-session.pendiente em {
-  background: #ffedd5;
-  color: #c2410c;
+  background: #fff5d9;
+  color: #9a6b00;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-empty {
@@ -3308,6 +3314,21 @@
 .asistencia-detalle-body .da-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Ajuste final horario semanal: leyenda y datos normales, titulo/subtitulo con peso. */
+.instructor-calendar-card-dark .instructor-calendar-legend,
+.instructor-calendar-card-dark .instructor-calendar-legend span,
+.instructor-calendar-card-dark .instructor-calendar-time,
+.instructor-calendar-card-dark .instructor-calendar-session small,
+.instructor-calendar-card-dark .instructor-calendar-session em,
+.instructor-calendar-card-dark .instructor-calendar-jornada-control select {
+  font-weight: 400 !important;
+}
+
+.instructor-calendar-card-dark h2,
+.instructor-calendar-card-dark .instructor-calendar-session strong {
+  font-weight: 800 !important;
 }
 
 

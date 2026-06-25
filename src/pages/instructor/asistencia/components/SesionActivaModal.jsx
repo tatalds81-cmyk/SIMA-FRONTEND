@@ -9,7 +9,7 @@ import {
   obtenerSesionAbiertaPorGrupo,
   obtenerSesionesInstructorDia
 } from "../asistencia.service";
-import { formatearFecha, obtenerCodigo, obtenerIdGrupo, obtenerIdSesion, obtenerPrograma } from "../asistencia.utils";
+import { extraerLista, formatearFecha, obtenerCodigo, obtenerIdGrupo, obtenerIdSesion, obtenerPrograma } from "../asistencia.utils";
 import "../../instructor.css";
 
 const RUTA_INICIO_INSTRUCTOR = "/instructor/dashboard";
@@ -237,11 +237,14 @@ export default function SesionActivaModal({
 
   useEffect(() => {
     if (!sesionManual) return;
-    setGrupoActivo(construirGrupoConSesion(sesionManual));
-    setVisible(true);
-    setRevisionInicialCompleta(true);
-    onRevisionCompleta?.();
-    onSesionManualAtendida?.();
+    const timeout = window.setTimeout(() => {
+      setGrupoActivo(construirGrupoConSesion(sesionManual));
+      setVisible(true);
+      setRevisionInicialCompleta(true);
+      onRevisionCompleta?.();
+      onSesionManualAtendida?.();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [onRevisionCompleta, onSesionManualAtendida, sesionManual]);
 
   useEffect(() => {
@@ -328,30 +331,75 @@ export default function SesionActivaModal({
     const fechaSesion = obtenerFechaSesion(sesionProgramada, fechaHoy);
     const idGrupoTrimestre = sesionProgramada?.id_grupo_trimestre || sesionProgramada?.grupo_trimestre?.id_grupo_trimestre;
 
-    if (idGrupoTrimestre) {
+    const escogerSesionReal = (sesiones = []) => {
+      const sesionesReales = sesiones
+        .filter((sesion) => obtenerIdSesionFormacion(sesion))
+        .filter((sesion) => sesionCoincideConFecha(sesion, fechaSesion));
+      const sesionesDelBloque = sesionesReales.filter((sesion) => sesionCoincideConBloque(sesion, sesionProgramada));
+      const sesionesAbribles = sesionesDelBloque
+        .filter((sesion) => sesionEstaProgramada(sesion))
+        .sort((a, b) => prioridadSesionParaAbrir(b) - prioridadSesionParaAbrir(a));
+      return sesionesAbribles[0] || sesionesDelBloque[0] || null;
+    };
+
+    const buscarSesionReal = async () => {
+      const consultas = [
+        () => listarSesionesGrupo({
+          idGrupo,
+          idGrupoTrimestre,
+          fechaDesde: fechaSesion,
+          fechaHasta: fechaSesion,
+          soloResponsable: true,
+          limit: 100
+        }).then((resultado) => resultado.sesiones),
+        () => listarSesionesGrupo({
+          idGrupo,
+          idGrupoTrimestre,
+          fechaDesde: fechaSesion,
+          fechaHasta: fechaSesion,
+          soloResponsable: false,
+          limit: 100
+        }).then((resultado) => resultado.sesiones),
+        () => listarSesionesGrupo({
+          idGrupo,
+          fechaDesde: fechaSesion,
+          fechaHasta: fechaSesion,
+          soloResponsable: false,
+          limit: 100
+        }).then((resultado) => resultado.sesiones),
+        () => obtenerSesionesInstructorDia(fechaSesion)
+      ];
+
+      for (const consultar of consultas) {
+        const sesion = escogerSesionReal(await consultar().catch(() => []));
+        if (sesion) return sesion;
+      }
+
+      return null;
+    };
+
+    let sesionGenerada = await buscarSesionReal();
+
+    if (!sesionGenerada && idGrupoTrimestre) {
       await generarSesionesFormacion({
         idGrupoTrimestre,
         fechaDesde: fechaSesion,
         fechaHasta: fechaSesion
-      }).catch(() => null);
+      }).catch((error) => {
+        if (error?.status === 409) {
+          const data = error?.data || {};
+          sesionGenerada = escogerSesionReal([
+            data.sesion,
+            data.data?.sesion,
+            ...extraerLista(data, "sesiones"),
+            ...extraerLista(data?.data, "sesiones")
+          ].filter(Boolean));
+          return null;
+        }
+        throw error;
+      });
+      sesionGenerada = sesionGenerada || await buscarSesionReal();
     }
-
-    const resultado = await listarSesionesGrupo({
-      idGrupo,
-      idGrupoTrimestre,
-      fechaDesde: fechaSesion,
-      fechaHasta: fechaSesion,
-      soloResponsable: true,
-      limit: 100
-    });
-    const sesionesReales = resultado.sesiones
-      .filter((sesion) => obtenerIdSesionFormacion(sesion))
-      .filter((sesion) => sesionCoincideConFecha(sesion, fechaSesion));
-    const sesionesDelBloque = sesionesReales.filter((sesion) => sesionCoincideConBloque(sesion, sesionProgramada));
-    const sesionesAbribles = sesionesDelBloque
-      .filter((sesion) => sesionEstaProgramada(sesion))
-      .sort((a, b) => prioridadSesionParaAbrir(b) - prioridadSesionParaAbrir(a));
-    const sesionGenerada = sesionesAbribles[0] || sesionesDelBloque[0];
 
     if (!sesionGenerada) {
       throw new Error("El backend no devolvio una sesion real para este bloque y fecha.");
@@ -420,9 +468,9 @@ export default function SesionActivaModal({
           } else {
             const mensaje = errorApertura?.message || "";
             if (mensaje.includes("PROGRAMADAS") || mensaje.includes("PROGRAMADA")) {
-              throw new Error(`El backend tiene esta seccion en estado ${estado || "desconocido"} y no permitio abrirla como programada.`);
+              throw new Error(`El backend tiene esta seccion en estado ${estado || "desconocido"} y no permitio abrirla como programada.`, { cause: errorApertura });
             }
-            throw errorApertura;
+            throw new Error(errorApertura.message || "No fue posible abrir la sesion de asistencia.", { cause: errorApertura });
           }
         }
       }
