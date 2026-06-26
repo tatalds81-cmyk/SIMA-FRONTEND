@@ -51,6 +51,24 @@
   text-align: left !important;
 }
 
+.coordinador-panel .dashboard-role-welcome {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coordinador-panel .dashboard-role-welcome p {
+  margin: 0;
+  color: var(--sima-muted);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 700;
+  text-align: left !important;
+}
+
+.superadmin-panel .coordinador-kpi-grid {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+}
+
 .coordinador-kpi-card,
 .coordinador-card {
   border: 1px solid var(--sima-border);
@@ -552,7 +570,8 @@
 }
 
 @media (max-width: 1280px) {
-  .coordinador-kpi-grid {
+  .coordinador-kpi-grid,
+  .superadmin-panel .coordinador-kpi-grid {
     grid-template-columns: repeat(3, minmax(180px, 1fr));
   }
 
@@ -564,7 +583,8 @@
 }
 
 @media (max-width: 760px) {
-  .coordinador-kpi-grid {
+  .coordinador-kpi-grid,
+  .superadmin-panel .coordinador-kpi-grid {
     grid-template-columns: 1fr;
   }
 
