@@ -360,6 +360,7 @@ export default function GruposFormativos() {
     if (!areaFormacion) nuevosErrores.areaFormacion = "Este campo es obligatorio";
     if (!jornada) nuevosErrores.jornada = "Este campo es obligatorio";
     if (!programaFormacion) nuevosErrores.programaFormacion = "Este campo es obligatorio";
+    if (!ambiente) nuevosErrores.ambiente = "Este campo es obligatorio";
     if (!trimestres || isNaN(trimestres)) nuevosErrores.trimestres = "Este campo es obligatorio";
     if (!fechaInicio) nuevosErrores.fechaInicio = "Este campo es obligatorio";
     if (fechaInicio && (fechaInicio < rangoFechaInicio.min || fechaInicio > rangoFechaInicio.max)) {
@@ -380,7 +381,7 @@ export default function GruposFormativos() {
         id_programa: parseInt(programaFormacion, 10),
         jornada,
         id_instructor_lider: instructorLider ? parseInt(instructorLider, 10) : null,
-        id_ambiente: ambiente ? parseInt(ambiente, 10) : null,
+        id_ambiente: parseInt(ambiente, 10),
         trimestres: parseInt(trimestres, 10),
         fecha_inicio: fechaInicio
       };
@@ -697,7 +698,7 @@ export default function GruposFormativos() {
 
                 <label>
                   <span>Ambiente</span>
-                  <select value={ambiente} onChange={(e) => setAmbiente(e.target.value)}>
+                  <select value={ambiente} onChange={(e) => setAmbiente(e.target.value)} className={errores.ambiente ? "invalid" : ""} required>
                     <option value="">Seleccione ambiente</option>
                     {ambientes.map((item) => (
                       <option key={item.id_ambiente} value={item.id_ambiente}>
@@ -705,9 +706,10 @@ export default function GruposFormativos() {
                       </option>
                     ))}
                   </select>
+                  {errores.ambiente && <small className="error">{errores.ambiente}</small>}
                   <small>
                     {ambientes.length
-                      ? "Opcional, se usara para los horarios y sesiones del grupo"
+                      ? "Obligatorio, se usara para los horarios y sesiones del grupo"
                       : "No hay ambientes disponibles para seleccionar"}
                   </small>
                 </label>

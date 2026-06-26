@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
+  Fingerprint,
   LayoutDashboard,
   Users,
   UsersRound,
@@ -11,6 +12,12 @@ import "./sidebar.css";
 import senaLogo from "../../assets/logoSena.png";
 
 const menuByRole = {
+  super_admin: [
+    { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },
+    { icon: Fingerprint, label: "Biometria", path: "/biometria/huellas", id: "biometria" },
+    { icon: Users, label: "Gestion de usuarios", path: "/usuarios", id: "usuarios" },
+    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "alertas" }
+  ],
   instructor: [
     { icon: LayoutDashboard, label: "Inicio", path: "/instructor/dashboard", id: "inicio" },
     { icon: UsersRound, label: "Grupos", path: "/instructor/grupos", id: "grupos" },
