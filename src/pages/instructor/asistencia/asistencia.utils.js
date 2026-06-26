@@ -49,31 +49,32 @@ export function obtenerNombreAprendiz(aprendiz, index) {
 export function normalizarEstadoAsistencia(estado) {
   const valor = normalizarTexto(estado).replaceAll(" ", "_");
   const equivalencias = {
-    presente: "presente",
-    asistio: "presente",
-    asistencia: "presente",
-    presente_ep05: "presente",
-    a_tiempo: "presente",
-    registrado: "presente",
-    valida: "presente",
-    valido: "presente",
-    tarde: "retardado",
-    tardanza: "retardado",
-    retardado: "retardado",
-    retardo: "retardado",
-    llego_tarde: "retardado",
-    inasistente: "ausente",
-    ausente: "ausente",
-    falta: "ausente",
-    no_asistio: "ausente",
-    sin_registro: "ausente",
-    justificada: "justificado",
-    justificado: "justificado",
-    excusado: "justificado",
-    excusa: "justificado",
-    pendiente: ""
+    presente: "PRESENTE",
+    asistio: "PRESENTE",
+    asistencia: "PRESENTE",
+    presente_ep05: "PRESENTE",
+    a_tiempo: "PRESENTE",
+    registrado: "PRESENTE",
+    valida: "PRESENTE",
+    valido: "PRESENTE",
+    tarde: "TARDE",
+    tardanza: "TARDE",
+    retardado: "TARDE",
+    retardo: "TARDE",
+    llego_tarde: "TARDE",
+    inasistencia: "INASISTENTE",
+    inasistente: "INASISTENTE",
+    ausente: "INASISTENTE",
+    falta: "INASISTENTE",
+    no_asistio: "INASISTENTE",
+    sin_registro: "PENDIENTE",
+    justificada: "JUSTIFICADA",
+    justificado: "JUSTIFICADA",
+    excusado: "JUSTIFICADA",
+    excusa: "JUSTIFICADA",
+    pendiente: "PENDIENTE"
   };
-  return equivalencias[valor] || valor;
+  return equivalencias[valor] || String(estado || "").trim().toUpperCase();
 }
 
 export function normalizarMetodoAsistencia(metodo) {
@@ -105,7 +106,24 @@ function obtenerMetodoAsistencia(registro) {
 function formatearHoraAsistencia(hora) {
   if (!hora) return "-";
   const texto = String(hora);
-  const partes = texto.match(/^(\d{1,2}):(\d{2})/);
+  const pareceFechaHora = /^\d{4}-\d{2}-\d{2}[T\s]/.test(texto);
+
+  if (pareceFechaHora) {
+    const tieneZonaHoraria = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(texto);
+    const textoNormalizado = texto.includes("T") ? texto : texto.replace(" ", "T");
+    const fecha = new Date(tieneZonaHoraria ? textoNormalizado : `${textoNormalizado}Z`);
+
+    if (!Number.isNaN(fecha.getTime())) {
+      return fecha.toLocaleTimeString("es-CO", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "America/Bogota"
+      });
+    }
+  }
+
+  const partes = texto.match(/(?:T|\s|^)(\d{1,2}):(\d{2})/);
   if (!partes) return texto;
 
   const horas = Number(partes[1]);
@@ -117,6 +135,39 @@ function formatearHoraAsistencia(hora) {
   return `${hora12}:${minutos} ${periodo}`;
 }
 
+function obtenerHoraRegistro(registro) {
+  const evidencias = Array.isArray(registro?.evidencias) ? registro.evidencias : [];
+  const evidenciaReciente = evidencias
+    .filter(Boolean)
+    .slice()
+    .sort((a, b) => {
+      const fechaA = new Date(a?.created_at || a?.createdAt || a?.fecha_registro || a?.updated_at || a?.updatedAt || 0).getTime();
+      const fechaB = new Date(b?.created_at || b?.createdAt || b?.fecha_registro || b?.updated_at || b?.updatedAt || 0).getTime();
+      return fechaB - fechaA;
+    })[0];
+
+  return (
+    registro?.hora_registro ||
+    registro?.hora_marcacion ||
+    registro?.hora_asistencia ||
+    registro?.hora ||
+    registro?.fecha_hora_registro ||
+    registro?.fecha_registro ||
+    registro?.created_at ||
+    registro?.createdAt ||
+    registro?.updated_at ||
+    registro?.updatedAt ||
+    evidenciaReciente?.hora_registro ||
+    evidenciaReciente?.hora ||
+    evidenciaReciente?.fecha_hora_registro ||
+    evidenciaReciente?.fecha_registro ||
+    evidenciaReciente?.created_at ||
+    evidenciaReciente?.createdAt ||
+    evidenciaReciente?.updated_at ||
+    evidenciaReciente?.updatedAt
+  );
+}
+
 export function prepararAprendiz(aprendiz, index) {
   const asistencia = aprendiz?.asistencia || aprendiz?.registro_asistencia || {};
   const estado = asistencia.estado_asistencia || asistencia.estado || aprendiz.estado_asistencia || aprendiz.estado || "";
@@ -125,7 +176,7 @@ export function prepararAprendiz(aprendiz, index) {
     id: aprendiz.id_aprendiz || aprendiz.id || index + 1,
     idAsistencia: asistencia.id_asistencia || asistencia.id || aprendiz.id_asistencia || "",
     nombre: obtenerNombreAprendiz(aprendiz, index),
-    hora: formatearHoraAsistencia(asistencia.hora_registro || asistencia.hora || aprendiz.hora_registro || aprendiz.hora),
+    hora: formatearHoraAsistencia(obtenerHoraRegistro({ ...aprendiz, ...asistencia })),
     estado: normalizarEstadoAsistencia(estado),
     metodo: obtenerMetodoAsistencia({ ...aprendiz, ...asistencia }),
     fecha: asistencia.fecha_clase || asistencia.fecha || asistencia.fecha_registro || aprendiz.fecha_clase || aprendiz.fecha || aprendiz.fecha_registro || "",
@@ -143,7 +194,7 @@ export function prepararAsistenciaSesion(asistencia, index) {
     idAsistencia: asistencia.id_asistencia || asistencia.id || "",
     idSesion: asistencia.id_sesion_formacion || sesion.id_sesion_formacion || "",
     nombre: obtenerNombreAprendiz(aprendiz, index),
-    hora: formatearHoraAsistencia(asistencia.hora_registro || asistencia.hora),
+    hora: formatearHoraAsistencia(obtenerHoraRegistro(asistencia)),
     estado: normalizarEstadoAsistencia(asistencia.estado_ep05 || asistencia.estado_asistencia || asistencia.estado || ""),
     metodo: obtenerMetodoAsistencia(asistencia),
     fecha: fechaSesion,
@@ -205,7 +256,7 @@ export function construirHistorialAsistencia(aprendiz) {
     id: item.id || item.id_asistencia || `${aprendiz?.id || "aprendiz"}-${index}`,
     estado: normalizarEstadoAsistencia(item.estado_asistencia || item.estado || ""),
     fecha: item.fecha_clase || item.fecha || item.fecha_registro || "",
-    hora: formatearHoraAsistencia(item.hora_registro || item.hora),
+    hora: formatearHoraAsistencia(obtenerHoraRegistro(item)),
     metodo: obtenerMetodoAsistencia(item),
     nota: item.nota || item.observacion || item.descripcion || ""
   }));

@@ -23,6 +23,7 @@ import "../instructor.css";
 import {
   APRENDICES_POR_PAGINA,
   ESTADOS,
+  ESTADOS_REGISTRABLES,
   HISTORIAL_POR_PAGINA,
   MESES,
   METODOS
@@ -52,13 +53,19 @@ import {
 } from "./asistencia.utils";
 
 function estadoFrontendABackend(estado) {
+  const valor = String(estado || "").trim().toUpperCase();
   const equivalencias = {
-    presente: "PRESENTE",
-    retardado: "TARDE",
-    ausente: "INASISTENCIA",
-    justificado: "JUSTIFICADO"
+    PRESENTE: "PRESENTE",
+    TARDE: "TARDE",
+    INASISTENTE: "INASISTENCIA",
+    JUSTIFICADA: "JUSTIFICADO",
+    PENDIENTE: "PENDIENTE"
   };
-  return equivalencias[estado] || String(estado || "").toUpperCase();
+  return equivalencias[valor] || valor;
+}
+
+function obtenerClaseEstado(estado) {
+  return ESTADOS[estado]?.className || "";
 }
 
 function obtenerMensajeError(error, fallback) {
@@ -71,6 +78,13 @@ function obtenerIdAsistenciaRespuesta(respuesta) {
 
 function obtenerIdAprendizRegistro(registro) {
   return registro?.id_aprendiz || registro?.aprendiz?.id_aprendiz || registro?.aprendiz?.id || "";
+}
+
+function obtenerClavesHoraRegistro(aprendiz) {
+  return [
+    aprendiz?.idAsistencia ? `asistencia:${aprendiz.idAsistencia}` : "",
+    aprendiz?.id ? `aprendiz:${aprendiz.id}` : ""
+  ].filter(Boolean);
 }
 
 function obtenerNombreInstructorLider(grupo) {
@@ -177,8 +191,9 @@ export default function AsistenciaInstructor() {
   const [avisoFaltantesCerrado, setAvisoFaltantesCerrado] = useState("");
   const [motivoCancelacion, setMotivoCancelacion] = useState("");
   const [mostrarCancelacionSesion, setMostrarCancelacionSesion] = useState(false);
+  const [horasRegistroLocales, setHorasRegistroLocales] = useState({});
   const [formManual, setFormManual] = useState({
-    estado: "presente",
+    estado: "PRESENTE",
     hora: "",
     motivo: "Correccion de registro",
     descripcion: ""
@@ -345,6 +360,16 @@ export default function AsistenciaInstructor() {
   const haySesionActiva = Boolean(obtenerIdSesion(sesionActiva)) &&
     !["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesionActual);
   const grupoSeccionActiva = haySesionActiva ? (grupoDetalleActivo || grupoActual) : null;
+  const aprendicesConHoras = useMemo(
+    () => aprendices.map((aprendiz) => {
+      const horaLocal = obtenerClavesHoraRegistro(aprendiz)
+        .map((clave) => horasRegistroLocales[clave])
+        .find(Boolean);
+
+      return horaLocal ? { ...aprendiz, hora: horaLocal } : aprendiz;
+    }),
+    [aprendices, horasRegistroLocales]
+  );
 
   useEffect(() => {
     if (!haySesionActiva || !sesionActiva) return;
@@ -360,14 +385,13 @@ export default function AsistenciaInstructor() {
 
   const aprendicesRegistrados = useMemo(() => {
     if (!haySesionActiva) return [];
-    const estadosValidos = Object.keys(ESTADOS);
-    return aprendices.filter((aprendiz) => estadosValidos.includes(aprendiz.estado));
-  }, [aprendices, haySesionActiva]);
+    return aprendicesConHoras.filter((aprendiz) => ESTADOS_REGISTRABLES.includes(aprendiz.estado));
+  }, [aprendicesConHoras, haySesionActiva]);
 
   const aprendicesFiltrados = useMemo(() => {
     if (!haySesionActiva) return [];
     const texto = normalizarTexto(busqueda);
-    const listaBase = modoManual ? aprendices : aprendicesRegistrados;
+    const listaBase = modoManual ? aprendicesConHoras : aprendicesRegistrados;
     
     return listaBase.filter((aprendiz) => {
       const coincideBusqueda = !texto || normalizarTexto(aprendiz.nombre).includes(texto);
@@ -390,7 +414,7 @@ export default function AsistenciaInstructor() {
       
       return coincideBusqueda && coincideEstado && coincideMetodo && coincideFecha;
     });
-  }, [aprendices, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, haySesionActiva, modoManual]);
+  }, [aprendicesConHoras, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, haySesionActiva, modoManual]);
 
   const opcionesAnios = useMemo(() => {
     const anioBase = new Date(`${fecha}T12:00:00`).getFullYear();
@@ -405,19 +429,19 @@ export default function AsistenciaInstructor() {
   const hasta = Math.min(inicioPagina + APRENDICES_POR_PAGINA, aprendicesFiltrados.length);
 
   const resumen = useMemo(() => {
-    const base = { presente: 0, ausente: 0, retardado: 0, justificado: 0 };
+    const base = { PRESENTE: 0, INASISTENTE: 0, TARDE: 0, JUSTIFICADA: 0 };
     if (!haySesionActiva) return base;
-    const listaBase = modoManual ? aprendices : aprendicesRegistrados;
+    const listaBase = modoManual ? aprendicesConHoras : aprendicesRegistrados;
     listaBase.forEach((aprendiz) => {
       if (Object.prototype.hasOwnProperty.call(base, aprendiz.estado)) {
         base[aprendiz.estado] += 1;
       }
     });
     return base;
-  }, [aprendices, aprendicesRegistrados, haySesionActiva, modoManual]);
+  }, [aprendicesConHoras, aprendicesRegistrados, haySesionActiva, modoManual]);
 
   const totalResumen = Object.values(resumen).reduce((total, valor) => total + Number(valor || 0), 0);
-  const totalAprendices = Math.max(modoManual ? aprendices.length : aprendicesRegistrados.length, totalResumen, 1);
+  const totalAprendices = Math.max(modoManual ? aprendicesConHoras.length : aprendicesRegistrados.length, totalResumen, 1);
   const segmentosDonut = useMemo(() => {
     let inicio = 0;
     return Object.entries(resumen).map(([estado, valor]) => {
@@ -435,7 +459,7 @@ export default function AsistenciaInstructor() {
 
     const [estado, valor] = Object.entries(resumen).reduce(
       (mayor, actual) => (Number(actual[1] || 0) > Number(mayor[1] || 0) ? actual : mayor),
-      ["presente", resumen.presente || 0]
+      ["PRESENTE", resumen.PRESENTE || 0]
     );
 
     return {
@@ -445,8 +469,8 @@ export default function AsistenciaInstructor() {
   }, [resumen, totalAprendices, totalResumen]);
   const resumenRecogido = qrAbierto && !resumenGrande;
   const aprendicesSinRegistro = useMemo(
-    () => aprendices.filter((aprendiz) => !aprendiz.estado),
-    [aprendices]
+    () => aprendicesConHoras.filter((aprendiz) => !ESTADOS_REGISTRABLES.includes(aprendiz.estado)),
+    [aprendicesConHoras]
   );
   const claveAprendicesSinRegistro = useMemo(
     () => aprendicesSinRegistro.map((aprendiz) => aprendiz.id).sort().join("-"),
@@ -512,7 +536,7 @@ export default function AsistenciaInstructor() {
     return () => window.clearInterval(intervalo);
   }, [aprendizManual, guardandoAsistencia, grupoActual, grupoSeleccionado, haySesionActiva, sesionActiva]);
 
-  async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion) {
+  async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion, horaRegistro = obtenerHoraActual()) {
     if (!sesionActiva) {
       throw new Error("No hay una sesion abierta para registrar asistencia.");
     }
@@ -555,7 +579,24 @@ export default function AsistenciaInstructor() {
       });
     }
 
+    setHorasRegistroLocales((actual) => {
+      const actualizado = { ...actual };
+      obtenerClavesHoraRegistro(aprendiz).forEach((clave) => {
+        actualizado[clave] = horaRegistro;
+      });
+      return actualizado;
+    });
+
     await recargarAsistenciasSesion();
+    window.dispatchEvent(new CustomEvent("sima:asistencia-actualizada", {
+      detail: {
+        idSesion,
+        idGrupo: sesionActiva?.id_grupo || obtenerIdGrupo(grupoSeccionActiva || grupoActual),
+        idAprendiz: aprendiz.id,
+        estado: estadoBackend,
+        fecha
+      }
+    }));
   }
 
   async function cambiarEstado(id, nuevoEstado) {
@@ -569,7 +610,8 @@ export default function AsistenciaInstructor() {
       await guardarEstadoBackend(
         aprendiz,
         nuevoEstado,
-        "Actualizacion manual realizada por instructor responsable"
+        "Actualizacion manual realizada por instructor responsable",
+        obtenerHoraActual()
       );
       setMensajeError(false);
       setMensaje("Asistencia actualizada en el backend.");
@@ -613,7 +655,7 @@ export default function AsistenciaInstructor() {
     setMostrarCancelacionSesion(false);
     setMotivoCancelacion("");
     setFormManual({
-      estado: aprendiz.estado || "presente",
+      estado: ESTADOS_REGISTRABLES.includes(aprendiz.estado) ? aprendiz.estado : "PRESENTE",
       hora: aprendiz.hora === "-" ? obtenerHoraActual() : aprendiz.hora,
       motivo: "Correccion de registro",
       descripcion: ""
@@ -632,7 +674,7 @@ export default function AsistenciaInstructor() {
 
     setGuardandoAsistencia(true);
     try {
-      await guardarEstadoBackend(aprendizManual, formManual.estado, observacion);
+      await guardarEstadoBackend(aprendizManual, formManual.estado, observacion, formManual.hora || obtenerHoraActual());
       setMensajeError(false);
       setMensaje("Cambio manual guardado en el backend.");
       setAprendizManual(null);
@@ -822,7 +864,9 @@ export default function AsistenciaInstructor() {
                   <section>
                     <h3>Estado</h3>
                     <div className="asistencia-filter-options">
-                      {Object.entries(ESTADOS).map(([estado, item]) => (
+                      {ESTADOS_REGISTRABLES.map((estado) => {
+                        const item = ESTADOS[estado];
+                        return (
                         <button
                           key={estado}
                           type="button"
@@ -834,7 +878,8 @@ export default function AsistenciaInstructor() {
                         >
                           {item.label}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </section>
                 )}
@@ -1111,7 +1156,8 @@ export default function AsistenciaInstructor() {
                   </div>
                 </div>
 
-                {Object.entries(ESTADOS).map(([estado, item]) => {
+                {ESTADOS_REGISTRABLES.map((estado) => {
+                  const item = ESTADOS[estado];
                   const valor = resumen[estado] || 0;
                   const porcentaje = Math.round((valor / totalAprendices) * 100);
                   return (
@@ -1371,7 +1417,7 @@ export default function AsistenciaInstructor() {
                       {historialDetallePagina.length ? (
                         historialDetallePagina.map((item) => (
                           <div className="da-timeline-item" key={item.id}>
-                            <div className={`da-timeline-dot asistencia-da-dot ${item.estado}`} />
+                            <div className={`da-timeline-dot asistencia-da-dot ${obtenerClaseEstado(item.estado)}`} />
                             <div className="da-timeline-content">
                               <div className="da-timeline-head">
                                 <strong>{ESTADOS[item.estado]?.label || item.estado}</strong>
@@ -1446,8 +1492,8 @@ export default function AsistenciaInstructor() {
                   <div>
                     <dt>Estado actual</dt>
                     <dd>
-                      <span className={`asistencia-status ${aprendizManual.estado}`}>
-                        {ESTADOS[aprendizManual.estado]?.label || "Sin estado"}
+                      <span className={`asistencia-status ${obtenerClaseEstado(aprendizManual.estado)}`}>
+                        {ESTADOS[aprendizManual.estado]?.label || "Sin registro"}
                       </span>
                     </dd>
                   </div>
@@ -1455,10 +1501,10 @@ export default function AsistenciaInstructor() {
 
                 <label className="mcal-label" htmlFor="estado-manual">Cambiar estado a</label>
                 <select id="estado-manual" name="estado" className="mcal-select" value={formManual.estado} onChange={cambiarFormManual}>
-                  <option value="presente">Presente</option>
-                  <option value="ausente">Ausente</option>
-                  <option value="retardado">Retardo</option>
-                  <option value="justificado">Justificado</option>
+                  <option value="PRESENTE">Presente</option>
+                  <option value="INASISTENTE">Ausente</option>
+                  <option value="TARDE">Tarde</option>
+                  <option value="JUSTIFICADA">Justificada</option>
                 </select>
 
                 <label className="mcal-label" htmlFor="hora-manual">Hora del registro</label>

@@ -1973,6 +1973,12 @@
   color: #0b2442;
 }
 
+.asistencia-status.pendiente {
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .asistencia-actions {
   display: flex;
   flex-wrap: nowrap;
@@ -2928,6 +2934,11 @@
 .asistencia-da-dot.justificado {
   background: #0b2442;
   box-shadow: 0 0 0 2px #bfdbfe;
+}
+
+.asistencia-da-dot.pendiente {
+  background: #94a3b8;
+  box-shadow: 0 0 0 2px #e2e8f0;
 }
 
 .asistencia-da-metodo {

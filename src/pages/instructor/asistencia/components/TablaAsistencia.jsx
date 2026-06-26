@@ -1,5 +1,9 @@
 import { ChevronDown, Eye } from "lucide-react";
-import { ESTADOS } from "../asistencia.constants";
+import { ESTADOS, ESTADOS_REGISTRABLES } from "../asistencia.constants";
+
+function obtenerClaseEstado(estado) {
+  return ESTADOS[estado]?.className || "";
+}
 
 export default function TablaAsistencia({
   aprendices,
@@ -37,8 +41,8 @@ export default function TablaAsistencia({
                 <td>{aprendiz.nombre}</td>
                 <td>{aprendiz.hora}</td>
                 <td>
-                  <span className={`asistencia-status ${aprendiz.estado}`}>
-                    {ESTADOS[aprendiz.estado]?.label || "Sin estado"}
+                  <span className={`asistencia-status ${obtenerClaseEstado(aprendiz.estado)}`}>
+                    {ESTADOS[aprendiz.estado]?.label || "Sin registro"}
                   </span>
                 </td>
                 <td>{aprendiz.metodo}</td>
@@ -46,14 +50,15 @@ export default function TablaAsistencia({
                   <td>
                     <label className="asistencia-manual-select">
                       <select
-                        value={aprendiz.estado}
+                        value={ESTADOS_REGISTRABLES.includes(aprendiz.estado) ? aprendiz.estado : ""}
                         onChange={(e) => onCambiarEstado(aprendiz.id, e.target.value)}
                         disabled={guardando}
                       >
-                        <option value="presente">Presente</option>
-                        <option value="ausente">Ausente</option>
-                        <option value="retardado">Retardo</option>
-                        <option value="justificado">Justificado</option>
+                        <option value="" disabled>Sin registro</option>
+                        <option value="PRESENTE">Presente</option>
+                        <option value="INASISTENTE">Ausente</option>
+                        <option value="TARDE">Tarde</option>
+                        <option value="JUSTIFICADA">Justificada</option>
                       </select>
                       <ChevronDown size={14} />
                     </label>
