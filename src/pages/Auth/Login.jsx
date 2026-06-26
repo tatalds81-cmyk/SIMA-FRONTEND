@@ -17,7 +17,7 @@ export default function Login({ onLogin }) {
 
   const URL_LOGIN = "/api/auth/login";
   const URL_ME = "/api/auth/me";
-  const ROLES_WEB_PERMITIDOS = ["instructor", "instructor_lider", "instructor_asignado", "coordinador"];
+  const ROLES_WEB_PERMITIDOS = ["super_admin", "instructor", "instructor_lider", "instructor_asignado", "coordinador"];
   const ROLES_INSTRUCTOR = new Set(["instructor", "instructor_lider", "instructor_asignado"]);
 
   function obtenerNombreRol(valor) {
@@ -104,7 +104,7 @@ export default function Login({ onLogin }) {
         localStorage.removeItem("access");
         localStorage.removeItem("token");
         localStorage.removeItem("rol");
-        throw new Error("El portal web es solo para instructores y coordinadores. Los aprendices deben ingresar desde la app movil.");
+        throw new Error("El portal web es solo para SUPER_ADMIN, instructores y coordinadores. Los aprendices deben ingresar desde la app movil.");
       }
 
       localStorage.setItem("username", nombreUsuario);
@@ -121,7 +121,11 @@ export default function Login({ onLogin }) {
 
       setMensaje("Inicio de sesion correcto");
 
-      const rutaInicio = ROLES_INSTRUCTOR.has(rolNormalizado) ? "/instructor/dashboard" : "/dashboard";
+      const rutaInicio = rolNormalizado === "super_admin"
+        ? "/dashboard"
+        : ROLES_INSTRUCTOR.has(rolNormalizado)
+          ? "/instructor/dashboard"
+          : "/dashboard";
 
       if (onLogin) {
         onLogin();
