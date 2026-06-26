@@ -17,10 +17,10 @@ import "./instructor.css";
 import "./historial-asistencia.css";
 
 const RESUMEN_ASISTENCIA = [
-  { key: "presente", label: "Presente", color: "#55A83B", backgroundColor: "#EAF6E6" },
-  { key: "ausente", label: "Ausente", color: "#EE6666", backgroundColor: "#FDECEC" },
-  { key: "justificado", label: "Justificado", color: "#E9AC24", backgroundColor: "#FFF5D9" },
-  { key: "tarde", label: "Tarde", color: "#0B2442", backgroundColor: "#EAF0F6" },
+  { key: "PRESENTE", label: "Presente", color: "#55A83B", backgroundColor: "#EAF6E6" },
+  { key: "INASISTENTE", label: "Ausente", color: "#EE6666", backgroundColor: "#FDECEC" },
+  { key: "TARDE", label: "Tarde", color: "#E9AC24", backgroundColor: "#FFF5D9" },
+  { key: "JUSTIFICAD", label: "Justificado", color: "#0B2442", backgroundColor: "#EAF0F6" },
 ];
 
 const DIAS_CALENDARIO = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
@@ -89,15 +89,25 @@ function obtenerHorarioSesion(sesion) {
 }
 
 function normalizarEstadoHistorial(estado) {
-  if (!estado || estado === "sin_estado" || estado === "sin-estado" || estado === "pendiente") {
-    return "ausente";
+  const valor = String(estado || "").trim().toUpperCase();
+
+  if (!valor || valor === "SIN_ESTADO" || valor === "SIN-ESTADO" || valor === "PENDIENTE") {
+    return "INASISTENTE";
   }
 
-  if (estado === "retardado" || estado === "retraso") {
-    return "tarde";
+  if (["RETARDADO", "RETRASO", "RETARDO"].includes(valor)) {
+    return "TARDE";
   }
 
-  return estado;
+  if (valor === "INASISTENCIA" || valor === "AUSENTE") {
+    return "INASISTENTE";
+  }
+
+  if (valor === "JUSTIFICADO") {
+    return "JUSTIFICADA";
+  }
+
+  return valor;
 }
 
 function prepararRegistrosHistorial(asistencias) {
@@ -266,16 +276,19 @@ export default function HistorialAsistenciaGrupo() {
     setEstadoResumenSeleccionado(mismoFiltro ? "" : estado);
   }
 
-  async function cargarRegistrosSesionesDia(sesionesDia, activo = true) {
+  async function cargarRegistrosSesionesDia(sesionesDia, activo = true, opciones = {}) {
+    const { silencioso = false, mantenerSeleccion = false } = opciones;
     const sesionesValidas = sesionesDia.filter((sesion) => obtenerIdSesion(sesion));
     if (!sesionesValidas.length) return;
 
-    setSesionSeleccionada(sesionesValidas[0]);
-    setCargandoAsistencias(true);
-    setRegistros([]);
-    setEstadoResumenSeleccionado("");
-    setSesionResumenSeleccionada("");
-    setSesionExpandida("");
+    if (!mantenerSeleccion) {
+      setSesionSeleccionada(sesionesValidas[0]);
+      setRegistros([]);
+      setEstadoResumenSeleccionado("");
+      setSesionResumenSeleccionada("");
+      setSesionExpandida("");
+    }
+    if (!silencioso) setCargandoAsistencias(true);
     setMensaje("");
 
     try {
@@ -302,17 +315,28 @@ export default function HistorialAsistenciaGrupo() {
       if (!activo) return;
       const primeraSesion = detalles[0]?.sesion || sesionesValidas[0];
       const primerIdSesion = obtenerIdSesion(primeraSesion);
-      setSesionSeleccionada(primeraSesion);
+      const sesionActual = sesionesValidas.find((sesion) => String(obtenerIdSesion(sesion)) === String(sesionResumenSeleccionada));
+      const idSesionActual = sesionActual ? obtenerIdSesion(sesionActual) : "";
+      const idSesionParaMostrar = mantenerSeleccion && idSesionActual ? idSesionActual : primerIdSesion;
+
+      setSesionSeleccionada(mantenerSeleccion && sesionActual ? sesionActual : primeraSesion);
       setRegistros(detalles.flatMap((detalle) => detalle.registros));
-      setSesionExpandida(String(primerIdSesion || ""));
-      setSesionResumenSeleccionada(primerIdSesion || "");
-      setEstadoResumenSeleccionado("presente");
+      setSesionExpandida(String(idSesionParaMostrar || ""));
+      setSesionResumenSeleccionada(idSesionParaMostrar || "");
+      setEstadoResumenSeleccionado(mantenerSeleccion ? estadoResumenSeleccionado : "PRESENTE");
     } catch (error) {
       console.error("Error cargando asistencias de seccion:", error);
       if (activo) setMensaje(error.message || "No fue posible cargar la asistencia de este dia.");
     } finally {
-      if (activo) setCargandoAsistencias(false);
+      if (activo && !silencioso) setCargandoAsistencias(false);
     }
+  }
+
+  function recargarDiaSeleccionado({ silencioso = true } = {}) {
+    if (!fechaSeleccionada) return;
+    const sesionesDia = sesionesPorFecha.get(fechaSeleccionada) || [];
+    if (!sesionesDia.length) return;
+    cargarRegistrosSesionesDia(sesionesDia, true, { silencioso, mantenerSeleccion: true });
   }
 
   async function cargarSesionesHistorial(activo = true) {
@@ -365,6 +389,37 @@ export default function HistorialAsistenciaGrupo() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idGrupo]);
+
+  useEffect(() => {
+    if (!fechaSeleccionada) return undefined;
+
+    const manejarActualizacionAsistencia = (evento) => {
+      const detalle = evento.detail || {};
+      const coincideGrupo = !detalle.idGrupo || String(detalle.idGrupo) === String(idGrupo);
+      const coincideFecha = !detalle.fecha || detalle.fecha === fechaSeleccionada;
+      if (coincideGrupo && coincideFecha) recargarDiaSeleccionado({ silencioso: true });
+    };
+
+    const manejarFoco = () => {
+      if (!document.hidden) recargarDiaSeleccionado({ silencioso: true });
+    };
+
+    const intervalo = window.setInterval(() => {
+      if (!document.hidden) recargarDiaSeleccionado({ silencioso: true });
+    }, 10000);
+
+    window.addEventListener("sima:asistencia-actualizada", manejarActualizacionAsistencia);
+    window.addEventListener("focus", manejarFoco);
+    document.addEventListener("visibilitychange", manejarFoco);
+
+    return () => {
+      window.clearInterval(intervalo);
+      window.removeEventListener("sima:asistencia-actualizada", manejarActualizacionAsistencia);
+      window.removeEventListener("focus", manejarFoco);
+      document.removeEventListener("visibilitychange", manejarFoco);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaSeleccionada, idGrupo, sesionesPorFecha]);
 
   async function seleccionarDiaCalendario(fechaISO) {
     setFechaSeleccionada(fechaISO);
@@ -502,7 +557,7 @@ export default function HistorialAsistenciaGrupo() {
                             aria-label={`Ver aprendices de la seccion ${index + 1}`}
                           >
                             <div>
-                              <strong>{resumenSesion.items.find((item) => item.key === "presente")?.valor || 0}/{resumenSesion.total}</strong>
+                              <strong>{resumenSesion.items.find((item) => item.key === "PRESENTE")?.valor || 0}/{resumenSesion.total}</strong>
                               <span>asistieron</span>
                             </div>
                           </button>
