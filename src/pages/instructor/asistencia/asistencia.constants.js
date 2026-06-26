@@ -3,11 +3,14 @@ export const APRENDICES_POR_PAGINA = 5;
 export const HISTORIAL_POR_PAGINA = 4;
 
 export const ESTADOS = {
-  presente: { label: "Presente", color: "#238500" },
-  ausente: { label: "Ausente", color: "#ef4444" },
-  retardado: { label: "Retardado", color: "#f5b400" },
-  justificado: { label: "Justificado", color: "#0b2442" }
+  PRESENTE: { label: "Presente", color: "#238500", className: "presente" },
+  TARDE: { label: "Tarde", color: "#f5b400", className: "retardado" },
+  INASISTENTE: { label: "Ausente", color: "#ef4444", className: "ausente" },
+  JUSTIFICADA: { label: "Justificada", color: "#0b2442", className: "justificado" },
+  PENDIENTE: { label: "Sin registro", color: "#94a3b8", className: "pendiente" }
 };
+
+export const ESTADOS_REGISTRABLES = ["PRESENTE", "INASISTENTE", "TARDE", "JUSTIFICADA"];
 
 export const METODOS = [
   { value: "manual", label: "Manual" },
