@@ -2654,6 +2654,26 @@
   color: #0b2442;
 }
 
+.asistencia-fingerprint-icon.leyendo {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #238500;
+  box-shadow: 0 0 0 8px rgba(35, 133, 0, 0.08);
+}
+
+.asistencia-fingerprint-icon.registrada {
+  border-color: #22c55e;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.asistencia-fingerprint-icon.no_identificada,
+.asistencia-fingerprint-icon.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .asistencia-fingerprint-body h2 {
   margin: 4px 0 0;
   color: #0b2442;
@@ -2678,6 +2698,22 @@
   color: #238500;
   font-size: 11px;
   font-weight: 800;
+}
+
+.asistencia-fingerprint-retry {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: #0b2442;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.asistencia-fingerprint-retry:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .asistencia-faltantes-modal {

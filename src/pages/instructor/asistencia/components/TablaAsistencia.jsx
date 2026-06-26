@@ -36,8 +36,8 @@ export default function TablaAsistencia({
               <td colSpan={totalColumnas} className="grupos-empty">Cargando aprendices...</td>
             </tr>
           ) : aprendices.length ? (
-            aprendices.map((aprendiz) => (
-              <tr key={aprendiz.id}>
+            aprendices.map((aprendiz, index) => (
+              <tr key={`${aprendiz.idAsistencia || "sin-asistencia"}-${aprendiz.id || "sin-aprendiz"}-${index}`}>
                 <td>{aprendiz.nombre}</td>
                 <td>{aprendiz.hora}</td>
                 <td>
