@@ -21,6 +21,12 @@ const getHeaders = () => {
 
 const numero = (valor) => Number(valor || 0);
 
+const calcularProgreso = (valor, maximo) => {
+  const actual = numero(valor);
+  if (!actual || !maximo) return 0;
+  return Math.min(100, Math.max(0, Math.round((actual / maximo) * 100)));
+};
+
 export default function PanelSuperAdmin() {
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -62,76 +68,109 @@ export default function PanelSuperAdmin() {
   }, []);
 
   const kpis = resumen?.kpis || {};
-  const cards = useMemo(() => ([
+  const cards = useMemo(() => {
+    const resumenCards = [
+      {
+        titulo: "Usuarios activos",
+        valor: kpis.usuarios_activos,
+        detalle: `${numero(kpis.total_usuarios)} usuarios registrados`,
+        icono: UsersRound,
+        tono: "verde",
+      },
+      {
+        titulo: "Coordinadores",
+        valor: kpis.total_coordinadores,
+        detalle: "Coordinadores institucionales",
+        icono: ShieldCheck,
+        tono: "morado",
+      },
+      {
+        titulo: "Instructores activos",
+        valor: kpis.total_instructores_activos,
+        detalle: "Disponibles para grupos y sesiones",
+        icono: UserCheck,
+        tono: "cyan",
+      },
+      {
+        titulo: "Grupos activos",
+        valor: kpis.total_grupos_activos,
+        detalle: `${numero(kpis.total_grupos)} grupos registrados`,
+        icono: Layers,
+        tono: "amarillo",
+      },
+      {
+        titulo: "Alertas activas",
+        valor: kpis.total_alertas_activas,
+        detalle: "Alertas abiertas en seguimiento",
+        icono: AlertTriangle,
+        tono: "rojo",
+        alerta: true,
+      },
+      {
+        titulo: "Huellas activas",
+        valor: kpis.huellas_activas,
+        detalle: `${numero(kpis.huellas_revocadas)} huellas revocadas`,
+        icono: Fingerprint,
+        tono: "verde",
+      },
+      {
+        titulo: "Dispositivos activos",
+        valor: kpis.dispositivos_activos,
+        detalle: `${numero(kpis.dispositivos_mantenimiento)} en mantenimiento`,
+        icono: MonitorCog,
+        tono: "cyan",
+      },
+      {
+        titulo: "Justificaciones pendientes",
+        valor: kpis.justificaciones_pendientes,
+        detalle: "Pendientes de revision por instructor",
+        icono: Bell,
+        tono: "morado",
+      },
+    ];
+    const maximo = Math.max(...resumenCards.map((card) => numero(card.valor)), 1);
+
+    return resumenCards.map((card) => ({
+      ...card,
+      progreso: calcularProgreso(card.valor, maximo),
+    }));
+  }, [kpis]);
+
+  const estadoInstitucional = [
+    { etiqueta: "Areas registradas", valor: kpis.total_areas },
+    { etiqueta: "Programas activos", valor: kpis.total_programas },
+    { etiqueta: "Ambientes activos", valor: kpis.ambientes_activos },
+    { etiqueta: "Observaciones abiertas", valor: kpis.total_observaciones_abiertas },
+  ];
+
+  const novedadesSistema = [
     {
-      titulo: "Usuarios activos",
-      valor: kpis.usuarios_activos,
-      detalle: `${numero(kpis.total_usuarios)} usuarios registrados`,
-      icono: UsersRound,
-      tono: "verde",
-    },
-    {
-      titulo: "Coordinadores",
-      valor: kpis.total_coordinadores,
-      detalle: "Coordinadores institucionales",
       icono: ShieldCheck,
-      tono: "morado",
+      titulo: "Control institucional",
+      texto: `${numero(kpis.total_coordinadores)} coordinadores y ${numero(kpis.total_instructores_activos)} instructores activos.`,
     },
     {
-      titulo: "Instructores activos",
-      valor: kpis.total_instructores_activos,
-      detalle: "Disponibles para grupos y sesiones",
-      icono: UserCheck,
-      tono: "cyan",
-    },
-    {
-      titulo: "Grupos activos",
-      valor: kpis.total_grupos_activos,
-      detalle: `${numero(kpis.total_grupos)} grupos registrados`,
-      icono: Layers,
-      tono: "amarillo",
-    },
-    {
-      titulo: "Alertas activas",
-      valor: kpis.total_alertas_activas,
-      detalle: "Alertas abiertas en seguimiento",
-      icono: AlertTriangle,
-      tono: "rojo",
-      alerta: true,
-    },
-    {
-      titulo: "Huellas activas",
-      valor: kpis.huellas_activas,
-      detalle: `${numero(kpis.huellas_revocadas)} huellas revocadas`,
       icono: Fingerprint,
-      tono: "verde",
+      titulo: "Biometria",
+      texto: `${numero(kpis.huellas_activas)} huellas activas y ${numero(kpis.huellas_revocadas)} revocadas.`,
     },
     {
-      titulo: "Dispositivos activos",
-      valor: kpis.dispositivos_activos,
-      detalle: `${numero(kpis.dispositivos_mantenimiento)} en mantenimiento`,
       icono: MonitorCog,
-      tono: "cyan",
+      titulo: "IoT y ambientes",
+      texto: `${numero(kpis.intentos_iot_hoy)} intentos hoy en ${numero(kpis.ambientes_activos)} ambientes activos.`,
     },
-    {
-      titulo: "Justificaciones pendientes",
-      valor: kpis.justificaciones_pendientes,
-      detalle: "Pendientes de revision por instructor",
-      icono: Bell,
-      tono: "morado",
-    },
-  ]), [kpis]);
+  ];
 
   if (cargando) {
     return (
-      <div className="coordinador-panel">
+      <div className="coordinador-panel superadmin-panel">
         <div className="grupos-alert info">Cargando resumen institucional...</div>
       </div>
     );
   }
 
   return (
-    <div className="coordinador-panel">
+    <div className="coordinador-panel superadmin-panel">
       {error && <div className="grupos-alert danger">{error}</div>}
 
       <section className="dashboard-welcome">
@@ -150,6 +189,12 @@ export default function PanelSuperAdmin() {
                 <span className="coordinador-kpi-icon">
                   <Icon size={29} strokeWidth={2.1} />
                 </span>
+                <span
+                  className="coordinador-kpi-ring"
+                  style={{ "--kpi-progress": `${card.progreso}%` }}
+                  role="img"
+                  aria-label={`${card.progreso}% del total mas alto del resumen`}
+                ></span>
               </div>
               <h2>{card.titulo}</h2>
               <strong>{numero(card.valor)}</strong>
@@ -178,6 +223,48 @@ export default function PanelSuperAdmin() {
               <strong>{numero(kpis.intentos_iot_hoy)} intentos IoT hoy</strong>
               <p>{numero(kpis.ambientes_activos)} ambientes activos de {numero(kpis.total_ambientes)} registrados.</p>
             </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="coordinador-secondary-grid">
+        <article className="coordinador-card coordinador-estado">
+          <h2>Estado institucional</h2>
+          {estadoInstitucional.map((item) => (
+            <div className="coordinador-estado-row" key={item.etiqueta}>
+              <span>{item.etiqueta}</span>
+              <strong>{numero(item.valor)}</strong>
+            </div>
+          ))}
+          <div className="coordinador-meta">
+            <div>
+              <span>Seguimiento global</span>
+              <strong>{numero(kpis.total_alertas_activas)} alertas</strong>
+            </div>
+            <span className="coordinador-meta-track">
+              <span></span>
+            </span>
+          </div>
+        </article>
+
+        <article className="coordinador-novedades">
+          <h2>
+            <ShieldCheck size={21} />
+            Gestion del sistema
+          </h2>
+          <div className="coordinador-novedades-list">
+            {novedadesSistema.map((item) => {
+              const Icon = item.icono;
+              return (
+                <div className="coordinador-novedad-item" key={item.titulo}>
+                  <Icon size={25} />
+                  <div>
+                    <strong>{item.titulo}</strong>
+                    <p>{item.texto}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </article>
       </section>

@@ -38,6 +38,8 @@ import {
   obtenerSesionAbiertaPorGrupo,
   registrarAsistenciaManual
 } from "./asistencia.service";
+import { registrarAsistenciaPorHuellaLocal } from "../../../services/localBiominiService";
+import { API_BASE_URL } from "../../../services/apiConfig";
 import {
   combinarAprendicesConAsistencias,
   construirHistorialAsistencia,
@@ -183,6 +185,9 @@ export default function AsistenciaInstructor() {
   const [qrSesion, setQrSesion] = useState(null);
   const [guardandoAsistencia, setGuardandoAsistencia] = useState(false);
   const [modalHuellaAbierto, setModalHuellaAbierto] = useState(false);
+  const [leyendoHuella, setLeyendoHuella] = useState(false);
+  const [estadoHuella, setEstadoHuella] = useState("ESPERANDO");
+  const [detalleHuella, setDetalleHuella] = useState("Coloca el dedo en el lector para registrar la asistencia del aprendiz.");
   const [qrAbierto, setQrAbierto] = useState(false);
   const [qrPantallaCompleta, setQrPantallaCompleta] = useState(false);
   const [resumenGrande, setResumenGrande] = useState(false);
@@ -686,6 +691,52 @@ export default function AsistenciaInstructor() {
     }
   }
 
+  async function iniciarRegistroHuella() {
+    const idSesion = obtenerIdSesion(sesionActiva);
+    if (!idSesion) {
+      setEstadoHuella("ERROR");
+      setDetalleHuella("No hay una sesion abierta para registrar asistencia por huella.");
+      return;
+    }
+
+    setLeyendoHuella(true);
+    setEstadoHuella("LEYENDO");
+    setDetalleHuella("Encendiendo lector BioMini. Coloca el dedo cuando el sensor active la lectura.");
+    setMensaje("");
+    setMensajeError(false);
+
+    try {
+      const resultado = await registrarAsistenciaPorHuellaLocal({
+        id_sesion_formacion: Number(idSesion),
+        backend_base_url: API_BASE_URL || "http://localhost:3000",
+      });
+
+      const backendMessage = resultado?.backend_response?.message || resultado?.backend_response?.codigo;
+      const usuarioIdentificado = resultado?.id_usuario ? ` Usuario identificado: ${resultado.id_usuario}.` : "";
+
+      if (resultado?.match_status === "MATCH_OK") {
+        setEstadoHuella("REGISTRADA");
+        setDetalleHuella(`${backendMessage || "Asistencia registrada por huella."}${usuarioIdentificado}`);
+        setMensajeError(false);
+        setMensaje("Asistencia registrada por huella correctamente.");
+      } else {
+        setEstadoHuella("NO_IDENTIFICADA");
+        setDetalleHuella(backendMessage || "Huella no identificada. Intenta nuevamente o usa QR/manual.");
+        setMensajeError(true);
+        setMensaje("No se pudo identificar la huella.");
+      }
+
+      await recargarAsistenciasSesion(sesionActiva);
+    } catch (error) {
+      setEstadoHuella("ERROR");
+      setDetalleHuella(error?.message || "No fue posible registrar asistencia por huella.");
+      setMensajeError(true);
+      setMensaje(obtenerMensajeError(error, "No fue posible registrar asistencia por huella."));
+    } finally {
+      setLeyendoHuella(false);
+    }
+  }
+
   function abrirModalHuella() {
     if (!haySesionActiva) {
       setMensajeError(true);
@@ -695,7 +746,10 @@ export default function AsistenciaInstructor() {
     const anchoModal = 340;
     const x = Math.min(Math.max(12, window.innerWidth - anchoModal - 28), 580);
     setPosicionHuella({ x, y: 190 });
+    setEstadoHuella("ESPERANDO");
+    setDetalleHuella("Preparando lector BioMini...");
     setModalHuellaAbierto(true);
+    iniciarRegistroHuella();
   }
 
   async function alternarQr() {
@@ -1334,12 +1388,30 @@ export default function AsistenciaInstructor() {
           </div>
 
           <div className="asistencia-fingerprint-body">
-            <div className="asistencia-fingerprint-icon">
+            <div className={`asistencia-fingerprint-icon ${String(estadoHuella).toLowerCase()}`}>
               <Fingerprint size={76} />
             </div>
-            <h2>Esperando lectura</h2>
-            <p>Coloca el dedo en el lector para registrar la asistencia del aprendiz.</p>
-            <span>Dispositivo conectado</span>
+            <h2>
+              {leyendoHuella && "Leyendo huella"}
+              {!leyendoHuella && estadoHuella === "REGISTRADA" && "Asistencia registrada"}
+              {!leyendoHuella && estadoHuella === "NO_IDENTIFICADA" && "Huella no identificada"}
+              {!leyendoHuella && estadoHuella === "ERROR" && "Error de lectura"}
+              {!leyendoHuella && !["REGISTRADA", "NO_IDENTIFICADA", "ERROR"].includes(estadoHuella) && "Esperando lectura"}
+            </h2>
+            <p>{detalleHuella}</p>
+            <span>
+              {leyendoHuella ? "Lector en captura" : haySesionActiva ? "Dispositivo conectado" : "Sin sesion abierta"}
+            </span>
+            {!leyendoHuella && estadoHuella !== "REGISTRADA" && (
+              <button
+                type="button"
+                className="asistencia-fingerprint-retry"
+                onClick={iniciarRegistroHuella}
+                disabled={!haySesionActiva}
+              >
+                Reintentar lectura
+              </button>
+            )}
           </div>
         </section>
       )}
