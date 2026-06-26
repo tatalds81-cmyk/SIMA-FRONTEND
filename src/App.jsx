@@ -5,6 +5,7 @@ import { ToastContainer } from "react-toastify";
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelCoordinador from "./pages/coordinador/PanelCoordinador";
+import PanelSuperAdmin from "./pages/superadmin/PanelSuperAdmin";
 import RegistroAprendices from "./pages/instructor/RegistroAprendices";
 import PanelInstructor from "./pages/instructor/PanelInstructor";
 import InstructorSeccion from "./pages/instructor/InstructorSeccion";
@@ -20,6 +21,7 @@ import ConsultarAlertas from "./pages/alertas/ConsultarAlertas";
 import AlertasCoordinador from "./pages/alertas/AlertasCoordinador";
 import DetalleAlerta from "./pages/alertas/DetalleAlerta";
 import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
+import HuellasBiometricas from "./pages/biometria/HuellasBiometricas";
 import { limpiarSesionUsuario } from "./utils/storage";
 
 function App() {
@@ -41,10 +43,13 @@ function App() {
 
   const esInstructor = rol === "instructor" || rol === "instructor_lider" || rol === "instructor_asignado";
   const esCoordinador = rol === "coordinador";
-  const esRolWebValido = esInstructor || esCoordinador;
+  const esSuperAdmin = rol === "super_admin";
+  const esRolWebValido = esInstructor || esCoordinador || esSuperAdmin;
   const rutaInicio = esInstructor
     ? "/instructor/dashboard"
-    : esCoordinador
+    : esSuperAdmin
+      ? "/dashboard"
+      : esCoordinador
       ? "/dashboard"
       : "/login";
 
@@ -83,6 +88,10 @@ function App() {
               element={
                 esInstructor ? (
                   <Navigate to="/instructor/dashboard" replace />
+                ) : esSuperAdmin ? (
+                  <Dashboard onLogout={manejarLogout}>
+                    <PanelSuperAdmin />
+                  </Dashboard>
                 ) : (
                   <Dashboard onLogout={manejarLogout}>
                     <PanelCoordinador />
@@ -208,6 +217,15 @@ function App() {
                     <Usuario />
                   </Dashboard>
                 )
+              }
+            />
+
+            <Route
+              path="/biometria/huellas"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <HuellasBiometricas />
+                </Dashboard>
               }
             />
 

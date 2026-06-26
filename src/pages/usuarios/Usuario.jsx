@@ -34,6 +34,7 @@ export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [busquedaDocumento, setBusquedaDocumento] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
@@ -53,14 +54,17 @@ export default function Usuario() {
   const [telefono, setTelefono] = useState("");
   const [rol, setRol] = useState("");
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
+  const [areaSeleccionada, setAreaSeleccionada] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [errorUsuarios, setErrorUsuarios] = useState("");
   const [errorRoles, setErrorRoles] = useState("");
   const [errorGrupos, setErrorGrupos] = useState("");
+  const [errorAreas, setErrorAreas] = useState("");
 
   const URL_USUARIOS = "/api/users";
   const URL_ROLES = "/api/roles";
   const URL_GRUPOS = "/api/groups";
+  const URL_AREAS = "/api/coordinator-areas/areas";
   const USUARIOS_POR_PAGINA = 5;
   const LIMITE_CARGA_USUARIOS = 1000;
 
@@ -68,6 +72,7 @@ export default function Usuario() {
     cargarUsuarios();
     cargarRoles();
     cargarGrupos();
+    cargarAreas();
   }, []);
 
   function obtenerHeaders() {
@@ -200,6 +205,39 @@ export default function Usuario() {
     }
   }
 
+  async function cargarAreas() {
+    try {
+      setErrorAreas("");
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      if (!token) {
+        setErrorAreas("Debe iniciar sesion para cargar las areas.");
+        return;
+      }
+
+      const res = await fetch(URL_AREAS, {
+        method: "GET",
+        headers: obtenerHeaders()
+      });
+
+      const responseData = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw responseData || { message: "No se pudieron cargar las areas de formacion" };
+      }
+
+      const datos =
+        responseData?.data?.areas ||
+        responseData?.areas ||
+        responseData?.data ||
+        responseData?.results ||
+        (Array.isArray(responseData) ? responseData : []);
+
+      setAreas(Array.isArray(datos) ? datos : []);
+    } catch (error) {
+      console.error(error);
+      setErrorAreas(error?.message || "Error al cargar las areas de formacion");
+    }
+  }
+
   function aplicarFiltrosUsuarios({
     texto = busquedaDocumento,
     rolFiltro = filtroRol,
@@ -270,8 +308,13 @@ export default function Usuario() {
     }
 
     const esAprendiz = esRolAprendiz(rol);
+    const esCoordinador = esRolCoordinador(rol);
     if (esAprendiz && !grupoSeleccionado) {
       setMensaje("Debe seleccionar la ficha activa a la que pertenece el aprendiz.");
+      return;
+    }
+    if (esCoordinador && !areaSeleccionada) {
+      setMensaje("Debe seleccionar el area a la que pertenece el coordinador.");
       return;
     }
 
@@ -287,6 +330,10 @@ export default function Usuario() {
 
     if (esAprendiz) {
       data.id_grupo = parseInt(grupoSeleccionado, 10);
+    }
+
+    if (esCoordinador) {
+      data.id_area = parseInt(areaSeleccionada, 10);
     }
 
     try {
@@ -447,10 +494,11 @@ export default function Usuario() {
     setTelefono("");
     setRol("");
     setGrupoSeleccionado("");
+    setAreaSeleccionada("");
   }
 
-  function limitarNumero10Digitos(valor) {
-    return valor.replace(/\D/g, "").slice(0, 10);
+  function limitarDigitos(valor, maximo) {
+    return valor.replace(/\D/g, "").slice(0, maximo);
   }
 
   function obtenerNombreRol(item) {
@@ -468,10 +516,17 @@ export default function Usuario() {
     return obtenerNombreRolPorId(idRol).toLowerCase() === "aprendiz";
   }
 
+  function esRolCoordinador(idRol) {
+    return obtenerNombreRolPorId(idRol).toLowerCase() === "coordinador";
+  }
+
   function cambiarRolCrear(valor) {
     setRol(valor);
     if (!esRolAprendiz(valor)) {
       setGrupoSeleccionado("");
+    }
+    if (!esRolCoordinador(valor)) {
+      setAreaSeleccionada("");
     }
   }
 
@@ -537,6 +592,7 @@ export default function Usuario() {
       {errorUsuarios && <div className="usuarios-alert danger">{errorUsuarios}</div>}
       {errorRoles && <div className="usuarios-alert warning">{errorRoles}</div>}
       {errorGrupos && <div className="usuarios-alert warning">{errorGrupos}</div>}
+      {errorAreas && <div className="usuarios-alert warning">{errorAreas}</div>}
 
       <section className="usuarios-toolbar">
         <div className="usuarios-search">
@@ -813,13 +869,13 @@ export default function Usuario() {
                   <input
                     type="text"
                     inputMode="numeric"
-                    maxLength={10}
-                    minLength={10}
-                    pattern="[0-9]{10}"
+                    maxLength={15}
+                    minLength={8}
+                    pattern="[0-9]{8,15}"
                     placeholder="Numero de cedula"
-                    title="Ingrese 10 digitos numericos"
+                    title="Ingrese entre 8 y 15 digitos numericos"
                     value={numeroDocumento}
-                    onChange={(e) => setNumeroDocumento(limitarNumero10Digitos(e.target.value))}
+                    onChange={(e) => setNumeroDocumento(limitarDigitos(e.target.value, 15))}
                     required
                   />
                 </label>
@@ -841,7 +897,7 @@ export default function Usuario() {
                     placeholder="Numero de celular"
                     title="Ingrese 10 digitos numericos"
                     value={telefono}
-                    onChange={(e) => setTelefono(limitarNumero10Digitos(e.target.value))}
+                    onChange={(e) => setTelefono(limitarDigitos(e.target.value, 10))}
                     required
                   />
                 </label>
@@ -872,6 +928,26 @@ export default function Usuario() {
                       {grupos.map((item) => (
                         <option key={item.id_grupo} value={item.id_grupo}>
                           {obtenerEtiquetaGrupo(item)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              {esRolCoordinador(rol) && (
+                <div className="usuarios-form-grid usuarios-form-grid-single">
+                  <label>
+                    <span>Area asignada</span>
+                    <select
+                      value={areaSeleccionada}
+                      onChange={(e) => setAreaSeleccionada(e.target.value)}
+                      required
+                    >
+                      <option value="">Seleccione el area del coordinador</option>
+                      {areas.map((item) => (
+                        <option key={item.id_area} value={item.id_area}>
+                          {item.nombre_area || item.nombre || `Area ${item.id_area}`}
                         </option>
                       ))}
                     </select>
