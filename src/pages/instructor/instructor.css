@@ -632,8 +632,8 @@
 }
 
 .instructor-calendar-day.pendiente {
-  background: linear-gradient(180deg, #fff7ed 0%, #fffaf5 100%);
-  border-color: #fed7aa;
+  background: linear-gradient(180deg, #fff7e6 0%, #fffbeb 100%);
+  border-color: #f8d79a;
 }
 
 .instructor-calendar-day.con-sesiones {
@@ -704,8 +704,8 @@
 }
 
 .instructor-calendar-session.pendiente {
-  border-left-color: #f97316;
-  background: #fff7ed;
+  border-left-color: #f5b400;
+  background: #fffbeb;
 }
 
 .instructor-calendar-session.clickable {
@@ -808,7 +808,7 @@
 }
 
 .instructor-calendar-legend i.pendiente {
-  background: #f97316;
+  background: #f5b400;
 }
 
 .instructor-calendar-card-dark {
@@ -919,7 +919,7 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-legend i.pendiente {
-  background: #f97316;
+  background: #f5b400;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-grid {
@@ -955,6 +955,12 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-day.proxima .instructor-calendar-head {
+  border-color: #f5b400;
+  background: #fff5d9;
+  color: #0b2442;
+}
+
+.instructor-calendar-card-dark .instructor-calendar-day.pendiente .instructor-calendar-head {
   border-color: #f5b400;
   background: #fff5d9;
   color: #0b2442;
@@ -1011,8 +1017,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-session.pendiente {
-  border-left-color: #f97316;
-  background: #fff7ed;
+  border-left-color: #f5b400;
+  background: #fffbeb;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-time {
@@ -1061,8 +1067,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-session.pendiente em {
-  background: #ffedd5;
-  color: #c2410c;
+  background: #fff5d9;
+  color: #9a6b00;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-empty {
@@ -1967,6 +1973,12 @@
   color: #0b2442;
 }
 
+.asistencia-status.pendiente {
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .asistencia-actions {
   display: flex;
   flex-wrap: nowrap;
@@ -2642,6 +2654,26 @@
   color: #0b2442;
 }
 
+.asistencia-fingerprint-icon.leyendo {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #238500;
+  box-shadow: 0 0 0 8px rgba(35, 133, 0, 0.08);
+}
+
+.asistencia-fingerprint-icon.registrada {
+  border-color: #22c55e;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.asistencia-fingerprint-icon.no_identificada,
+.asistencia-fingerprint-icon.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .asistencia-fingerprint-body h2 {
   margin: 4px 0 0;
   color: #0b2442;
@@ -2666,6 +2698,22 @@
   color: #238500;
   font-size: 11px;
   font-weight: 800;
+}
+
+.asistencia-fingerprint-retry {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: #0b2442;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.asistencia-fingerprint-retry:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .asistencia-faltantes-modal {
@@ -2922,6 +2970,11 @@
 .asistencia-da-dot.justificado {
   background: #0b2442;
   box-shadow: 0 0 0 2px #bfdbfe;
+}
+
+.asistencia-da-dot.pendiente {
+  background: #94a3b8;
+  box-shadow: 0 0 0 2px #e2e8f0;
 }
 
 .asistencia-da-metodo {
@@ -3308,6 +3361,21 @@
 .asistencia-detalle-body .da-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Ajuste final horario semanal: leyenda y datos normales, titulo/subtitulo con peso. */
+.instructor-calendar-card-dark .instructor-calendar-legend,
+.instructor-calendar-card-dark .instructor-calendar-legend span,
+.instructor-calendar-card-dark .instructor-calendar-time,
+.instructor-calendar-card-dark .instructor-calendar-session small,
+.instructor-calendar-card-dark .instructor-calendar-session em,
+.instructor-calendar-card-dark .instructor-calendar-jornada-control select {
+  font-weight: 400 !important;
+}
+
+.instructor-calendar-card-dark h2,
+.instructor-calendar-card-dark .instructor-calendar-session strong {
+  font-weight: 800 !important;
 }
 
 

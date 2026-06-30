@@ -1,6 +1,6 @@
 ﻿import './badges.css';
 
-// Paleta de colores determinÃ­stica (azul oscuro, verde azulado, morado, azul medio)
+// Paleta de colores determinística (azul oscuro, verde azulado, morado, azul medio)
 const PALETA = [
   '#0B2442', // azul oscuro
   '#1a6b6b', // verde azulado
@@ -13,8 +13,8 @@ const PALETA = [
 ];
 
 /**
- * Genera un Ã­ndice de color determinÃ­stico a partir del nombre.
- * El mismo nombre siempre producirÃ¡ el mismo color.
+ * Genera un índice de color determinístico a partir del nombre.
+ * El mismo nombre siempre producirá el mismo color.
  */
 function colorDesdNombre(nombre) {
   let hash = 0;
@@ -26,14 +26,14 @@ function colorDesdNombre(nombre) {
 
 /**
  * Extrae las iniciales del nombre completo.
- * Toma la 1Âª letra del primer y segundo token (ignorando partÃ­culas cortas).
+ * Toma la 1ª letra del primer y segundo token (ignorando partículas cortas).
  */
 function iniciales(nombre) {
   if (!nombre) return '?';
   const partes = nombre
     .trim()
     .split(/\s+/)
-    .filter((p) => p.length > 1); // ignora partÃ­culas tipo "de", "la"
+    .filter((p) => p.length > 1); // ignora partículas tipo "de", "la"
   if (partes.length === 0) return '?';
   if (partes.length === 1) return partes[0][0].toUpperCase();
   return (partes[0][0] + partes[1][0]).toUpperCase();

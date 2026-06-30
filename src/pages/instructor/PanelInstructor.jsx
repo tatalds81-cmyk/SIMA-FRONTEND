@@ -186,7 +186,7 @@ const obtenerIdsAsignacionInstructorActual = (asignaciones = [], identidad = obt
 };
 const horarioPerteneceInstructorActual = (horario, idsAsignacionActual, identidad = obtenerIdentidadInstructorActual()) => {
   const idAsignacion = horario.id_instructor_grupo || horario.instructor_grupo?.id_instructor_grupo;
-  if (idAsignacion) return idsAsignacionActual.has(String(idAsignacion));
+  if (idAsignacion && idsAsignacionActual.has(String(idAsignacion))) return true;
 
   const tieneInstructor =
     horario.id_instructor ||
@@ -196,7 +196,7 @@ const horarioPerteneceInstructorActual = (horario, idsAsignacionActual, identida
     horario.usuario?.id_usuario ||
     horario.instructor?.usuario?.id_usuario;
 
-  return tieneInstructor ? itemPerteneceInstructorActual(horario, identidad) : true;
+  return tieneInstructor ? itemPerteneceInstructorActual(horario, identidad) : false;
 };
 const combinarGrupos = (...listas) => {
   const grupos = new Map();

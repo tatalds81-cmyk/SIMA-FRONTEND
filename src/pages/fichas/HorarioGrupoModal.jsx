@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from "react";
-import { ChevronDown, Plus, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, CalendarX, Check, ChevronDown, Plus, RefreshCw, X } from "lucide-react";
 import api from "../../services/api";
 
 const API_URL = "/api";
@@ -13,8 +13,8 @@ const OPCIONES_INICIALES = {
 };
 const BLOQUES_JORNADA_RESPALDO = {
   MANANA: [
-    { id_bloque_jornada: 1, jornada: "MAÑANA", nombre_bloque: "Bloque mañana 1", orden: 1, hora_inicio: "07:00:00", hora_fin: "09:30:00" },
-    { id_bloque_jornada: 2, jornada: "MAÑANA", nombre_bloque: "Bloque mañana 2", orden: 2, hora_inicio: "10:00:00", hora_fin: "12:30:00" },
+    { id_bloque_jornada: 1, jornada: "MANANA", nombre_bloque: "Bloque manana 1", orden: 1, hora_inicio: "07:00:00", hora_fin: "09:30:00" },
+    { id_bloque_jornada: 2, jornada: "MANANA", nombre_bloque: "Bloque manana 2", orden: 2, hora_inicio: "10:00:00", hora_fin: "12:30:00" },
   ],
   TARDE: [
     { id_bloque_jornada: 3, jornada: "TARDE", nombre_bloque: "Bloque tarde 1", orden: 1, hora_inicio: "14:00:00", hora_fin: "16:30:00" },
@@ -133,6 +133,19 @@ function normalizarHora(valor) {
   return texto ? texto.slice(0, 5) : "-";
 }
 
+function obtenerInicialesHorario(nombre) {
+  const partes = String(nombre || "SI")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return `${partes[0]?.[0] || "S"}${partes[1]?.[0] || ""}`.toUpperCase();
+}
+
+function obtenerDiaNumeroHorario(dia) {
+  const indice = DIAS_SEMANA.findIndex((item) => normalizarBusqueda(item) === normalizarBusqueda(dia));
+  return indice >= 0 ? String(indice + 1) : "1";
+}
+
 function obtenerNombreInstructor(item) {
   const instructor = item.instructor_grupo?.instructor || item.instructor || {};
   const instructorTexto = typeof instructor === "string" ? instructor.trim() : "";
@@ -167,7 +180,7 @@ function normalizarBusqueda(valor) {
 
 function normalizarJornada(valor) {
   const texto = normalizarBusqueda(valor).toUpperCase();
-  if (texto.includes("MAÑANA")) return "MAÑANA";
+  if (texto.includes("MANANA") || texto.includes("MAÃ‘ANA")) return "MANANA";
   if (texto.includes("TARDE")) return "TARDE";
   if (texto.includes("NOCHE")) return "NOCHE";
   if (texto.includes("SABADO")) return "SABADO";
@@ -201,9 +214,28 @@ function obtenerFechaFinSesiones(fechaInicio, semanas) {
 
 function completarOpcionesDesdeGrupo(opciones, grupo) {
   const jornada = normalizarJornada(grupo?.jornada);
-  const bloques = opciones.bloques.length
+  const bloquesBase = opciones.bloques.length
     ? opciones.bloques
     : BLOQUES_JORNADA_RESPALDO[jornada] || [];
+  const bloques = [...bloquesBase];
+  const tieneBloqueCompleto = bloques.some((bloque) =>
+    String(bloque.nombre_bloque || "").toLowerCase().includes("completo")
+  );
+
+  if (!tieneBloqueCompleto && bloques.length >= 2) {
+    const ordenados = [...bloques].sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0));
+    const primero = ordenados[0];
+    const ultimo = ordenados[ordenados.length - 1];
+    bloques.push({
+      id_bloque_jornada: `completo-${primero.id_bloque_jornada}-${ultimo.id_bloque_jornada}`,
+      jornada: primero.jornada,
+      nombre_bloque: "Bloque completo",
+      orden: 99,
+      hora_inicio: primero.hora_inicio,
+      hora_fin: ultimo.hora_fin,
+      esBloqueCompleto: true,
+    });
+  }
 
   return {
     ...opciones,
@@ -251,6 +283,8 @@ function obtenerNombreAmbiente(item) {
 export function normalizarHorario(item, index = 0) {
   return {
     id: item.id_horario || item.id_sesion_formacion || item.id || `${item.dia || item.dia_semana || "dia"}-${index}`,
+    idInstructorGrupo: item.id_instructor_grupo || item.instructor_grupo?.id_instructor_grupo || "",
+    estadoInstructorGrupo: item.instructor_grupo?.estado || item.estado_instructor_grupo || "",
     dia: normalizarDia(item.dia || item.dia_semana || item.day || item.nombre_dia || diaDesdeFecha(item.fecha_clase)),
     horaInicio: normalizarHora(
       item.hora_inicio ||
@@ -281,6 +315,22 @@ export function normalizarHorario(item, index = 0) {
       "Actividad academica",
     trimestre: item.grupo_trimestre?.numero_trimestre || item.numero_trimestre || "",
   };
+}
+
+function filtrarHorariosConInstructorActivo(horarios, instructoresGrupo = []) {
+  const idsAsignacionesActivas = new Set(
+    instructoresGrupo
+      .filter((item) => String(item.estado || "ACTIVO").toUpperCase() === "ACTIVO")
+      .map((item) => String(obtenerIdInstructorGrupo(item)))
+      .filter(Boolean)
+  );
+
+  return horarios.filter((horario) => {
+    const estadoAsignacion = String(horario.estadoInstructorGrupo || "ACTIVO").toUpperCase();
+    if (estadoAsignacion === "INACTIVO") return false;
+    if (!idsAsignacionesActivas.size || !horario.idInstructorGrupo) return true;
+    return idsAsignacionesActivas.has(String(horario.idInstructorGrupo));
+  });
 }
 
 export function obtenerIdGrupo(grupo) {
@@ -441,19 +491,26 @@ export async function consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones 
     api.get(`${API_URL}/instructor-groups/grupo/${idGrupoSeguro}`).catch(() => ({ data: [] })),
   ]);
 
-  let horarios = extraerListaHorarios(horariosRespuesta.data)
-    .map(normalizarHorario)
-    .filter((horario) => horario.dia);
-
-  if (!horarios.length && usarFallbackSesiones) {
-    const { data } = await api.get(`${API_URL}/educational-sessions?id_grupo=${idGrupoSeguro}&limit=100`);
-    horarios = extraerListaHorarios(data)
-      .map(normalizarHorario)
-      .filter((horario) => horario.dia);
-  }
-
   const opciones = extraerOpcionesHorario(catalogosRespuesta.data);
   const instructoresGrupo = extraerListaInstructoresGrupo(instructoresRespuesta.data);
+
+  const horariosBase = extraerListaHorarios(horariosRespuesta.data);
+  let horarios = filtrarHorariosConInstructorActivo(
+    horariosBase
+    .map(normalizarHorario)
+      .filter((horario) => horario.dia),
+    instructoresGrupo
+  );
+
+  if (!horariosBase.length && usarFallbackSesiones) {
+    const { data } = await api.get(`${API_URL}/educational-sessions?id_grupo=${idGrupoSeguro}&limit=100`);
+    horarios = filtrarHorariosConInstructorActivo(
+      extraerListaHorarios(data)
+        .map(normalizarHorario)
+        .filter((horario) => horario.dia),
+      instructoresGrupo
+    );
+  }
 
   return {
     horarios,
@@ -467,6 +524,8 @@ export async function consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones 
 export default function HorarioGrupoModal({
   grupo,
   onClose,
+  onSaved,
+  horarioReasignando,
   obtenerCodigo,
   obtenerPrograma,
 }) {
@@ -474,6 +533,7 @@ export default function HorarioGrupoModal({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [opciones, setOpciones] = useState(OPCIONES_INICIALES);
+  const [horariosActuales, setHorariosActuales] = useState([]);
   const [formHorario, setFormHorario] = useState(HORARIO_FORM_INICIAL);
   const [busquedaCompetencia, setBusquedaCompetencia] = useState("");
   const [competenciaAbierta, setCompetenciaAbierta] = useState(false);
@@ -483,6 +543,7 @@ export default function HorarioGrupoModal({
   const [mensajeForm, setMensajeForm] = useState("");
   const [mensajeFormTipo, setMensajeFormTipo] = useState("success");
   const [idGrupoCatalogo, setIdGrupoCatalogo] = useState("");
+  const [pantallaHorario, setPantallaHorario] = useState(() => horarioReasignando ? "reasignar" : "crear");
 
   useEffect(() => {
     let activo = true;
@@ -504,6 +565,7 @@ export default function HorarioGrupoModal({
         const opcionesCompletas = completarOpcionesDesdeGrupo(dataHorario.opciones, grupo);
         setIdGrupoCatalogo(idGrupoReal);
         setOpciones(opcionesCompletas);
+        setHorariosActuales(dataHorario.horarios || []);
         setFormHorario((actual) => completarFormHorario(actual, opcionesCompletas));
         setError("");
       } catch (err) {
@@ -526,6 +588,16 @@ export default function HorarioGrupoModal({
     };
   }, [grupo]);
 
+  useEffect(() => {
+    if (!horarioReasignando) return;
+    setPantallaHorario("reasignar");
+    setFormHorario((actual) => ({
+      ...actual,
+      dias_semana: [obtenerDiaNumeroHorario(horarioReasignando.dia)]
+    }));
+    setBusquedaInstructor(horarioReasignando.instructor || "");
+  }, [horarioReasignando]);
+
   if (!grupo) return null;
 
   const codigo = obtenerCodigo ? obtenerCodigo(grupo) : obtenerIdGrupo(grupo);
@@ -534,9 +606,13 @@ export default function HorarioGrupoModal({
   const bloquesSeleccionadosIds = Array.isArray(formHorario.id_bloques_jornada)
     ? formHorario.id_bloques_jornada.map(String)
     : [];
-  const bloquesSeleccionados = opciones.bloques.filter((bloque) =>
+  const bloquesSeleccionadosVista = opciones.bloques.filter((bloque) =>
     bloquesSeleccionadosIds.includes(String(bloque.id_bloque_jornada))
   );
+  const bloquesSeleccionados = bloquesSeleccionadosVista.flatMap((bloque) => {
+    if (!bloque.esBloqueCompleto) return [bloque];
+    return opciones.bloques.filter((item) => !item.esBloqueCompleto);
+  });
   const competenciaSeleccionada = opciones.competencias.find(
     (item) => String(obtenerIdCompetencia(item)) === String(formHorario.id_clase_competencia)
   );
@@ -574,6 +650,13 @@ export default function HorarioGrupoModal({
       semanasValidas &&
       !guardando
   );
+  const modoReasignacion = pantallaHorario === "reasignar";
+  const horariosPorDia = DIAS_SEMANA.map((dia) => ({
+    dia,
+    horarios: horariosActuales
+      .filter((horario) => horario.dia === dia)
+      .sort((a, b) => String(a.horaInicio).localeCompare(String(b.horaInicio)))
+  }));
 
   function completarFormHorario(actual, opcionesActuales) {
     const bloquesActuales = Array.isArray(actual.id_bloques_jornada) ? actual.id_bloques_jornada.map(String) : [];
@@ -590,7 +673,7 @@ export default function HorarioGrupoModal({
         "",
       id_instructor_grupo: actual.id_instructor_grupo || "",
       dias_semana: Array.isArray(actual.dias_semana) && actual.dias_semana.length ? actual.dias_semana : ["1"],
-      id_bloques_jornada: bloquesValidos.length ? bloquesValidos : bloquesDisponibles,
+      id_bloques_jornada: bloquesValidos,
       semanas: actual.semanas || "16",
       tolerancia_minutos: actual.tolerancia_minutos || "15",
     };
@@ -673,6 +756,12 @@ export default function HorarioGrupoModal({
     });
   }
 
+  function seleccionarDiaUnico(valor) {
+    setMensajeForm("");
+    setMensajeFormTipo("success");
+    setFormHorario((actual) => ({ ...actual, dias_semana: [valor] }));
+  }
+
   function alternarBloqueHorario(valor) {
     setMensajeForm("");
     setMensajeFormTipo("success");
@@ -694,6 +783,7 @@ export default function HorarioGrupoModal({
     const dataHorario = await consultarHorarioGrupoData(idGrupo, { usarFallbackSesiones: false });
     const opcionesCompletas = completarOpcionesDesdeGrupo(dataHorario.opciones, grupo);
     setOpciones(opcionesCompletas);
+    setHorariosActuales(dataHorario.horarios || []);
     setFormHorario((actual) => completarFormHorario(actual, opcionesCompletas));
     return dataHorario;
   }
@@ -795,15 +885,23 @@ export default function HorarioGrupoModal({
       setBusquedaInstructor("");
       setFormHorario((actual) => ({ ...actual, id_instructor_grupo: "" }));
 
+      if (!creados && duplicados.length) {
+        setMensajeFormTipo("error");
+        setMensajeForm(
+          `Ya existe un horario para ${duplicados.join(", ")}. Para cambiarlo, usa "Cambiar horario" sobre el bloque actual y selecciona la nueva informacion.`
+        );
+        return;
+      }
+
+      if (!creados && fallidos.length) {
+        throw new Error(fallidos[0]);
+      }
+
       window.dispatchEvent(
         new CustomEvent("sima:horarios-actualizados", {
           detail: { idGrupo, total: dataHorarioActualizado.horarios.length },
         })
       );
-
-      if (!creados && fallidos.length) {
-        throw new Error(fallidos[0]);
-      }
 
       const partesMensaje = [];
       if (creados) partesMensaje.push(`${creados} horario${creados === 1 ? "" : "s"} creado${creados === 1 ? "" : "s"}.`);
@@ -814,6 +912,16 @@ export default function HorarioGrupoModal({
 
       setMensajeFormTipo(fallidos.length || sesionesFallidas.length || (!creados && duplicados.length) ? "warning" : "success");
       setMensajeForm(partesMensaje.join(" ") || "No se crearon horarios nuevos.");
+
+      if (creados || sesionesGeneradas) {
+        onSaved?.({
+          idGrupo,
+          total: dataHorarioActualizado.horarios.length,
+          creados,
+          sesionesGeneradas,
+          duplicados: duplicados.length,
+        });
+      }
     } catch (err) {
       setMensajeFormTipo("error");
       setMensajeForm(err.message || "No fue posible crear el horario.");
@@ -823,212 +931,218 @@ export default function HorarioGrupoModal({
   }
 
   return (
-    <div className="grupos-modal-backdrop" role="presentation">
-      <section className="grupos-modal grupos-horario-modal" role="dialog" aria-modal="true" aria-labelledby="horario-grupo-title">
-        <div className="grupos-modal-header">
-          <div>
-            <span className="grupos-eyebrow">Horario academico</span>
-            <h2 id="horario-grupo-title">Ficha {codigo}</h2>
-            <p>{programa} - {grupo.jornada || "Jornada sin registrar"}</p>
-          </div>
-          <button type="button" className="grupos-close-btn" onClick={onClose} aria-label="Cerrar horario">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="grupos-horario-body">
-          {cargando && (
-            <div className="grupos-horario-empty">
-              <RefreshCw size={18} />
-              Cargando horario...
+    <div className="grupos-modal-backdrop grupos-horario-backdrop" role="presentation">
+      <section className={`grupos-modal grupos-horario-modal ${modoReasignacion ? "reasignacion" : ""}`} role="dialog" aria-modal="true" aria-labelledby="horario-grupo-title">
+        <form className="grupos-horario-shell" onSubmit={guardarBloqueHorario}>
+          <div className="grupos-horario-dark-header">
+            <div>
+              <span className={`grupos-horario-kicker ${modoReasignacion ? "danger" : ""}`}>
+                {modoReasignacion ? <AlertTriangle size={13} /> : null}
+                {modoReasignacion ? "Reasignar horario" : "Horario academico"}
+              </span>
+              <h2 id="horario-grupo-title">Ficha {codigo}</h2>
+              <p>{programa} - {grupo.jornada || "Jornada sin registrar"}</p>
             </div>
-          )}
+            <button type="button" className="grupos-horario-close" onClick={onClose} aria-label="Cerrar horario">
+              <X size={18} />
+            </button>
+          </div>
 
-          {!cargando && error && <div className="grupos-horario-empty">{error}</div>}
+          <div className="grupos-horario-body">
+            {cargando && (
+              <div className="grupos-horario-empty dark">
+                <RefreshCw size={18} />
+                Cargando horario...
+              </div>
+            )}
 
-          {!cargando && !error && (
-            <form className="grupos-horario-form" onSubmit={guardarBloqueHorario}>
-              <div className="grupos-horario-form-grid">
-                <label>
-                  <span>Trimestre</span>
-                  <select name="id_grupo_trimestre" value={formHorario.id_grupo_trimestre} onChange={cambiarFormHorario} required>
-                    <option value="">Seleccione</option>
-                    {opciones.trimestres.map((trimestre) => (
-                      <option key={trimestre.id_grupo_trimestre} value={trimestre.id_grupo_trimestre}>
-                        Trimestre {trimestre.numero_trimestre} - {trimestre.estado}
-                      </option>
-                    ))}
-                  </select>
-                  {!opciones.trimestres.length && (
-                    <small className="grupos-horario-field-hint">
-                      No hay trimestres programados o activos para esta ficha.
-                    </small>
-                  )}
-                </label>
+            {!cargando && error && <div className="grupos-horario-empty dark">{error}</div>}
 
-                <div className="grupos-horario-form-field grupos-horario-form-wide">
-                  <span>Competencia</span>
-                  <div className={`grupos-horario-dropdown ${competenciaAbierta ? "open" : ""}`}>
-                    <div className="grupos-horario-combobox">
-                      <input
-                        type="text"
-                        value={textoCompetencia}
-                        onChange={cambiarBusquedaCompetencia}
-                        onFocus={() => setCompetenciaAbierta(true)}
-                        placeholder="Escribe la competencia"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        className="grupos-horario-arrow-btn"
-                        onClick={() => setCompetenciaAbierta((actual) => !actual)}
-                        aria-label="Desplegar competencias"
-                      >
-                        <ChevronDown size={18} />
-                      </button>
+            {!cargando && !error && (
+              <>
+                {modoReasignacion ? (
+                  <div className="grupos-horario-reassign-view">
+                    <div className="grupos-horario-warning">
+                      <AlertTriangle size={16} />
+                      <span>Reasignar creara una nueva configuracion para los bloques seleccionados.</span>
                     </div>
 
-                    {competenciaAbierta && (
-                      <div className="grupos-horario-dropdown-panel">
-                        <div className="grupos-horario-instructor-results">
-                          {competenciasFiltradas.map((item) => {
-                            const valor = String(obtenerIdCompetencia(item));
+                    <section className="grupos-horario-current">
+                      <h3>Horario actual</h3>
+                      {horariosPorDia.length ? (
+                        <div className="grupos-horario-current-vertical">
+                          {horariosPorDia.map(({ dia, horarios }) => {
+                            const instructorDia = horarios[0]?.instructor || "Sin instructor";
                             return (
-                              <button
-                                type="button"
-                                key={valor}
-                                className={`grupos-horario-instructor-option ${String(formHorario.id_clase_competencia) === valor ? "selected" : ""}`}
-                                onClick={() => seleccionarCompetenciaHorario(item)}
-                              >
-                                <span>
-                                  {obtenerNombreCompetencia(item)}
-                                  <small>{obtenerDetalleCompetencia(item)}</small>
-                                </span>
+                              <article className="grupos-horario-day-card" key={dia}>
+                                <strong>{dia}</strong>
+                                {horarios.length ? (
+                                  <>
+                                    <div className="grupos-horario-current-blocks">
+                                      {horarios.map((horario) => (
+                                        <span key={`${horario.id}-${horario.horaInicio}-${horario.horaFin}`}>
+                                          {horario.horaInicio} - {horario.horaFin}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div className="grupos-horario-current-instructor">
+                                      <b>{obtenerInicialesHorario(instructorDia)}</b>
+                                      <span>{instructorDia}</span>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <em>Sin bloques</em>
+                                )}
+                              </article>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="grupos-horario-empty compact">No hay bloques actuales para esta ficha.</div>
+                      )}
+                    </section>
+
+                    <section className="grupos-horario-new">
+                      <h3>Nuevo horario</h3>
+                      <div className="grupos-horario-reassign-grid">
+                        <label>
+                          <span>Dia</span>
+                          <select value={diasSeleccionados[0] || "1"} onChange={(evento) => seleccionarDiaUnico(evento.target.value)}>
+                            {DIAS_SEMANA.map((dia, index) => (
+                              <option key={dia} value={String(index + 1)}>{dia}</option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <div className="grupos-horario-form-field">
+                          <span>Instructor</span>
+                          <div className={`grupos-horario-dropdown ${instructorAbierto ? "open" : ""}`}>
+                            <div className="grupos-horario-combobox">
+                              <input
+                                type="text"
+                                value={textoInstructor}
+                                onChange={cambiarBusquedaInstructor}
+                                onFocus={() => setInstructorAbierto(true)}
+                                placeholder="Escribe el nombre del instructor"
+                                autoComplete="off"
+                              />
+                              <button type="button" className="grupos-horario-arrow-btn" onClick={() => setInstructorAbierto((actual) => !actual)} aria-label="Desplegar instructores">
+                                <ChevronDown size={18} />
                               </button>
-                            );
-                          })}
-                          {nombreCompetenciaIngresada && !competenciaExacta && (
-                            <div className="grupos-horario-instructor-empty">
-                              Selecciona una competencia existente para poder guardar.
                             </div>
-                          )}
+                            {instructorAbierto && (
+                              <div className="grupos-horario-dropdown-panel">
+                                <div className="grupos-horario-instructor-results grupos-horario-instructor-results-dropdown">
+                                  {instructoresFiltrados.map((item) => {
+                                    const valor = String(item.id_instructor_grupo);
+                                    return (
+                                      <button type="button" key={item.id_instructor_grupo} className={`grupos-horario-instructor-option ${String(formHorario.id_instructor_grupo) === valor ? "selected" : ""}`} onClick={() => seleccionarInstructorHorario(item)}>
+                                        <span>
+                                          {obtenerNombreInstructor(item)}
+                                          <small>{obtenerDetalleInstructor(item)}</small>
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                  {!instructoresFiltrados.length && <div className="grupos-horario-instructor-empty">No hay instructores asignados que coincidan.</div>}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    )}
+                    </section>
                   </div>
-                </div>
+                ) : (
+                  <div className="grupos-horario-create-grid">
+                    <label>
+                      <span>Trimestre</span>
+                      <select name="id_grupo_trimestre" value={formHorario.id_grupo_trimestre} onChange={cambiarFormHorario} required>
+                        <option value="">Seleccione</option>
+                        {opciones.trimestres.map((trimestre) => (
+                          <option key={trimestre.id_grupo_trimestre} value={trimestre.id_grupo_trimestre}>
+                            Trimestre {trimestre.numero_trimestre} - {trimestre.estado}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-                <div className="grupos-horario-form-field grupos-horario-form-wide">
-                  <span>Dias</span>
-                  <div className={`grupos-horario-dropdown ${diasAbiertos ? "open" : ""}`}>
-                    <button
-                      type="button"
-                      className="grupos-horario-dropdown-control"
-                      onClick={() => setDiasAbiertos((actual) => !actual)}
-                      aria-expanded={diasAbiertos}
-                    >
-                      <span>{etiquetaDiasSeleccionados}</span>
-                      <ChevronDown size={18} />
-                    </button>
+                    <label>
+                      <span>Competencia</span>
+                      <select name="id_clase_competencia" value={formHorario.id_clase_competencia} onChange={cambiarFormHorario} required>
+                        <option value="">Seleccione</option>
+                        {opciones.competencias.map((item) => (
+                          <option key={obtenerIdCompetencia(item)} value={obtenerIdCompetencia(item)}>
+                            {obtenerNombreCompetencia(item)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-                    {diasAbiertos && (
-                      <div className="grupos-horario-dropdown-panel">
-                        <div className="grupos-horario-check-grid">
-                          {DIAS_SEMANA.map((dia, index) => {
-                            const valor = String(index + 1);
-                            return (
-                              <label
-                                key={dia}
-                                className={`grupos-horario-check ${diasSeleccionados.includes(valor) ? "selected" : ""}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={diasSeleccionados.includes(valor)}
-                                  onChange={() => alternarDiaHorario(valor)}
-                                />
-                                <span>{dia}</span>
-                              </label>
-                            );
-                          })}
+                    <label className="grupos-horario-form-wide">
+                      <span>Dia</span>
+                      <select value={diasSeleccionados[0] || "1"} onChange={(evento) => seleccionarDiaUnico(evento.target.value)}>
+                        {DIAS_SEMANA.map((dia, index) => (
+                          <option key={dia} value={String(index + 1)}>{dia}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Semanas</span>
+                      <input type="number" min="1" max="16" name="semanas" value={formHorario.semanas} onChange={cambiarFormHorario} required />
+                    </label>
+
+                    <div className="grupos-horario-form-field grupos-horario-form-full">
+                      <span>Instructor</span>
+                      <div className={`grupos-horario-dropdown ${instructorAbierto ? "open" : ""}`}>
+                        <div className="grupos-horario-combobox">
+                          <input
+                            type="text"
+                            value={textoInstructor}
+                            onChange={cambiarBusquedaInstructor}
+                            onFocus={() => setInstructorAbierto(true)}
+                            placeholder="Escribe el nombre del instructor"
+                            autoComplete="off"
+                          />
+                          <button type="button" className="grupos-horario-arrow-btn" onClick={() => setInstructorAbierto((actual) => !actual)} aria-label="Desplegar instructores">
+                            <ChevronDown size={18} />
+                          </button>
                         </div>
+                        {instructorAbierto && (
+                          <div className="grupos-horario-dropdown-panel">
+                            <div className="grupos-horario-instructor-results grupos-horario-instructor-results-dropdown">
+                              {instructoresFiltrados.map((item) => {
+                                const valor = String(item.id_instructor_grupo);
+                                return (
+                                  <button type="button" key={item.id_instructor_grupo} className={`grupos-horario-instructor-option ${String(formHorario.id_instructor_grupo) === valor ? "selected" : ""}`} onClick={() => seleccionarInstructorHorario(item)}>
+                                    <span>
+                                      {obtenerNombreInstructor(item)}
+                                      <small>{obtenerDetalleInstructor(item)}</small>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                              {!instructoresFiltrados.length && <div className="grupos-horario-instructor-empty">No hay instructores asignados que coincidan.</div>}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                <label>
-                  <span>Semanas</span>
-                  <input type="number" min="1" max="16" name="semanas" value={formHorario.semanas} onChange={cambiarFormHorario} required />
-                </label>
-
-                <div className="grupos-horario-form-field grupos-horario-form-full">
-                  <span>Instructor</span>
-                  <div className={`grupos-horario-dropdown ${instructorAbierto ? "open" : ""}`}>
-                    <div className="grupos-horario-combobox">
-                      <input
-                        type="text"
-                        value={textoInstructor}
-                        onChange={cambiarBusquedaInstructor}
-                        onFocus={() => setInstructorAbierto(true)}
-                        placeholder="Escribe el nombre del instructor"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        className="grupos-horario-arrow-btn"
-                        onClick={() => setInstructorAbierto((actual) => !actual)}
-                        aria-label="Desplegar instructores"
-                      >
-                        <ChevronDown size={18} />
-                      </button>
                     </div>
-
-                    {instructorAbierto && (
-                      <div className="grupos-horario-dropdown-panel">
-                        <div className="grupos-horario-instructor-results grupos-horario-instructor-results-dropdown">
-                          {instructoresFiltrados.map((item) => {
-                            const valor = String(item.id_instructor_grupo);
-                            return (
-                              <button
-                                type="button"
-                                key={item.id_instructor_grupo}
-                                className={`grupos-horario-instructor-option ${String(formHorario.id_instructor_grupo) === valor ? "selected" : ""}`}
-                                onClick={() => seleccionarInstructorHorario(item)}
-                              >
-                                <span>
-                                  {obtenerNombreInstructor(item)}
-                                  <small>{obtenerDetalleInstructor(item)}</small>
-                                </span>
-                              </button>
-                            );
-                          })}
-                          {!instructoresFiltrados.length && (
-                            <div className="grupos-horario-instructor-empty">
-                              No hay instructores asignados que coincidan.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </div>
+                )}
 
                 <div className="grupos-horario-form-field grupos-horario-form-full">
                   <span>Bloques</span>
                   <div className="grupos-horario-check-grid bloques">
                     {opciones.bloques.map((bloque) => {
                       const valor = String(bloque.id_bloque_jornada);
+                      const seleccionado = bloquesSeleccionadosIds.includes(valor);
                       return (
-                        <label
-                          key={bloque.id_bloque_jornada}
-                          className={`grupos-horario-check ${bloquesSeleccionadosIds.includes(valor) ? "selected" : ""}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={bloquesSeleccionadosIds.includes(valor)}
-                            onChange={() => alternarBloqueHorario(valor)}
-                          />
+                        <label key={bloque.id_bloque_jornada} className={`grupos-horario-check ${seleccionado ? "selected" : ""}`}>
+                          <input type="checkbox" checked={seleccionado} onChange={() => alternarBloqueHorario(valor)} />
                           <span>
+                            {seleccionado && <b><Check size={12} /></b>}
                             {bloque.nombre_bloque}
                             <small>{normalizarHora(bloque.hora_inicio)} - {normalizarHora(bloque.hora_fin)}</small>
                           </span>
@@ -1037,26 +1151,37 @@ export default function HorarioGrupoModal({
                     })}
                   </div>
                 </div>
-              </div>
 
-              {bloquesSeleccionados.length > 0 && (
-                <div className="grupos-horario-form-msg">
-                  Se crearan {totalHorariosAcrear} horario{totalHorariosAcrear === 1 ? "" : "s"} para {semanasHorario} semana{semanasHorario === 1 ? "" : "s"}.
-                </div>
-              )}
-              {/* /hola// */}
+                {bloquesSeleccionados.length > 0 && (
+                  <div className="grupos-horario-form-msg">
+                    Se crearan {totalHorariosAcrear} horario{totalHorariosAcrear === 1 ? "" : "s"} para {semanasHorario} semana{semanasHorario === 1 ? "" : "s"}.
+                  </div>
+                )}
+                {mensajeForm && <div className={`grupos-horario-form-msg ${mensajeFormTipo}`}>{mensajeForm}</div>}
+              </>
+            )}
+          </div>
 
-              {mensajeForm && <div className={`grupos-horario-form-msg ${mensajeFormTipo}`}>{mensajeForm}</div>}
-
-              <div className="grupos-modal-actions">
-                <button type="submit" className="grupos-primary-btn" disabled={!puedeGuardarHorario}>
-                  <Plus size={16} />
-                  {guardando ? "Creando..." : "Crear horario"}
+          {!cargando && !error && (
+            <div className="grupos-horario-footer">
+              {modoReasignacion ? (
+                <button type="button" className="grupos-horario-secondary" onClick={() => setPantallaHorario("crear")}>
+                  Volver
                 </button>
-              </div>
-            </form>
+              ) : (
+                <button type="button" className="grupos-horario-secondary" onClick={() => setPantallaHorario("reasignar")} disabled={!horariosActuales.length}>
+                  <CalendarX size={15} />
+                  Reasignar horario
+                </button>
+              )}
+
+              <button type="submit" className="grupos-horario-primary" disabled={!puedeGuardarHorario}>
+                <Plus size={16} />
+                {guardando ? "Guardando..." : modoReasignacion ? "Confirmar reasignacion" : "Crear horario"}
+              </button>
+            </div>
           )}
-        </div>
+        </form>
       </section>
     </div>
   );

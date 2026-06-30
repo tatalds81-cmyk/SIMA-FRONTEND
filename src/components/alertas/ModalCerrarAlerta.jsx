@@ -56,14 +56,14 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
     if (err) {
       setLoading(false);
       if (err === 404) {
-        setErrorGlobal("No se encontrÃ³ la alerta. Puede haber sido eliminada.");
+        setErrorGlobal("No se encontró la alerta. Puede haber sido eliminada.");
       } else if (err === 409 || err === 400) {
         setErrorGlobal("Esta alerta ya fue cerrada anteriormente.");
         setYaCerrada(true);
       } else if (err === 403) {
         setErrorGlobal("No tienes permisos para cerrar esta alerta.");
       } else {
-        setErrorGlobal("OcurriÃ³ un error al cerrar la alerta. Intenta nuevamente.");
+        setErrorGlobal("Ocurrió un error al cerrar la alerta. Intenta nuevamente.");
       }
       return;
     }
@@ -108,12 +108,12 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
 
         <div className="mcal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>
-            EstÃ¡s a punto de gestionar la alerta de <strong>{aprendizNombre}</strong>. 
-            Selecciona el nuevo estado y proporciona la justificaciÃ³n o acta correspondiente.
+            Estás a punto de gestionar la alerta de <strong>{aprendizNombre}</strong>. 
+            Selecciona el nuevo estado y proporciona la justificación o acta correspondiente.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Estado de resoluciÃ³n</label>
+            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Estado de resolución</label>
             <select 
               value={estadoFinal} 
               onChange={(e) => setEstadoFinal(e.target.value)}
@@ -124,17 +124,17 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
               }}
             >
               <option value="CERRADA">Cerrada / Resuelta</option>
-              <option value="EN_COMITE">En ComitÃ© de EvaluaciÃ³n</option>
+              <option value="EN_COMITE">En Comité de Evaluación</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-              JustificaciÃ³n del cierre <span style={{ color: '#ef4444' }}>*</span>
+              Justificación del cierre <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <textarea
               ref={textareaRef}
-              placeholder={estadoFinal === 'CERRADA' ? "Describe brevemente cÃ³mo fue atendida la situaciÃ³n..." : "Indica el acta o resumen de por quÃ© se envÃ­a a comitÃ©..."}
+              placeholder={estadoFinal === 'CERRADA' ? "Describe brevemente cómo fue atendida la situación..." : "Indica el acta o resumen de por qué se envía a comité..."}
               value={justificacion}
               onChange={(e) => {
                 if (e.target.value.length <= 300) {
@@ -162,7 +162,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
               <span style={{ color: errorJustificacion ? '#ef4444' : 'transparent', fontWeight: '500' }}>
-                {errorJustificacion ? 'MÃ­nimo 20 caracteres requeridos' : ' '}
+                {errorJustificacion ? 'Mínimo 20 caracteres requeridos' : ' '}
               </span>
               <span style={{ color: '#6b7280' }}>
                 {justificacion.length} / 300
@@ -176,7 +176,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
           }}>
             <Info size={18} color="#4b5563" style={{ flexShrink: 0, marginTop: '1px' }} />
             <span style={{ fontSize: '13px', color: '#4b5563', lineHeight: '1.4' }}>
-              La alerta permanecerÃ¡ visible en el historial del aprendiz pero no podrÃ¡ ser modificada.
+              La alerta permanecerá visible en el historial del aprendiz pero no podrá ser modificada.
             </span>
           </div>
 

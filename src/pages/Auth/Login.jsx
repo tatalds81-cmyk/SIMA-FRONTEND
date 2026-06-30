@@ -17,7 +17,8 @@ export default function Login({ onLogin }) {
 
   const URL_LOGIN = "/api/auth/login";
   const URL_ME = "/api/auth/me";
-  const ROLES_WEB_PERMITIDOS = ["instructor", "coordinador"];
+  const ROLES_WEB_PERMITIDOS = ["super_admin", "instructor", "instructor_lider", "instructor_asignado", "coordinador"];
+  const ROLES_INSTRUCTOR = new Set(["instructor", "instructor_lider", "instructor_asignado"]);
 
   function obtenerNombreRol(valor) {
     if (!valor) return "";
@@ -103,7 +104,7 @@ export default function Login({ onLogin }) {
         localStorage.removeItem("access");
         localStorage.removeItem("token");
         localStorage.removeItem("rol");
-        throw new Error("El portal web es solo para instructores y coordinadores. Los aprendices deben ingresar desde la app movil.");
+        throw new Error("El portal web es solo para SUPER_ADMIN, instructores y coordinadores. Los aprendices deben ingresar desde la app movil.");
       }
 
       localStorage.setItem("username", nombreUsuario);
@@ -112,17 +113,26 @@ export default function Login({ onLogin }) {
       localStorage.setItem("user_email", usuarioFinal.email || "");
       localStorage.setItem("user_documento", persona.numero_documento || username.trim());
       localStorage.setItem("user_data", JSON.stringify(usuarioFinal));
+      if (usuarioFinal.id_instructor) {
+        localStorage.setItem("id_instructor", String(usuarioFinal.id_instructor));
+      } else {
+        localStorage.removeItem("id_instructor");
+      }
 
       setMensaje("Inicio de sesion correcto");
 
-      const rutaInicio = rolNormalizado === "instructor" ? "/instructor/dashboard" : "/dashboard";
+      const rutaInicio = rolNormalizado === "super_admin"
+        ? "/dashboard"
+        : ROLES_INSTRUCTOR.has(rolNormalizado)
+          ? "/instructor/dashboard"
+          : "/dashboard";
 
       if (onLogin) {
         onLogin();
       }
       navigate(rutaInicio);
     } catch (error) {
-      console.log("Error login:", error);
+      console.warn("Error login:", error);
 
       if (error instanceof TypeError && error.message === "Failed to fetch") {
         setMensaje("No se pudo conectar con el servidor. Verifica que el backend este corriendo y los permisos CORS.");
@@ -157,7 +167,15 @@ export default function Login({ onLogin }) {
 
         <div className="login-sima-copy">
           <p className="login-sima-eyebrow">Bienvenido a SIMA</p>
-          <h1>Sistema Integral de Monitoreo del Aprendiz</h1>
+          <h1>
+            Sistema
+            <br />
+            Integral
+            <br />
+            de <span>Monitoreo</span>
+            <br />
+            del Aprendiz
+          </h1>
           <p>
             Herramienta diseñada para el seguimiento academico de los aprendices.
           </p>
