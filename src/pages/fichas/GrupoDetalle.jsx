@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowLeft, BarChart3, CalendarClock, Edit3, Eye, FilterX
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import SimaPagination from "../../components/common/SimaPagination";
 import api from "../../services/api";
-import { claseEstadoGrupo, etiquetaEstadoGrupo } from "../../services/gruposService";
+import { claseEstadoGrupo, etiquetaEstadoGrupo, ESTADOS_GRUPO, normalizarEstadoGrupo } from "../../services/gruposService";
 import HorarioGrupoModal, { DIAS_SEMANA, consultarHorariosGrupo } from "./HorarioGrupoModal";
 import "./fichas.css";
 
@@ -1072,15 +1072,25 @@ export default function GrupoDetalle() {
   }
 
   function abrirCambioEstadoGrupo() {
-    setEstadoGrupoTemporal(String(grupo?.estado || "ACTIVO").toUpperCase());
+    setEstadoGrupoTemporal(normalizarEstadoGrupo(grupo?.estado));
     setModalEstadoGrupo(true);
   }
 
-  function guardarCambioEstadoGrupo() {
+  async function guardarCambioEstadoGrupo() {
     if (!estadoGrupoTemporal) return;
-    setGrupo((actual) => ({ ...actual, estado: estadoGrupoTemporal }));
-    setErrorDetalle("Cambio de estado preparado en frontend. Falta conectar el endpoint para persistirlo.");
-    setModalEstadoGrupo(false);
+
+    try {
+      setErrorDetalle("");
+      const idGrupoGuardar = obtenerIdGrupoBackend(grupo, id);
+      await api.patch(`/api/groups/${idGrupoGuardar}/estado`, { estado: estadoGrupoTemporal });
+
+      setGrupo((actual) => ({ ...actual, estado: estadoGrupoTemporal }));
+      setModalEstadoGrupo(false);
+    } catch (error) {
+      setErrorDetalle(
+        error?.response?.data?.message || "No se pudo actualizar el estado del grupo en el backend."
+      );
+    }
   }
 
   function abrirCambioInstructorLider() {
@@ -2087,7 +2097,7 @@ export default function GrupoDetalle() {
               <div>
                 <span className="grupos-eyebrow">Estado de ficha</span>
                 <h2 id="estado-grupo-title">Cambiar estado</h2>
-                <p>Accion preparada en frontend hasta conectar el endpoint definitivo.</p>
+                <p>Selecciona el nuevo estado del grupo formativo.</p>
               </div>
               <button type="button" className="grupos-close-btn" onClick={() => setModalEstadoGrupo(false)} aria-label="Cerrar ventana">
                 <X size={18} />
@@ -2097,15 +2107,15 @@ export default function GrupoDetalle() {
               <label>
                 <span>Estado</span>
                 <select value={estadoGrupoTemporal} onChange={(e) => setEstadoGrupoTemporal(e.target.value)}>
-                  <option value="ACTIVO">ACTIVO</option>
-                  <option value="CERRADO">CERRADO</option>
-                  <option value="SUSPENDIDO">SUSPENDIDO</option>
+                  {ESTADOS_GRUPO.map((opcion) => (
+                    <option key={opcion.value} value={opcion.value}>{opcion.label}</option>
+                  ))}
                 </select>
               </label>
             </div>
             <div className="gd-edit-actions">
               <button type="button" className="grupos-secondary-btn" onClick={() => setModalEstadoGrupo(false)}>Cancelar</button>
-              <button type="button" className="grupos-primary-btn" onClick={guardarCambioEstadoGrupo}>Aplicar en vista</button>
+              <button type="button" className="grupos-primary-btn" onClick={guardarCambioEstadoGrupo}>Aplicar cambio</button>
             </div>
           </section>
         </div>
@@ -2141,4 +2151,3 @@ export default function GrupoDetalle() {
     </div>
   );
 }
-

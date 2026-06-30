@@ -132,6 +132,34 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
       cy.visit('/instructor/grupos');
       cy.contains('button', 'Cambiar estado').should('not.exist');
     });
+
+    it('El coordinador cambia el estado del grupo a un valor valido del backend', () => {
+      cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
+      cy.visit('/fichas');
+      cy.get('.grupos-table tbody tr').first().find('.grupos-icon-btn').first().click();
+      cy.contains('button', 'Cambiar estado').click();
+      cy.get('[data-testid="select-estado-grupo"]').select('FINALIZADO');
+      cy.intercept('PATCH', '**/api/groups/*/estado').as('cambiarEstado');
+      cy.get('[data-testid="btn-guardar-estado-grupo"]').click();
+      cy.wait('@cambiarEstado').its('response.statusCode').should('eq', 200);
+      cy.contains('Estado del grupo actualizado correctamente').should('be.visible');
+    });
+
+    it('Rechaza un valor de estado no soportado por el backend (regresion del hallazgo H11)', () => {
+      // El backend solo acepta EN_FORMACION, PRACTICAS o FINALIZADO (groupsRoutes.js).
+      // Este test evita que el front vuelva a ofrecer ACTIVO/CERRADO/SUSPENDIDO.
+      cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
+      cy.visit('/fichas');
+      cy.get('.grupos-table tbody tr').first().find('.grupos-icon-btn').first().click();
+      cy.contains('button', 'Cambiar estado').click();
+      cy.get('[data-testid="select-estado-grupo"] option').then(($options) => {
+        const valores = [...$options].map((o) => o.value);
+        expect(valores).to.have.members(['EN_FORMACION', 'PRACTICAS', 'FINALIZADO']);
+        expect(valores).to.not.include('ACTIVO');
+        expect(valores).to.not.include('SUSPENDIDO');
+        expect(valores).to.not.include('CERRADO');
+      });
+    });
   });
 
   // ── H12: Asignar instructor líder a grupo ───────────────────────────
