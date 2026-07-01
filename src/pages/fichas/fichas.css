@@ -1,4 +1,4 @@
-﻿.grupos-page {
+.grupos-page {
   --sima-navy: #0b2442;
   --sima-green: #238500;
   --sima-green-dark: #238500;
@@ -3344,7 +3344,7 @@
 
 /* Ajuste final: modal horario alineado al diseño del proyecto. */
 .grupos-horario-modal {
-  width: min(100%, 620px);
+  width: min(100%, 860px);
 }
 
 .grupos-horario-modal.reasignacion {
