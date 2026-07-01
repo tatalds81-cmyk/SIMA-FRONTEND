@@ -352,21 +352,6 @@ export default function SesionActivaModal({
           soloResponsable: true,
           limit: 100
         }).then((resultado) => resultado.sesiones),
-        () => listarSesionesGrupo({
-          idGrupo,
-          idGrupoTrimestre,
-          fechaDesde: fechaSesion,
-          fechaHasta: fechaSesion,
-          soloResponsable: false,
-          limit: 100
-        }).then((resultado) => resultado.sesiones),
-        () => listarSesionesGrupo({
-          idGrupo,
-          fechaDesde: fechaSesion,
-          fechaHasta: fechaSesion,
-          soloResponsable: false,
-          limit: 100
-        }).then((resultado) => resultado.sesiones),
         () => obtenerSesionesInstructorDia(fechaSesion)
       ];
 

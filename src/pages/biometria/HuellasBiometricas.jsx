@@ -59,12 +59,13 @@ export default function HuellasBiometricas() {
     setMensaje("");
   }
 
-  async function cargarHuellas() {
+  async function cargarHuellas(filtros = null) {
     setCargando(true);
     setError("");
     try {
       const params = {};
-      if (filtroUsuario.trim()) params.id_usuario = filtroUsuario.trim();
+      const idUsuarioFiltro = filtros?.id_usuario ?? filtroUsuario.trim();
+      if (idUsuarioFiltro) params.id_usuario = String(idUsuarioFiltro).trim();
       const data = await listarHuellas(params);
       setHuellas(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -130,19 +131,21 @@ export default function HuellasBiometricas() {
       setError("Primero captura la huella desde el servicio local BioMini.");
       return;
     }
+    const idUsuario = Number(form.id_usuario);
     setCargando(true);
     setError("");
     try {
-      await enrolarHuella({
+      const huellaEnrolada = await enrolarHuella({
         ...form,
-        id_usuario: Number(form.id_usuario),
+        id_usuario: idUsuario,
         calidad_captura: Number(form.calidad_captura),
         id_dispositivo_enrolamiento: form.id_dispositivo_enrolamiento || null,
       });
-      setMensaje("Huella enrolada correctamente. La plantilla fue enviada al backend para cifrado.");
+      setMensaje(`Huella #${huellaEnrolada?.id_huella || ""} enrolada correctamente para el usuario ${idUsuario}.`);
+      setFiltroUsuario(String(idUsuario));
       setForm((prev) => ({ ...formInicial, id_usuario: prev.id_usuario }));
       setCaptura(null);
-      await cargarHuellas();
+      await cargarHuellas({ id_usuario: idUsuario });
     } catch (err) {
       manejarError(err, "No se pudo enrolar la huella");
     } finally {
@@ -173,6 +176,7 @@ export default function HuellasBiometricas() {
       setError("Primero captura la nueva huella desde el servicio local BioMini.");
       return;
     }
+    const idUsuario = form.id_usuario ? Number(form.id_usuario) : null;
     setCargando(true);
     setError("");
     try {
@@ -182,9 +186,10 @@ export default function HuellasBiometricas() {
         id_dispositivo_enrolamiento: form.id_dispositivo_enrolamiento || null,
       });
       setMensaje("Huella reemplazada correctamente.");
+      if (idUsuario) setFiltroUsuario(String(idUsuario));
       setForm((prev) => ({ ...formInicial, id_usuario: prev.id_usuario }));
       setCaptura(null);
-      await cargarHuellas();
+      await cargarHuellas(idUsuario ? { id_usuario: idUsuario } : null);
     } catch (err) {
       manejarError(err, "No se pudo reemplazar la huella");
     } finally {

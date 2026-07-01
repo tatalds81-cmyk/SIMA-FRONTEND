@@ -2654,6 +2654,26 @@
   color: #0b2442;
 }
 
+.asistencia-fingerprint-icon.leyendo {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #238500;
+  box-shadow: 0 0 0 8px rgba(35, 133, 0, 0.08);
+}
+
+.asistencia-fingerprint-icon.registrada {
+  border-color: #22c55e;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.asistencia-fingerprint-icon.no_identificada,
+.asistencia-fingerprint-icon.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .asistencia-fingerprint-body h2 {
   margin: 4px 0 0;
   color: #0b2442;
@@ -2680,18 +2700,36 @@
   font-weight: 800;
 }
 
+.asistencia-fingerprint-retry {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: #0b2442;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.asistencia-fingerprint-retry:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .asistencia-faltantes-modal {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: min(92vw, 460px);
-  max-width: 460px;
+  width: min(92vw, 560px);
+  max-width: 560px;
+  max-height: min(88vh, 680px);
   display: grid;
   justify-items: center;
   gap: 14px;
-  padding: 28px 26px 24px;
+  padding: 30px 28px 24px;
   transform: translate(-50%, -50%);
   text-align: center;
+  overflow: hidden;
 }
 
 .asistencia-faltantes-close {
@@ -2748,18 +2786,21 @@
   display: grid;
   gap: 8px;
   margin-top: 2px;
+  max-height: min(320px, 38vh);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .asistencia-faltantes-list div {
   min-height: 46px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 8px 10px;
-  background: #f8fafc;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   color: #0b2442;
   text-align: left;
 }
@@ -2780,8 +2821,8 @@
 
 .asistencia-faltantes-actions {
   width: 100%;
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 4px;
 }
