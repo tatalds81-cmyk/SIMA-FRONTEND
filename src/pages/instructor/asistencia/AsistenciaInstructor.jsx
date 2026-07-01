@@ -36,6 +36,7 @@ import {
   obtenerDetalleGrupo,
   obtenerGruposInstructor,
   obtenerSesionAbiertaPorGrupo,
+  obtenerSesionesInstructorDia,
   registrarAsistenciaManual
 } from "./asistencia.service";
 import { registrarAsistenciaPorHuellaLocal } from "../../../services/localBiominiService";
@@ -158,6 +159,41 @@ function obtenerFechaLocal() {
   const mes = String(fecha.getMonth() + 1).padStart(2, "0");
   const dia = String(fecha.getDate()).padStart(2, "0");
   return `${fecha.getFullYear()}-${mes}-${dia}`;
+}
+
+function obtenerSesionAutorizadaPorId(sesiones, idSesion) {
+  return sesiones.find((sesion) => String(obtenerIdSesion(sesion)) === String(idSesion)) || null;
+}
+
+function normalizarHoraRegistroBackend(valor) {
+  const texto = String(valor || "").trim().toLowerCase();
+  const partes = texto.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!partes) return "";
+
+  let horas = Number(partes[1]);
+  const minutos = Number(partes[2]);
+  const segundos = Number(partes[3] || 0);
+  if (!Number.isFinite(horas) || !Number.isFinite(minutos) || !Number.isFinite(segundos)) return "";
+
+  const esPm = /(?:p\.?\s*m\.?|pm)/.test(texto);
+  const esAm = /(?:a\.?\s*m\.?|am)/.test(texto);
+  if (esPm && horas < 12) horas += 12;
+  if (esAm && horas === 12) horas = 0;
+  if (horas > 23 || minutos > 59 || segundos > 59) return "";
+
+  return [
+    String(horas).padStart(2, "0"),
+    String(minutos).padStart(2, "0"),
+    String(segundos).padStart(2, "0")
+  ].join(":");
+}
+
+function construirMarcaTiempoRegistro(fechaISO, horaRegistro) {
+  const horaBackend = normalizarHoraRegistroBackend(horaRegistro) || normalizarHoraRegistroBackend(obtenerHoraActual());
+  return {
+    horaRegistro: horaBackend,
+    fechaHoraRegistro: fechaISO && horaBackend ? `${fechaISO}T${horaBackend}-05:00` : ""
+  };
 }
 
 export default function AsistenciaInstructor() {
@@ -292,11 +328,19 @@ export default function AsistenciaInstructor() {
       try {
         const idSesionSeleccionada = localStorage.getItem("sima_asistencia_sesion_seleccionada") || sessionStorage.getItem("sima_asistencia_sesion_seleccionada");
         if (idSesionSeleccionada) {
+          const sesionesAutorizadas = await obtenerSesionesInstructorDia(fecha).catch(() => []);
+          const sesionAutorizada = obtenerSesionAutorizadaPorId(sesionesAutorizadas, idSesionSeleccionada);
+          if (!sesionAutorizada) {
+            limpiarSesionSeleccionadaPersistente();
+            throw new Error("No tienes permiso para ingresar a esta asistencia o la sesion ya no esta asignada a tu usuario.");
+          }
+
           const sesionGuardada = leerJsonPersistente("sima_asistencia_sesion_detalle") || {};
           const sesionBase = {
             ...sesionGuardada,
+            ...sesionAutorizada,
             id_sesion_formacion: idSesionSeleccionada,
-            estado: "ABIERTA"
+            estado: sesionAutorizada.estado || "ABIERTA"
           };
           const detalleSeleccionado = await cargarDetalleSesion(sesionBase, grupoActual);
           if (!activo) return;
@@ -306,7 +350,7 @@ export default function AsistenciaInstructor() {
             ...sesionBase,
             ...detalleSeleccionado.sesion,
             id_sesion_formacion: idSesionSeleccionada,
-            estado: "ABIERTA"
+            estado: detalleSeleccionado.sesion?.estado || sesionBase.estado || "ABIERTA"
           });
           setGrupoDetalleActivo(detalleSeleccionado.grupoDetalle);
           setAprendices(detalleSeleccionado.aprendices);
@@ -486,7 +530,6 @@ export default function AsistenciaInstructor() {
     haySesionActiva &&
     aprendices.length > 0 &&
     aprendicesSinRegistro.length > 0 &&
-    aprendicesSinRegistro.length <= 3 &&
     claveAprendicesSinRegistro !== avisoFaltantesCerrado;
 
   const historialDetalle = useMemo(
@@ -541,13 +584,15 @@ export default function AsistenciaInstructor() {
     return () => window.clearInterval(intervalo);
   }, [aprendizManual, guardandoAsistencia, grupoActual, grupoSeleccionado, haySesionActiva, sesionActiva]);
 
-  async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion, horaRegistro = obtenerHoraActual()) {
+  async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion, horaRegistro = obtenerHoraActual(), opciones = {}) {
     if (!sesionActiva) {
       throw new Error("No hay una sesion abierta para registrar asistencia.");
     }
+    const { recargar = true } = opciones;
     const estadoBackend = estadoFrontendABackend(nuevoEstado);
     const idSesion = obtenerIdSesion(sesionActiva);
     let idAsistencia = aprendiz?.idAsistencia || "";
+    const marcaTiempo = construirMarcaTiempoRegistro(fecha, horaRegistro);
 
     if (!idAsistencia && idSesion) {
       const detalle = await obtenerAsistenciasSesion(idSesion).catch(() => ({ asistencias: [] }));
@@ -558,14 +603,16 @@ export default function AsistenciaInstructor() {
     if (idAsistencia) {
       await corregirAsistencia(idAsistencia, {
         estado: estadoBackend,
-        observacion
+        observacion,
+        ...marcaTiempo
       });
     } else if (estadoBackend === "INASISTENCIA") {
       const asistenciaCreada = await registrarAsistenciaManual({
         idSesion,
         idAprendiz: aprendiz.id,
         estado: "JUSTIFICADO",
-        observacion: "Registro base para correccion manual de inasistencia"
+        observacion: "Registro base para correccion manual de inasistencia",
+        ...marcaTiempo
       });
       const idAsistenciaCreada = obtenerIdAsistenciaRespuesta(asistenciaCreada);
       if (!idAsistenciaCreada) {
@@ -573,14 +620,16 @@ export default function AsistenciaInstructor() {
       }
       await corregirAsistencia(idAsistenciaCreada, {
         estado: estadoBackend,
-        observacion
+        observacion,
+        ...marcaTiempo
       });
     } else {
       await registrarAsistenciaManual({
         idSesion,
         idAprendiz: aprendiz.id,
         estado: estadoBackend,
-        observacion
+        observacion,
+        ...marcaTiempo
       });
     }
 
@@ -592,7 +641,7 @@ export default function AsistenciaInstructor() {
       return actualizado;
     });
 
-    await recargarAsistenciasSesion();
+    if (recargar) await recargarAsistenciasSesion();
     window.dispatchEvent(new CustomEvent("sima:asistencia-actualizada", {
       detail: {
         idSesion,

@@ -276,6 +276,8 @@
   font-weight: 900;
 }
 .justificacion-estado.resuelta { background: #dff3d9; color: #176300; }
+.justificacion-estado.justificado { background: #dff3d9; color: #176300; }
+.justificacion-estado.ausente { background: #fee2e2; color: #b91c1c; }
 .justificacion-cerrar {
   width: 34px;
   height: 34px;
@@ -338,6 +340,12 @@
   font-weight: 800;
 }
 .justificacion-archivo button:hover { border-color: #238500; color: #238500; }
+.justificacion-archivo button:disabled {
+  border-color: #d8e0ea;
+  background: #f3f6fa;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
 .justificacion-observacion { display: block; margin-top: 15px; color: #0b2442; font-size: 13px; font-weight: 800; }
 .justificacion-observacion textarea {
   width: 100%;
@@ -373,8 +381,24 @@
 .justificacion-actions .aceptar { border: 1px solid #238500; background: #238500; color: #fff; }
 .justificacion-actions .rechazar:hover { background: #c82f2f; color: #fff; }
 .justificacion-actions .aceptar:hover { background: #1b6b00; }
+.justificacion-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+.justificacion-error {
+  margin: 12px 0 0;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 800;
+}
 .justificacion-resultado { padding: 32px 12px; text-align: center; }
 .justificacion-resultado > span { width: 64px; height: 64px; display: grid; place-items: center; margin: 0 auto 14px; border-radius: 50%; background: #e8f6e4; color: #238500; }
+.justificacion-resultado.ausente > span { background: #fee2e2; color: #dc2626; }
+.justificacion-resultado.justificado > span { background: #e8f6e4; color: #238500; }
 .justificacion-resultado h3 { margin: 0; color: #0b2442; font-size: 20px; }
 .justificacion-resultado p { margin: 8px 0 0; color: #64748b; font-size: 13px; }
 .justificacion-resultado blockquote { margin: 18px auto 0; padding: 12px; border-radius: 9px; background: #f4f7f9; color: #475569; font-size: 13px; }
