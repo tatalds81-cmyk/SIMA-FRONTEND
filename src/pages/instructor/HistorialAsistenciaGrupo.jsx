@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, MoreVertical, UserRound } from "lucide-react";
+import { ArrowLeft, Ban, BookOpen, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, MoreVertical, UserRound } from "lucide-react";
 import {
   listarSesionesGrupo,
   obtenerAprendicesPorGrupo,
@@ -546,6 +546,17 @@ export default function HistorialAsistenciaGrupo() {
                             <CalendarDays size={14} />
                             {etiquetaEstadoSesion(obtenerEstadoSesion(resumenSesion.sesion))}
                           </strong>
+                          {obtenerEstadoSesion(resumenSesion.sesion) === "CANCELADA" && resumenSesion.sesion?.motivo_cancelacion && (
+                            <div className="asistencia-historial-motivo-cancelacion">
+                              <span className="asistencia-historial-motivo-label">
+                                <Ban size={13} />
+                                Motivo de cancelacion
+                              </span>
+                              <p className="asistencia-historial-motivo-texto">
+                                {resumenSesion.sesion.motivo_cancelacion}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="asistencia-historial-session-summary">
