@@ -15,7 +15,14 @@ const requestLocal = async (path, options = {}) => {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload.ok === false) {
-    const detail = payload.detalle || payload.message || payload.codigo || "Servicio local BioMini no disponible";
+    const backend = payload.data?.backend_response || {};
+    const detail = payload.detalle
+      || payload.message
+      || backend.mensaje
+      || backend.message
+      || backend.codigo
+      || payload.codigo
+      || "Servicio local BioMini no disponible";
     throw new Error(detail);
   }
   return payload.data || payload;

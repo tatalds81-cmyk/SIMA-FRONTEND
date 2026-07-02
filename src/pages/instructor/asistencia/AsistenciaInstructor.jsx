@@ -711,14 +711,22 @@ export default function AsistenciaInstructor() {
         backend_base_url: API_BASE_URL || "http://localhost:3000",
       });
 
-      const backendMessage = resultado?.backend_response?.message || resultado?.backend_response?.codigo;
+      const backendMessage = resultado?.backend_response?.mensaje
+        || resultado?.backend_response?.message
+        || resultado?.backend_response?.codigo;
       const usuarioIdentificado = resultado?.id_usuario ? ` Usuario identificado: ${resultado.id_usuario}.` : "";
+      const asistenciaRegistrada = Boolean(resultado?.backend_response?.data?.asistencia_registrada);
 
-      if (resultado?.match_status === "MATCH_OK") {
+      if (resultado?.match_status === "MATCH_OK" && asistenciaRegistrada) {
         setEstadoHuella("REGISTRADA");
         setDetalleHuella(`${backendMessage || "Asistencia registrada por huella."}${usuarioIdentificado}`);
         setMensajeError(false);
         setMensaje("Asistencia registrada por huella correctamente.");
+      } else if (resultado?.match_status === "MATCH_OK") {
+        setEstadoHuella("ERROR");
+        setDetalleHuella(`${backendMessage || "Huella identificada, pero el backend no registro la asistencia."}${usuarioIdentificado}`);
+        setMensajeError(true);
+        setMensaje(backendMessage || "Huella identificada, pero no se pudo registrar la asistencia.");
       } else {
         setEstadoHuella("NO_IDENTIFICADA");
         setDetalleHuella(backendMessage || "Huella no identificada. Intenta nuevamente o usa QR/manual.");
