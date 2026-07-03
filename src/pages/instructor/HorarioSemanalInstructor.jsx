@@ -117,14 +117,14 @@ const obtenerEstadoSesion = (sesion, fechaISO, horas, ahora) => {
   const antesInicio = inicioValido && ahora < inicio;
   const despuesFin = finValido && ahora > fin;
   if (sesionFueAbiertaDesdeAsistencia(sesion)) return despuesFin ? "CERRADA" : "ACTIVA";
-  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estado)) return despuesFin ? "CERRADA" : "PROGRAMADA";
+  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estado)) return despuesFin ? "CERRADA" : "ACTIVA";
   if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) {
     if (antesInicio) return "PROGRAMADA";
     return despuesFin ? "CERRADA" : "PROGRAMADA";
   }
   if (antesInicio) return "PROGRAMADA";
   if (despuesFin) return "CERRADA";
-  if (estado === "PENDIENTE") return "PROGRAMADA";
+  if (["PENDIENTE", "PROGRAMADA", ""].includes(estado)) return "PENDIENTE";
 
   return "PROGRAMADA";
 };

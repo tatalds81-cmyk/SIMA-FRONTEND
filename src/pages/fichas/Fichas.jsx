@@ -157,12 +157,30 @@ export default function GruposFormativos() {
 
   async function cargarAreas() {
     try {
-      const res = await fetch(`${API_URL}/dashboard/coordinador/resumen`, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        const areasExtraidas = data?.data?.areas || data?.areas || data?.results || [];
-        setAreas(Array.isArray(areasExtraidas) ? areasExtraidas : []);
+      const rol = (localStorage.getItem("rol") || "").toLowerCase();
+      const usuario = JSON.parse(localStorage.getItem("user_data") || "{}");
+      const idUsuario = usuario?.id_usuario || usuario?.id;
+
+      if (rol === "coordinador" && !idUsuario) {
+        throw new Error("No fue posible identificar al coordinador de la sesion.");
       }
+
+      const ruta = rol === "coordinador"
+        ? `${API_URL}/coordinator-areas/${idUsuario}`
+        : `${API_URL}/coordinator-areas/areas`;
+      const res = await fetch(ruta, { headers: getHeaders() });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || "No fue posible cargar las areas asignadas.");
+      }
+
+      const respuesta = data?.data ?? data;
+      const areasExtraidas = rol === "coordinador"
+        ? (Array.isArray(respuesta) ? respuesta.map((asignacion) => asignacion?.area).filter(Boolean) : [])
+        : (respuesta?.areas || []);
+
+      setAreas(Array.isArray(areasExtraidas) ? areasExtraidas : []);
     } catch (error) {
       console.error("Error cargando areas:", error);
       setAreas([]);

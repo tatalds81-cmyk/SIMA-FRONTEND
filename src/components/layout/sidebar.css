@@ -36,6 +36,25 @@
   pointer-events: none;
 }
 
+.sima-sidebar-brand {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  z-index: 3;
+  width: 106px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sima-sidebar-brand img {
+  width: 62px;
+  height: 62px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 11px rgba(0, 0, 0, 0.22));
+}
+
 .sima-sidebar-shell {
   position: relative;
   flex: 1;
@@ -134,6 +153,16 @@
 }
 
 @media (max-height: 760px) {
+  .sima-sidebar-brand {
+    top: 16px;
+    width: 102px;
+  }
+
+  .sima-sidebar-brand img {
+    width: 52px;
+    height: 52px;
+  }
+
   .sima-sidebar-main::before {
     top: 0;
     bottom: 88px;
@@ -182,6 +211,16 @@
     bottom: 88px;
     width: 84px;
     border-radius: 0 0 48px 0;
+  }
+
+  .sima-sidebar-brand {
+    top: 18px;
+    width: 84px;
+  }
+
+  .sima-sidebar-brand img {
+    width: 50px;
+    height: 50px;
   }
 
   .sima-sidebar-shell {
