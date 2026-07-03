@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, ClipboardList, Eye, FilterX, Search, UserPlus } from "lucide-react";
+import { CalendarClock, ClipboardList, Eye, FilterX, Search, UserPlus, Info } from "lucide-react";
 import { toast } from "react-toastify";
 import SimaPagination from "../../components/common/SimaPagination";
 import {
@@ -436,172 +436,184 @@ export default function MisGrupos() {
         </div>
       )}
 
-      <section className="grupos-toolbar">
-        <div className="grupos-search">
-          <Search size={19} />
-          <input
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setPaginaActual(1);
-            }}
-            placeholder="Buscar por ficha, programa o jornada"
-          />
-        </div>
-
-        <select
-          className="grupos-select-filtro"
-          value={filtroJornada}
-          onChange={(e) => {
-            setFiltroJornada(e.target.value);
-            setPaginaActual(1);
-          }}
-        >
-          <option value="">Todas las jornadas</option>
-          {jornadasDisponibles.map((jornada) => (
-            <option key={jornada} value={jornada}>
-              {jornada}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="grupos-select-filtro"
-          value={filtroEstado}
-          onChange={(e) => {
-            setFiltroEstado(e.target.value);
-            setPaginaActual(1);
-          }}
-        >
-          <option value="">Todos los estados</option>
-          {ESTADOS_GRUPO.map((estado) => (
-            <option key={estado.value} value={estado.value}>
-              {estado.label}
-            </option>
-          ))}
-        </select>
-
-        <button type="button" className="ghost" onClick={limpiarFiltros}>
-          <FilterX size={16} />
-          Limpiar
-        </button>
-      </section>
-
-      <section className="grupos-card">
-        <div className="grupos-card-header">
+      {!loading && grupos.length === 0 ? (
+        <div className="grupos-alert info" style={{ marginTop: '20px', padding: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '15px' }}>
+          <Info size={48} style={{ color: '#3b82f6' }} />
           <div>
-            <h2>Grupos asignados</h2>
-            <p>
-              Mostrando {desde}-{hasta} de {gruposFiltrados.length} grupos
-            </p>
+            <h3 style={{ fontSize: '18px', color: '#0b2442', margin: '0 0 8px 0' }}>No tienes grupos asignados</h3>
+            <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Actualmente no hay ninguna ficha de formacion vinculada a tu perfil de instructor.</p>
           </div>
         </div>
+      ) : (
+        <>
+          <section className="grupos-toolbar">
+            <div className="grupos-search">
+              <Search size={19} />
+              <input
+                value={busqueda}
+                onChange={(e) => {
+                  setBusqueda(e.target.value);
+                  setPaginaActual(1);
+                }}
+                placeholder="Buscar por ficha, programa o jornada"
+              />
+            </div>
 
-        <div className="grupos-table-wrap">
-          <table className="grupos-table">
-            <thead>
-              <tr>
-                <th>Codigo</th>
-                <th>Programa</th>
-                <th>Jornada</th>
-                <th>Trimestres</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="grupos-empty">
-                    Cargando grupos...
-                  </td>
-                </tr>
-              ) : gruposPagina.length > 0 ? (
-                gruposPagina.map((grupo, index) => {
-                  const estado = obtenerEstado(grupo);
-                  const esLider = esInstructorLiderGrupo(grupo);
+            <select
+              className="grupos-select-filtro"
+              value={filtroJornada}
+              onChange={(e) => {
+                setFiltroJornada(e.target.value);
+                setPaginaActual(1);
+              }}
+            >
+              <option value="">Todas las jornadas</option>
+              {jornadasDisponibles.map((jornada) => (
+                <option key={jornada} value={jornada}>
+                  {jornada}
+                </option>
+              ))}
+            </select>
 
-                  return (
-                    <tr key={obtenerIdGrupo(grupo, inicioPagina + index)}>
-                      <td className="grupos-highlight">{obtenerCodigo(grupo)}</td>
-                      <td>{obtenerPrograma(grupo)}</td>
-                      <td>{grupo.jornada || "No registrada"}</td>
-                      <td>{formatearTrimestres(grupo)}</td>
-                      <td>
-                        <span className={`grupos-status ${obtenerEstadoClase(estado)}`}>
-                          {etiquetaEstadoGrupo(estado)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="grupos-actions">
-                          <button
-                            type="button"
-                            className="grupos-icon-btn"
-                            onClick={() => navegarGrupo(grupo, inicioPagina + index)}
-                            title="Ver detalle"
-                            aria-label={`Ver ficha ${obtenerCodigo(grupo)}`}
-                          >
-                            <Eye size={16} />
-                          </button>
-                          {esLider && (
-                            <button
-                              type="button"
-                              className="grupos-icon-btn horario"
-                              onClick={() => setGrupoHorario(grupo)}
-                              title="Asignar horario"
-                              aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
-                            >
-                              <CalendarClock size={16} />
-                            </button>
-                          )}
-                          {esLider && (
-                            <button
-                              type="button"
-                              className="grupos-icon-btn"
-                              onClick={() => setGrupoModal(grupo)}
-                              title="Gestionar instructores"
-                              aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}
-                            >
-                              <UserPlus size={16} />
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="grupos-icon-btn"
-                            onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
-                            title="Filtrar asistencias"
-                            aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
-                          >
-                            <ClipboardList size={16} />
-                          </button>
-                        </div>
+            <select
+              className="grupos-select-filtro"
+              value={filtroEstado}
+              onChange={(e) => {
+                setFiltroEstado(e.target.value);
+                setPaginaActual(1);
+              }}
+            >
+              <option value="">Todos los estados</option>
+              {ESTADOS_GRUPO.map((estado) => (
+                <option key={estado.value} value={estado.value}>
+                  {estado.label}
+                </option>
+              ))}
+            </select>
+
+            <button type="button" className="ghost" onClick={limpiarFiltros}>
+              <FilterX size={16} />
+              Limpiar
+            </button>
+          </section>
+
+          <section className="grupos-card">
+            <div className="grupos-card-header">
+              <div>
+                <h2>Grupos asignados</h2>
+                <p>
+                  Mostrando {desde}-{hasta} de {gruposFiltrados.length} grupos
+                </p>
+              </div>
+            </div>
+
+            <div className="grupos-table-wrap">
+              <table className="grupos-table">
+                <thead>
+                  <tr>
+                    <th>Codigo</th>
+                    <th>Programa</th>
+                    <th>Jornada</th>
+                    <th>Trimestres</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" className="grupos-empty">
+                        Cargando grupos...
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="6" className="grupos-empty">
-                    No hay grupos para mostrar
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ) : gruposPagina.length > 0 ? (
+                    gruposPagina.map((grupo, index) => {
+                      const estado = obtenerEstado(grupo);
+                      const esLider = esInstructorLiderGrupo(grupo);
 
-        {gruposFiltrados.length > 0 && (
-          <SimaPagination
-            desde={desde}
-            hasta={hasta}
-            total={gruposFiltrados.length}
-            entidad="grupos"
-            paginaActual={paginaSegura}
-            totalPaginas={totalPaginas}
-            onCambiarPagina={cambiarPagina}
-          />
-        )}
-      </section>
+                      return (
+                        <tr key={obtenerIdGrupo(grupo, inicioPagina + index)}>
+                          <td className="grupos-highlight">{obtenerCodigo(grupo)}</td>
+                          <td>{obtenerPrograma(grupo)}</td>
+                          <td>{grupo.jornada || "No registrada"}</td>
+                          <td>{formatearTrimestres(grupo)}</td>
+                          <td>
+                            <span className={`grupos-status ${obtenerEstadoClase(estado)}`}>
+                              {etiquetaEstadoGrupo(estado)}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="grupos-actions">
+                              <button
+                                type="button"
+                                className="grupos-icon-btn"
+                                onClick={() => navegarGrupo(grupo, inicioPagina + index)}
+                                title="Ver detalle"
+                                aria-label={`Ver ficha ${obtenerCodigo(grupo)}`}
+                              >
+                                <Eye size={16} />
+                              </button>
+                              {esLider && (
+                                <button
+                                  type="button"
+                                  className="grupos-icon-btn horario"
+                                  onClick={() => setGrupoHorario(grupo)}
+                                  title="Asignar horario"
+                                  aria-label={`Asignar horario a la ficha ${obtenerCodigo(grupo)}`}
+                                >
+                                  <CalendarClock size={16} />
+                                </button>
+                              )}
+                              {esLider && (
+                                <button
+                                  type="button"
+                                  className="grupos-icon-btn"
+                                  onClick={() => setGrupoModal(grupo)}
+                                  title="Gestionar instructores"
+                                  aria-label={`Gestionar instructores de la ficha ${obtenerCodigo(grupo)}`}
+                                >
+                                  <UserPlus size={16} />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="grupos-icon-btn"
+                                onClick={() => navegarHistorialAsistencia(grupo, inicioPagina + index)}
+                                title="Filtrar asistencias"
+                                aria-label={`Filtrar asistencias de la ficha ${obtenerCodigo(grupo)}`}
+                              >
+                                <ClipboardList size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="grupos-empty">
+                        No hay grupos para mostrar
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {gruposFiltrados.length > 0 && (
+              <SimaPagination
+                desde={desde}
+                hasta={hasta}
+                total={gruposFiltrados.length}
+                entidad="grupos"
+                paginaActual={paginaSegura}
+                totalPaginas={totalPaginas}
+                onCambiarPagina={cambiarPagina}
+              />
+            )}
+          </section>
+        </>
+      )}
 
       {grupoHorario && esInstructorLiderGrupo(grupoHorario) && (
         <HorarioGrupoModal
