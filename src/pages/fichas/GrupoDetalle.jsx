@@ -57,6 +57,7 @@ const FILTROS_ALERTAS_INICIALES = {
 };
 
 const ESTADOS_ALERTA_CERRADA = new Set(["CERRADA", "CERRADO", "RESUELTA"]);
+const ESTADOS_ALERTA_ABIERTA = new Set(["ABIERTA", "ACTIVA"]);
 const ESTADOS_APRENDIZ_INACTIVO = new Set(["INACTIVO", "RETIRADO", "CANCELADO", "APLAZADO", "SUSPENDIDO"]);
 const REGISTROS_POR_PAGINA = 5;
 
@@ -277,11 +278,11 @@ function obtenerInasistenciasAprendiz(item) {
 
 function alertaEstaAbierta(alerta) {
   const estado = textoPlano(alerta?.estado);
-  return !estado || !ESTADOS_ALERTA_CERRADA.has(estado);
+  return !estado || ESTADOS_ALERTA_ABIERTA.has(estado);
 }
 
 function alertaEstaActiva(alerta) {
-  return textoPlano(alerta?.estado || "ACTIVA") === "ACTIVA";
+  return ESTADOS_ALERTA_ABIERTA.has(textoPlano(alerta?.estado || "ABIERTA"));
 }
 
 function alertaEsObservacion(alerta) {
@@ -388,11 +389,10 @@ function etiquetaTipoAlerta(valor) {
 }
 
 function etiquetaEstadoAlerta(valor) {
-  const estado = textoPlano(valor || "ACTIVA");
+  const estado = textoPlano(valor || "ABIERTA");
   const map = {
     ABIERTA: "Abierta",
-    ACTIVA: "Activa",
-    EN_SEGUIMIENTO: "En seguimiento",
+    ACTIVA: "Abierta",
     CERRADA: "Cerrada",
     CERRADO: "Cerrada",
     RESUELTA: "Resuelta",
@@ -471,8 +471,8 @@ function normalizarAlertas(listaAlertas, aprendices) {
     lista: filtradas.map((alerta) => {
       const aprendiz = aprendicesPorId.get(String(obtenerIdAprendiz(alerta)));
       const tipoValor = textoPlano(alerta.tipo_alerta || alerta.tipoAlerta || alerta.tipo);
-      const estadoRaw = textoPlano(alerta.estado || "ACTIVA");
-      const estadoValor = ESTADOS_ALERTA_CERRADA.has(estadoRaw) ? "CERRADA" : estadoRaw;
+      const estadoRaw = textoPlano(alerta.estado || "ABIERTA");
+      const estadoValor = ESTADOS_ALERTA_CERRADA.has(estadoRaw) ? "CERRADA" : "ABIERTA";
       const severidadValor = textoPlano(alerta.severidad);
       const fechaRaw = obtenerFechaAlerta(alerta);
       return {
@@ -761,6 +761,21 @@ function esInstructorLiderGrupo(grupo) {
   return candidatos.some((idInstructor) => idsInstructor.has(idInstructor));
 }
 
+function obtenerNombreInstructor(instructor) {
+  const persona = instructor?.usuario?.persona;
+  return persona
+    ? `${persona.nombres || ""} ${persona.apellidos || ""}`.trim()
+    : instructor?.nombre || instructor?.nombre_completo || `Instructor ${instructor?.id_instructor || ""}`.trim();
+}
+
+function obtenerEtiquetaInstructor(instructor) {
+  const nombre = obtenerNombreInstructor(instructor);
+  const detalles = [instructor?.codigo_instructor, instructor?.especialidad]
+    .filter(Boolean)
+    .join(" - ");
+  return detalles ? `${nombre} - ${detalles}` : nombre;
+}
+
 export default function GrupoDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -810,6 +825,10 @@ export default function GrupoDetalle() {
   const [estadoGrupoTemporal, setEstadoGrupoTemporal] = useState("");
   const [modalInstructorLider, setModalInstructorLider] = useState(false);
   const [instructorLiderTemporal, setInstructorLiderTemporal] = useState("");
+  const [instructoresDisponibles, setInstructoresDisponibles] = useState([]);
+  const [cargandoInstructores, setCargandoInstructores] = useState(false);
+  const [guardandoInstructorLider, setGuardandoInstructorLider] = useState(false);
+  const [errorInstructorLider, setErrorInstructorLider] = useState("");
   const [confirmarHorarioGrupo, setConfirmarHorarioGrupo] = useState(false);
   const [horarioReasignando, setHorarioReasignando] = useState(null);
   const rangoFechaInicio = useMemo(() => obtenerRangoFechaInicio(), []);
@@ -1083,17 +1102,61 @@ export default function GrupoDetalle() {
     setModalEstadoGrupo(false);
   }
 
-  function abrirCambioInstructorLider() {
-    setInstructorLiderTemporal(detalle?.instructor === "Sin asignar" ? "" : detalle?.instructor || "");
-    setModalInstructorLider(true);
+  async function cargarInstructoresDisponibles() {
+    setCargandoInstructores(true);
+    setErrorInstructorLider("");
+    try {
+      const { data } = await api.get("/api/groups/instructores-disponibles");
+      setInstructoresDisponibles(extraerLista(payload(data), "instructores"));
+    } catch (errorInstructores) {
+      setErrorInstructorLider(obtenerMensajeError(errorInstructores, "No fue posible cargar los instructores disponibles."));
+      setInstructoresDisponibles([]);
+    } finally {
+      setCargandoInstructores(false);
+    }
   }
 
-  function guardarCambioInstructorLider() {
-    const nombre = instructorLiderTemporal.trim() || "Sin asignar";
-    setGrupo((actual) => ({ ...actual, instructor_lider_nombre: nombre }));
-    setErrorDetalle("Cambio de instructor lider preparado en frontend. Falta conectar el endpoint para persistirlo.");
-    setModalInstructorLider(false);
-    setConfirmarHorarioGrupo(true);
+  function abrirCambioInstructorLider() {
+    setInstructorLiderTemporal(String(grupo?.id_instructor_lider || grupo?.instructor_lider?.id_instructor || ""));
+    setErrorInstructorLider("");
+    setModalInstructorLider(true);
+    cargarInstructoresDisponibles();
+  }
+
+  async function guardarCambioInstructorLider() {
+    const idInstructor = Number.parseInt(instructorLiderTemporal, 10);
+    if (!Number.isInteger(idInstructor) || idInstructor <= 0) {
+      setErrorInstructorLider("Selecciona un instructor lider valido.");
+      return;
+    }
+
+    try {
+      setGuardandoInstructorLider(true);
+      setErrorInstructorLider("");
+      setErrorDetalle("");
+      setMensaje("");
+
+      const idGrupoGuardar = obtenerIdGrupoBackend(grupo, id);
+      const { data } = await api.patch(`/api/groups/${idGrupoGuardar}/instructor-lider`, {
+        id_instructor: idInstructor,
+      });
+      const grupoActualizado = data?.data || data;
+
+      setGrupo(grupoActualizado);
+      setModalInstructorLider(false);
+      setMensaje("Instructor lider actualizado correctamente.");
+      setConfirmarHorarioGrupo(true);
+    } catch (errorGuardarLider) {
+      const dataError = errorGuardarLider?.response?.data || {};
+      setErrorInstructorLider(
+        dataError.message ||
+        dataError.error ||
+        errorGuardarLider?.message ||
+        "No fue posible actualizar el instructor lider."
+      );
+    } finally {
+      setGuardandoInstructorLider(false);
+    }
   }
 
   function abrirHorarioDesdeConfirmacion() {
@@ -1587,7 +1650,7 @@ export default function GrupoDetalle() {
             ) : (
               <>
                 <button type="button" className="grupos-secondary-btn" onClick={abrirCambioEstadoGrupo}>Cambiar estado</button>
-                <button type="button" className="grupos-secondary-btn" onClick={abrirCambioInstructorLider}>Cambiar lider</button>
+                <button type="button" className="grupos-secondary-btn" onClick={abrirCambioInstructorLider} data-testid="group-leader-change-button">Cambiar lider</button>
                 <button type="button" className="grupos-secondary-btn" onClick={iniciarEdicionGrupo}><Edit3 size={15} /> Editar</button>
               </>
             )}
@@ -1825,11 +1888,10 @@ export default function GrupoDetalle() {
             value={filtrosAlertas.estado}
             onChange={(e) => cambiarFiltroAlertas("estado", e.target.value)}
             aria-label="Filtrar por estado"
+            data-testid="alert-filter-status"
           >
             <option value="">Todos los estados</option>
             <option value="ABIERTA">Abierta</option>
-            <option value="ACTIVA">Activa</option>
-            <option value="EN_SEGUIMIENTO">En seguimiento</option>
             <option value="CERRADA">Cerrada</option>
           </select>
 
@@ -1846,7 +1908,7 @@ export default function GrupoDetalle() {
           </button>
         </div>
         <div className="gd-table-wrap">
-          <table className="gd-table gd-alerts-table">
+          <table className="gd-table gd-alerts-table" data-testid="alert-table">
             <thead>
               <tr>
                 <th>Aprendiz</th>
@@ -1864,13 +1926,13 @@ export default function GrupoDetalle() {
                 const esManual  = a.fuente === "Manual";
                 const esTardio  = typeof a.fecha === "string" && (a.fecha.toLowerCase().startsWith("hoy") || a.fecha.toLowerCase().startsWith("ayer"));
                 return (
-                  <tr key={inicioAlertas + i}>
+                  <tr key={inicioAlertas + i} data-testid="alert-row">
                     <td><strong>{a.aprendiz}</strong></td>
                     <td>{a.grupo || detalle.ficha}</td>
                     <td>{a.tipo}</td>
                     <td className={esManual ? "gd-td-link" : ""}>{a.detalle}</td>
                     <td><SeveridadLabel valor={a.severidad} /></td>
-                    <td>{a.estado}</td>
+                    <td><span data-testid="alert-status-badge">{a.estado}</span></td>
                     <td className={esManual ? "gd-td-link" : ""}>{a.fuente}</td>
                     <td className={esTardio ? "gd-td-link" : ""}>{a.fecha}</td>
                   </tr>
@@ -2113,26 +2175,57 @@ export default function GrupoDetalle() {
 
       {modalInstructorLider && (
         <div className="grupos-modal-backdrop" role="presentation">
-          <section className="grupos-modal compact" role="dialog" aria-modal="true" aria-labelledby="lider-grupo-title">
+          <section className="grupos-modal compact" role="dialog" aria-modal="true" aria-labelledby="lider-grupo-title" data-testid="group-leader-modal">
             <div className="grupos-modal-header">
               <div>
                 <span className="grupos-eyebrow">Instructor lider</span>
                 <h2 id="lider-grupo-title">Cambiar instructor lider</h2>
-                <p>Accion preparada en frontend hasta conectar el endpoint definitivo.</p>
+                <p>Selecciona el instructor activo que quedara como lider del grupo.</p>
               </div>
-              <button type="button" className="grupos-close-btn" onClick={() => setModalInstructorLider(false)} aria-label="Cerrar ventana">
+              <button type="button" className="grupos-close-btn" onClick={() => setModalInstructorLider(false)} aria-label="Cerrar ventana" disabled={guardandoInstructorLider}>
                 <X size={18} />
               </button>
             </div>
             <div className="gd-edit-form">
               <label>
-                <span>Nombre del instructor</span>
-                <input value={instructorLiderTemporal} onChange={(e) => setInstructorLiderTemporal(e.target.value)} placeholder="Nombre del instructor lider" />
+                <span>Instructor lider</span>
+                <select
+                  value={instructorLiderTemporal}
+                  onChange={(e) => setInstructorLiderTemporal(e.target.value)}
+                  disabled={cargandoInstructores || guardandoInstructorLider}
+                  data-testid="group-leader-select"
+                >
+                  <option value="">
+                    {cargandoInstructores ? "Cargando instructores..." : "Seleccione un instructor"}
+                  </option>
+                  {instructoresDisponibles.map((instructor) => (
+                    <option key={instructor.id_instructor} value={instructor.id_instructor}>
+                      {obtenerEtiquetaInstructor(instructor)}
+                    </option>
+                  ))}
+                </select>
               </label>
+              {errorInstructorLider && <div className="grupos-horario-form-msg error">{errorInstructorLider}</div>}
             </div>
             <div className="gd-edit-actions">
-              <button type="button" className="grupos-secondary-btn" onClick={() => setModalInstructorLider(false)}>Cancelar</button>
-              <button type="button" className="grupos-primary-btn" onClick={guardarCambioInstructorLider}>Aplicar en vista</button>
+              <button
+                type="button"
+                className="grupos-secondary-btn"
+                onClick={() => setModalInstructorLider(false)}
+                disabled={guardandoInstructorLider}
+                data-testid="group-leader-cancel-button"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="grupos-primary-btn"
+                onClick={guardarCambioInstructorLider}
+                disabled={cargandoInstructores || guardandoInstructorLider}
+                data-testid="group-leader-save-button"
+              >
+                {guardandoInstructorLider ? "Guardando..." : "Guardar lider"}
+              </button>
             </div>
           </section>
         </div>
