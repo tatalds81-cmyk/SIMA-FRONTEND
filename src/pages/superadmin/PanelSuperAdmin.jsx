@@ -6,10 +6,10 @@ import {
   Layers,
   MonitorCog,
   ShieldCheck,
-  UserCheck,
   UsersRound,
 } from "lucide-react";
 import "../coordinador/coordinador.css";
+import "./superadmin.css";
 
 const getHeaders = () => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
@@ -78,20 +78,6 @@ export default function PanelSuperAdmin() {
         tono: "verde",
       },
       {
-        titulo: "Coordinadores",
-        valor: kpis.total_coordinadores,
-        detalle: "Coordinadores institucionales",
-        icono: ShieldCheck,
-        tono: "morado",
-      },
-      {
-        titulo: "Instructores activos",
-        valor: kpis.total_instructores_activos,
-        detalle: "Disponibles para grupos y sesiones",
-        icono: UserCheck,
-        tono: "cyan",
-      },
-      {
         titulo: "Grupos activos",
         valor: kpis.total_grupos_activos,
         detalle: `${numero(kpis.total_grupos)} grupos registrados`,
@@ -136,30 +122,18 @@ export default function PanelSuperAdmin() {
     }));
   }, [kpis]);
 
-  const estadoInstitucional = [
-    { etiqueta: "Areas registradas", valor: kpis.total_areas },
-    { etiqueta: "Programas activos", valor: kpis.total_programas },
-    { etiqueta: "Ambientes activos", valor: kpis.ambientes_activos },
-    { etiqueta: "Observaciones abiertas", valor: kpis.total_observaciones_abiertas },
+  const usuariosPorRol = [
+    { etiqueta: "Coordinadores", valor: numero(kpis.total_coordinadores), color: "#238500" },
+    { etiqueta: "Instructores", valor: numero(kpis.total_instructores_activos), color: "#0b2442" },
+    { etiqueta: "Aprendices", valor: numero(kpis.total_aprendices_activos), color: "#13a8b5" },
   ];
-
-  const novedadesSistema = [
-    {
-      icono: ShieldCheck,
-      titulo: "Control institucional",
-      texto: `${numero(kpis.total_coordinadores)} coordinadores y ${numero(kpis.total_instructores_activos)} instructores activos.`,
-    },
-    {
-      icono: Fingerprint,
-      titulo: "Biometria",
-      texto: `${numero(kpis.huellas_activas)} huellas activas y ${numero(kpis.huellas_revocadas)} revocadas.`,
-    },
-    {
-      icono: MonitorCog,
-      titulo: "IoT y ambientes",
-      texto: `${numero(kpis.intentos_iot_hoy)} intentos hoy en ${numero(kpis.ambientes_activos)} ambientes activos.`,
-    },
-  ];
+  const maximoUsuarios = Math.max(...usuariosPorRol.map((item) => item.valor), 1);
+  const alertasActivas = numero(kpis.total_alertas_activas);
+  const justificacionesPendientes = numero(kpis.justificaciones_pendientes);
+  const totalSeguimiento = alertasActivas + justificacionesPendientes;
+  const porcentajeAlertas = totalSeguimiento > 0
+    ? Math.round((alertasActivas / totalSeguimiento) * 100)
+    : 0;
 
   if (cargando) {
     return (
@@ -205,66 +179,38 @@ export default function PanelSuperAdmin() {
         })}
       </section>
 
-      <section className="coordinador-main-grid">
-        <article className="coordinador-card">
-          <div className="coordinador-card-header">
-            <div>
-              <h2>Operacion academica</h2>
-              <strong>{numero(kpis.total_areas)} areas, {numero(kpis.total_programas)} programas</strong>
-              <p>{numero(kpis.total_aprendices_activos)} aprendices activos y {numero(kpis.total_observaciones_abiertas)} observaciones abiertas.</p>
-            </div>
+      <section className="superadmin-analytics-grid">
+        <article className="coordinador-card superadmin-users-chart">
+          <div className="superadmin-chart-heading">
+            <div><h2>Usuarios actuales</h2><p>Distribucion de usuarios activos por rol.</p></div>
+            <span><UsersRound size={20} /></span>
           </div>
-        </article>
-
-        <article className="coordinador-card">
-          <div className="coordinador-card-header">
-            <div>
-              <h2>Biometria e IoT</h2>
-              <strong>{numero(kpis.intentos_iot_hoy)} intentos IoT hoy</strong>
-              <p>{numero(kpis.ambientes_activos)} ambientes activos de {numero(kpis.total_ambientes)} registrados.</p>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className="coordinador-secondary-grid">
-        <article className="coordinador-card coordinador-estado">
-          <h2>Estado institucional</h2>
-          {estadoInstitucional.map((item) => (
-            <div className="coordinador-estado-row" key={item.etiqueta}>
-              <span>{item.etiqueta}</span>
-              <strong>{numero(item.valor)}</strong>
-            </div>
-          ))}
-          <div className="coordinador-meta">
-            <div>
-              <span>Seguimiento global</span>
-              <strong>{numero(kpis.total_alertas_activas)} alertas</strong>
-            </div>
-            <span className="coordinador-meta-track">
-              <span></span>
-            </span>
-          </div>
-        </article>
-
-        <article className="coordinador-novedades">
-          <h2>
-            <ShieldCheck size={21} />
-            Gestion del sistema
-          </h2>
-          <div className="coordinador-novedades-list">
-            {novedadesSistema.map((item) => {
-              const Icon = item.icono;
-              return (
-                <div className="coordinador-novedad-item" key={item.titulo}>
-                  <Icon size={25} />
-                  <div>
-                    <strong>{item.titulo}</strong>
-                    <p>{item.texto}</p>
-                  </div>
+          <div className="superadmin-bars-chart" aria-label="Usuarios activos por rol">
+            {usuariosPorRol.map((item) => (
+              <div className="superadmin-bar-column" key={item.etiqueta}>
+                <strong>{item.valor}</strong>
+                <div className="superadmin-bar-track">
+                  <span style={{ height: `${item.valor > 0 ? Math.max(12, (item.valor / maximoUsuarios) * 100) : 0}%`, backgroundColor: item.color }}></span>
                 </div>
-              );
-            })}
+                <small>{item.etiqueta}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="coordinador-card superadmin-donut-card">
+          <div className="superadmin-chart-heading">
+            <div><h2>Seguimiento pendiente</h2><p>Alertas activas y justificaciones.</p></div>
+            <span><ShieldCheck size={20} /></span>
+          </div>
+          <div className="superadmin-donut-content">
+            <div className="superadmin-donut" style={{ "--alert-share": `${porcentajeAlertas}%` }} role="img" aria-label={`${alertasActivas} alertas activas y ${justificacionesPendientes} justificaciones pendientes`}>
+              <div><strong>{totalSeguimiento}</strong><small>Total</small></div>
+            </div>
+            <div className="superadmin-donut-legend">
+              <div><span className="legend-dot alertas"></span><p><small>Alertas activas</small><strong>{alertasActivas}</strong></p></div>
+              <div><span className="legend-dot justificaciones"></span><p><small>Justificaciones</small><strong>{justificacionesPendientes}</strong></p></div>
+            </div>
           </div>
         </article>
       </section>

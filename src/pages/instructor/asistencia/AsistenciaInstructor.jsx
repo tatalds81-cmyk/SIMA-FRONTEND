@@ -23,12 +23,14 @@ import "../instructor.css";
 import {
   APRENDICES_POR_PAGINA,
   ESTADOS,
+  ESTADOS_FILTRO,
   ESTADOS_REGISTRABLES,
   HISTORIAL_POR_PAGINA,
   MESES,
   METODOS
 } from "./asistencia.constants";
 import {
+  cerrarSesionAsistencia,
   corregirAsistencia,
   generarQrSesion,
   obtenerAprendicesPorGrupo,
@@ -148,6 +150,11 @@ function obtenerHoraFinSesion(sesion) {
   );
 }
 
+function obtenerFechaSesionAsistencia(sesion, fallback = "") {
+  const valor = String(sesion?.fecha_clase || sesion?.fecha || sesion?.fecha_sesion || fallback || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor : fallback;
+}
+
 function guardarJsonPersistente(clave, valor) {
   const serializado = JSON.stringify(valor);
   localStorage.setItem(clave, serializado);
@@ -220,6 +227,7 @@ export default function AsistenciaInstructor() {
   const [grupoDetalleActivo, setGrupoDetalleActivo] = useState(null);
   const [qrSesion, setQrSesion] = useState(null);
   const [guardandoAsistencia, setGuardandoAsistencia] = useState(false);
+  const [cerrandoSesionAutomatica, setCerrandoSesionAutomatica] = useState(false);
   const [modalHuellaAbierto, setModalHuellaAbierto] = useState(false);
   const [leyendoHuella, setLeyendoHuella] = useState(false);
   const [estadoHuella, setEstadoHuella] = useState("ESPERANDO");
@@ -328,14 +336,15 @@ export default function AsistenciaInstructor() {
       try {
         const idSesionSeleccionada = localStorage.getItem("sima_asistencia_sesion_seleccionada") || sessionStorage.getItem("sima_asistencia_sesion_seleccionada");
         if (idSesionSeleccionada) {
-          const sesionesAutorizadas = await obtenerSesionesInstructorDia(fecha).catch(() => []);
+          const sesionGuardada = leerJsonPersistente("sima_asistencia_sesion_detalle") || {};
+          const fechaSesionGuardada = obtenerFechaSesionAsistencia(sesionGuardada, fecha);
+          const sesionesAutorizadas = await obtenerSesionesInstructorDia(fechaSesionGuardada).catch(() => []);
           const sesionAutorizada = obtenerSesionAutorizadaPorId(sesionesAutorizadas, idSesionSeleccionada);
           if (!sesionAutorizada) {
             limpiarSesionSeleccionadaPersistente();
             throw new Error("No tienes permiso para ingresar a esta asistencia o la sesion ya no esta asignada a tu usuario.");
           }
 
-          const sesionGuardada = leerJsonPersistente("sima_asistencia_sesion_detalle") || {};
           const sesionBase = {
             ...sesionGuardada,
             ...sesionAutorizada,
@@ -409,6 +418,7 @@ export default function AsistenciaInstructor() {
   const haySesionActiva = Boolean(obtenerIdSesion(sesionActiva)) &&
     !["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesionActual);
   const grupoSeccionActiva = haySesionActiva ? (grupoDetalleActivo || grupoActual) : null;
+  const fechaSesionActiva = obtenerFechaSesionAsistencia(sesionActiva, fecha);
   const aprendicesConHoras = useMemo(
     () => aprendices.map((aprendiz) => {
       const horaLocal = obtenerClavesHoraRegistro(aprendiz)
@@ -424,13 +434,13 @@ export default function AsistenciaInstructor() {
     if (!haySesionActiva || !sesionActiva) return;
 
     guardarJsonPersistente("sima_asistencia_bloque_activo", {
-      fecha: String(sesionActiva.fecha_clase || sesionActiva.fecha || sesionActiva.fecha_sesion || fecha).slice(0, 10),
+      fecha: fechaSesionActiva,
       hora_inicio: obtenerHoraInicioSesion(sesionActiva),
       hora_fin: obtenerHoraFinSesion(sesionActiva),
       id_grupo: sesionActiva.id_grupo || obtenerIdGrupo(grupoSeccionActiva),
       numero_ficha: obtenerCodigo(grupoSeccionActiva)
     });
-  }, [fecha, grupoSeccionActiva, haySesionActiva, sesionActiva]);
+  }, [fechaSesionActiva, grupoSeccionActiva, haySesionActiva, sesionActiva]);
 
   const aprendicesRegistrados = useMemo(() => {
     if (!haySesionActiva) return [];
@@ -440,13 +450,14 @@ export default function AsistenciaInstructor() {
   const aprendicesFiltrados = useMemo(() => {
     if (!haySesionActiva) return [];
     const texto = normalizarTexto(busqueda);
-    const listaBase = modoManual ? aprendicesConHoras : aprendicesRegistrados;
+    const mostrarPendientes = filtroEstado === "PENDIENTE";
+    const listaBase = modoManual || mostrarPendientes ? aprendicesConHoras : aprendicesRegistrados;
     
     return listaBase.filter((aprendiz) => {
       const coincideBusqueda = !texto || normalizarTexto(aprendiz.nombre).includes(texto);
-      
-      // En modo manual, no filtrar por estado/método/fecha
-      if (modoManual) {
+
+      // En modo manual sin filtro de estado, mantener el listado completo para edicion.
+      if (modoManual && !filtroEstado) {
         return coincideBusqueda;
       }
       
@@ -466,9 +477,9 @@ export default function AsistenciaInstructor() {
   }, [aprendicesConHoras, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, haySesionActiva, modoManual]);
 
   const opcionesAnios = useMemo(() => {
-    const anioBase = new Date(`${fecha}T12:00:00`).getFullYear();
+    const anioBase = new Date(`${fechaSesionActiva}T12:00:00`).getFullYear();
     return Array.from({ length: 5 }, (_, index) => String(anioBase - 2 + index));
-  }, [fecha]);
+  }, [fechaSesionActiva]);
 
   const totalPaginas = Math.max(1, Math.ceil(aprendicesFiltrados.length / APRENDICES_POR_PAGINA));
   const paginaSegura = Math.min(paginaActual, totalPaginas);
@@ -563,12 +574,45 @@ export default function AsistenciaInstructor() {
       obtenerAsistenciasSesion(idSesion),
       obtenerAprendicesPorGrupo(grupoActual || grupoSeleccionado).catch(() => [])
     ]);
-    setSesionActiva(detalle.sesion || sesion);
-    setAprendices(
+    const sesionActualizada = detalle.sesion || sesion;
+    const aprendicesActualizados =
       aprendicesGrupo.length
         ? combinarAprendicesConAsistencias(aprendicesGrupo, detalle.asistencias)
-        : detalle.asistencias.map(prepararAsistenciaSesion)
-    );
+        : detalle.asistencias.map(prepararAsistenciaSesion);
+
+    setSesionActiva(sesionActualizada);
+    setAprendices(aprendicesActualizados);
+    cerrarSesionSiEstaCompleta(sesionActualizada, aprendicesActualizados);
+  }
+
+  async function cerrarSesionSiEstaCompleta(sesion, listaAprendices) {
+    const idSesion = obtenerIdSesion(sesion);
+    const estadoSesion = String(sesion?.estado || "").toUpperCase();
+    const estaCerrada = ["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesion);
+    const todosRegistrados = listaAprendices.length > 0 &&
+      listaAprendices.every((aprendiz) => ESTADOS_REGISTRABLES.includes(aprendiz.estado));
+
+    if (!idSesion || estaCerrada || !todosRegistrados || cerrandoSesionAutomatica) return;
+
+    setCerrandoSesionAutomatica(true);
+    try {
+      const respuesta = await cerrarSesionAsistencia(idSesion);
+      const sesionCerrada = respuesta?.sesion || respuesta?.data?.sesion || respuesta || {
+        ...sesion,
+        estado: "CERRADA"
+      };
+      setSesionActiva((actual) => actual ? { ...actual, ...sesionCerrada, estado: sesionCerrada.estado || "CERRADA" } : actual);
+      setMensajeError(false);
+      setMensaje("Asistencia completa. La sesion se cerro automaticamente.");
+      window.dispatchEvent(new CustomEvent("sima:sesiones-actualizadas", {
+        detail: { sesion: { ...sesion, ...sesionCerrada, id_sesion_formacion: idSesion, estado: sesionCerrada.estado || "CERRADA" } }
+      }));
+    } catch (error) {
+      setMensajeError(true);
+      setMensaje(obtenerMensajeError(error, "La asistencia esta completa, pero no fue posible cerrar la sesion automaticamente."));
+    } finally {
+      setCerrandoSesionAutomatica(false);
+    }
   }
 
   useEffect(() => {
@@ -592,7 +636,8 @@ export default function AsistenciaInstructor() {
     const estadoBackend = estadoFrontendABackend(nuevoEstado);
     const idSesion = obtenerIdSesion(sesionActiva);
     let idAsistencia = aprendiz?.idAsistencia || "";
-    const marcaTiempo = construirMarcaTiempoRegistro(fecha, horaRegistro);
+    const fechaRegistro = obtenerFechaSesionAsistencia(sesionActiva, fecha);
+    const marcaTiempo = construirMarcaTiempoRegistro(fechaRegistro, horaRegistro);
 
     if (!idAsistencia && idSesion) {
       const detalle = await obtenerAsistenciasSesion(idSesion).catch(() => ({ asistencias: [] }));
@@ -648,7 +693,7 @@ export default function AsistenciaInstructor() {
         idGrupo: sesionActiva?.id_grupo || obtenerIdGrupo(grupoSeccionActiva || grupoActual),
         idAprendiz: aprendiz.id,
         estado: estadoBackend,
-        fecha
+        fecha: fechaRegistro
       }
     }));
   }
@@ -967,7 +1012,7 @@ export default function AsistenciaInstructor() {
                   <section>
                     <h3>Estado</h3>
                     <div className="asistencia-filter-options">
-                      {ESTADOS_REGISTRABLES.map((estado) => {
+                      {ESTADOS_FILTRO.map((estado) => {
                         const item = ESTADOS[estado];
                         return (
                         <button
@@ -976,6 +1021,7 @@ export default function AsistenciaInstructor() {
                           className={filtroEstado === estado ? "selected" : ""}
                           onClick={() => {
                             setFiltroEstado(filtroEstado === estado ? "" : estado);
+                            if (estado === "PENDIENTE") setModoManual(true);
                             setPaginaActual(1);
                           }}
                         >
@@ -1106,7 +1152,7 @@ export default function AsistenciaInstructor() {
         <div className="asistencia-hero-grid">
           <div>
             <span>Fecha:</span>
-            <strong>{formatearFecha(fecha)}</strong>
+            <strong>{formatearFecha(fechaSesionActiva)}</strong>
           </div>
           <div>
             <span>Estado de sesion:</span>
@@ -1293,7 +1339,7 @@ export default function AsistenciaInstructor() {
               <div className="asistencia-qr-content">
                 <div className="asistencia-qr-info">
                   <strong>{obtenerCodigo(grupoActual)}</strong>
-                  <span>{formatearFecha(fecha)}</span>
+                  <span>{formatearFecha(fechaSesionActiva)}</span>
                   <small>{qrSesion?.qr_token ? `Token: ${qrSesion.qr_token}` : "QR activo"}</small>
                 </div>
                 <button
@@ -1398,6 +1444,11 @@ export default function AsistenciaInstructor() {
                 className="mcal-btn-enviar"
                 onClick={() => {
                   setModoManual(true);
+                  setFiltroEstado("PENDIENTE");
+                  setFiltroMetodo("");
+                  setFiltroDia("");
+                  setFiltroMes("");
+                  setFiltroAnio("");
                   setPaginaActual(1);
                   cerrarAvisoFaltantes();
                 }}
@@ -1479,7 +1530,7 @@ export default function AsistenciaInstructor() {
               )}
             </div>
             <strong>{obtenerCodigo(grupoActual)}</strong>
-            <span>{formatearFecha(fecha)}</span>
+            <span>{formatearFecha(fechaSesionActiva)}</span>
             {qrSesion?.qr_token && <small>{qrSesion.qr_token}</small>}
           </div>
         </section>
