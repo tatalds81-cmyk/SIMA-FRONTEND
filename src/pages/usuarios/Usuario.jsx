@@ -622,6 +622,7 @@ export default function Usuario() {
         </select>
         <select
           className="usuarios-select-filtro"
+          data-testid="select-usuario-estado"
           value={filtroEstado}
           onChange={(e) => {
             setFiltroEstado(e.target.value);
@@ -631,7 +632,7 @@ export default function Usuario() {
           <option value="">Todos los estados</option>
           <option value="ACTIVO">Activo</option>
           <option value="INACTIVO">Inactivo</option>
-          <option value="SUSPENDIDO">Suspendido</option>
+          <option value="BLOQUEADO">Bloqueado</option>
         </select>
         <button type="button" onClick={buscarUsuarioPorDocumento}>
           <Search size={16} />

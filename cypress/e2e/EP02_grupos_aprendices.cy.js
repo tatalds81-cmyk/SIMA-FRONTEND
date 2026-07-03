@@ -19,6 +19,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
         cy.get('select').eq(0).select(1); // area
         cy.get('select').eq(1).select(1); // programa (depende de area)
         cy.get('select').eq(2).select('Manana'); // jornada
+        cy.get('[data-testid="select-ambiente"]').select(1); // ambiente obligatorio para el backend
         cy.get('input[type="number"]').type('6'); // trimestres
         cy.get('input[type="date"]').type('2026-07-01');
         cy.contains('button', 'Crear grupo').click();
@@ -33,6 +34,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
         cy.get('select').eq(0).select(1);
         cy.get('select').eq(1).select(1);
         cy.get('select').eq(2).select('Manana');
+        cy.get('[data-testid="select-ambiente"]').select(1);
         cy.get('input[type="number"]').type('6');
         cy.get('input[type="date"]').type('2026-07-01');
         cy.contains('button', 'Crear grupo').click();

@@ -8,7 +8,6 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
   const [errorJustificacion, setErrorJustificacion] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorGlobal, setErrorGlobal] = useState(null);
-  const [estadoFinal, setEstadoFinal] = useState('CERRADA');
   const [yaCerrada, setYaCerrada] = useState(false);
   const [toast, setToast] = useState(null);
   
@@ -42,7 +41,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
       return;
     }
 
-    if (estadoFinal === 'CERRADA' && justificacion.trim().length < 20) {
+    if (justificacion.trim().length < 20) {
       setErrorJustificacion(true);
       return;
     }
@@ -51,7 +50,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
     setLoading(true);
     setErrorGlobal(null);
 
-    const { error: err } = await cerrarAlerta(alertaId, justificacion, estadoFinal);
+    const { error: err } = await cerrarAlerta(alertaId, justificacion);
 
     if (err) {
       setLoading(false);
@@ -109,14 +108,14 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
         <div className="mcal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>
             Estás a punto de gestionar la alerta de <strong>{aprendizNombre}</strong>. 
-            Selecciona el nuevo estado y proporciona la justificación o acta correspondiente.
+            Proporciona la justificación del cierre.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Estado de resolución</label>
             <select 
-              value={estadoFinal} 
-              onChange={(e) => setEstadoFinal(e.target.value)}
+              value="CERRADA"
+              disabled
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '6px', 
                 border: '1px solid #d1d5db', fontSize: '14px', outline: 'none',
@@ -124,7 +123,6 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
               }}
             >
               <option value="CERRADA">Cerrada / Resuelta</option>
-              <option value="EN_COMITE">En Comité de Evaluación</option>
             </select>
           </div>
 
@@ -134,7 +132,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             </label>
             <textarea
               ref={textareaRef}
-              placeholder={estadoFinal === 'CERRADA' ? "Describe brevemente cómo fue atendida la situación..." : "Indica el acta o resumen de por qué se envía a comité..."}
+              placeholder="Describe brevemente cómo fue atendida la situación..."
               value={justificacion}
               onChange={(e) => {
                 if (e.target.value.length <= 300) {

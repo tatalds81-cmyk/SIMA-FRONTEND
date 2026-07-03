@@ -263,10 +263,9 @@ export default function ConsultarAlertas() {
           {/* Estado */}
           <div className="ca-filtro-grupo">
             <label className="ca-filtro-label">Estado</label>
-            <select className="ca-select" value={filtrosLocales.estado} onChange={e => handleFiltroLocal('estado', e.target.value)}>
+            <select className="ca-select" data-testid="select-alerta-estado" value={filtrosLocales.estado} onChange={e => handleFiltroLocal('estado', e.target.value)}>
               <option value="">Todos</option>
-              <option value="ACTIVA">Activa</option>
-              <option value="EN_SEGUIMIENTO">En seguimiento</option>
+              <option value="ABIERTA">Abierta</option>
               <option value="CERRADA">Cerrada</option>
             </select>
           </div>

@@ -2,9 +2,9 @@ import './badges.css';
 
 const CONFIG = {
   ABIERTA:        { label: 'ABIERTA',        clase: 'badge-est badge-est--abierta'   },
-  ACTIVA:         { label: 'ACTIVA',         clase: 'badge-est badge-est--activa'    },
   CERRADA:        { label: 'CERRADA',        clase: 'badge-est badge-est--cerrada'   },
-  EN_SEGUIMIENTO: { label: 'EN SEGUIMIENTO', clase: 'badge-est badge-est--seguimiento' }
+  ACTIVA:         { label: 'ABIERTA',        clase: 'badge-est badge-est--abierta'   },
+  EN_SEGUIMIENTO: { label: 'ABIERTA',        clase: 'badge-est badge-est--abierta'   }
 };
 
 export default function BadgeEstado({ estado }) {

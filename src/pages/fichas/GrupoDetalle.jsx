@@ -95,6 +95,15 @@ function obtenerInicialesHorario(nombre) {
   return `${partes[0]?.[0] || "S"}${partes[1]?.[0] || ""}`.toUpperCase();
 }
 
+function obtenerNombreInstructor(instructor) {
+  if (!instructor) return "Sin asignar";
+  const persona = instructor.usuario?.persona;
+  const nombres = persona?.nombres || instructor.nombres || "";
+  const apellidos = persona?.apellidos || instructor.apellidos || "";
+  const nombreCompleto = `${nombres} ${apellidos}`.trim();
+  return nombreCompleto || instructor.usuario?.email || instructor.codigo_instructor || `Instructor ${instructor.id_instructor || ""}`;
+}
+
 function numeroSeguro(valor) {
   const numero = Number(valor);
   return Number.isFinite(numero) ? numero : null;
@@ -281,7 +290,7 @@ function alertaEstaAbierta(alerta) {
 }
 
 function alertaEstaActiva(alerta) {
-  return textoPlano(alerta?.estado || "ACTIVA") === "ACTIVA";
+  return textoPlano(alerta?.estado || "ABIERTA") === "ABIERTA";
 }
 
 function alertaEsObservacion(alerta) {
@@ -388,11 +397,9 @@ function etiquetaTipoAlerta(valor) {
 }
 
 function etiquetaEstadoAlerta(valor) {
-  const estado = textoPlano(valor || "ACTIVA");
+  const estado = textoPlano(valor || "ABIERTA");
   const map = {
     ABIERTA: "Abierta",
-    ACTIVA: "Activa",
-    EN_SEGUIMIENTO: "En seguimiento",
     CERRADA: "Cerrada",
     CERRADO: "Cerrada",
     RESUELTA: "Resuelta",
@@ -471,7 +478,7 @@ function normalizarAlertas(listaAlertas, aprendices) {
     lista: filtradas.map((alerta) => {
       const aprendiz = aprendicesPorId.get(String(obtenerIdAprendiz(alerta)));
       const tipoValor = textoPlano(alerta.tipo_alerta || alerta.tipoAlerta || alerta.tipo);
-      const estadoRaw = textoPlano(alerta.estado || "ACTIVA");
+      const estadoRaw = textoPlano(alerta.estado || "ABIERTA");
       const estadoValor = ESTADOS_ALERTA_CERRADA.has(estadoRaw) ? "CERRADA" : estadoRaw;
       const severidadValor = textoPlano(alerta.severidad);
       const fechaRaw = obtenerFechaAlerta(alerta);
@@ -761,6 +768,10 @@ function esInstructorLiderGrupo(grupo) {
   return candidatos.some((idInstructor) => idsInstructor.has(idInstructor));
 }
 
+function obtenerIdInstructorLiderGrupo(grupo) {
+  return grupo?.id_instructor_lider || grupo?.instructor_lider?.id_instructor || grupo?.instructor?.id_instructor || "";
+}
+
 export default function GrupoDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -810,6 +821,8 @@ export default function GrupoDetalle() {
   const [estadoGrupoTemporal, setEstadoGrupoTemporal] = useState("");
   const [modalInstructorLider, setModalInstructorLider] = useState(false);
   const [instructorLiderTemporal, setInstructorLiderTemporal] = useState("");
+  const [instructoresDisponibles, setInstructoresDisponibles] = useState([]);
+  const [cargandoInstructores, setCargandoInstructores] = useState(false);
   const [confirmarHorarioGrupo, setConfirmarHorarioGrupo] = useState(false);
   const [horarioReasignando, setHorarioReasignando] = useState(null);
   const rangoFechaInicio = useMemo(() => obtenerRangoFechaInicio(), []);
@@ -1093,17 +1106,45 @@ export default function GrupoDetalle() {
     }
   }
 
-  function abrirCambioInstructorLider() {
-    setInstructorLiderTemporal(detalle?.instructor === "Sin asignar" ? "" : detalle?.instructor || "");
-    setModalInstructorLider(true);
+  async function cargarInstructoresDisponibles() {
+    try {
+      setCargandoInstructores(true);
+      setErrorDetalle("");
+      const resp = await api.get("/api/groups/instructores-disponibles");
+      setInstructoresDisponibles(extraerLista(payload(resp.data)));
+    } catch (error) {
+      setErrorDetalle(error?.response?.data?.message || "No se pudieron cargar los instructores disponibles.");
+      setInstructoresDisponibles([]);
+    } finally {
+      setCargandoInstructores(false);
+    }
   }
 
-  function guardarCambioInstructorLider() {
-    const nombre = instructorLiderTemporal.trim() || "Sin asignar";
-    setGrupo((actual) => ({ ...actual, instructor_lider_nombre: nombre }));
-    setErrorDetalle("Cambio de instructor lider preparado en frontend. Falta conectar el endpoint para persistirlo.");
-    setModalInstructorLider(false);
-    setConfirmarHorarioGrupo(true);
+  function abrirCambioInstructorLider() {
+    setInstructorLiderTemporal(obtenerIdInstructorLiderGrupo(grupo) || "");
+    setModalInstructorLider(true);
+    cargarInstructoresDisponibles();
+  }
+
+  async function guardarCambioInstructorLider() {
+    if (!instructorLiderTemporal) {
+      setErrorDetalle("Seleccione un instructor lider.");
+      return;
+    }
+
+    try {
+      setErrorDetalle("");
+      const idGrupoGuardar = obtenerIdGrupoBackend(grupo, id);
+      const { data } = await api.patch(`/api/groups/${idGrupoGuardar}/instructor-lider`, {
+        id_instructor: Number(instructorLiderTemporal),
+      });
+      setGrupo(payload(data));
+      setMensaje("Instructor lider actualizado correctamente.");
+      setModalInstructorLider(false);
+      setConfirmarHorarioGrupo(true);
+    } catch (error) {
+      setErrorDetalle(error?.response?.data?.message || "No se pudo actualizar el instructor lider.");
+    }
   }
 
   function abrirHorarioDesdeConfirmacion() {
@@ -1833,13 +1874,12 @@ export default function GrupoDetalle() {
 
           <select
             value={filtrosAlertas.estado}
+            data-testid="select-alerta-estado-grupo"
             onChange={(e) => cambiarFiltroAlertas("estado", e.target.value)}
             aria-label="Filtrar por estado"
           >
             <option value="">Todos los estados</option>
             <option value="ABIERTA">Abierta</option>
-            <option value="ACTIVA">Activa</option>
-            <option value="EN_SEGUIMIENTO">En seguimiento</option>
             <option value="CERRADA">Cerrada</option>
           </select>
 
@@ -2128,7 +2168,7 @@ export default function GrupoDetalle() {
               <div>
                 <span className="grupos-eyebrow">Instructor lider</span>
                 <h2 id="lider-grupo-title">Cambiar instructor lider</h2>
-                <p>Accion preparada en frontend hasta conectar el endpoint definitivo.</p>
+                <p>Selecciona el instructor activo que quedara como lider del grupo.</p>
               </div>
               <button type="button" className="grupos-close-btn" onClick={() => setModalInstructorLider(false)} aria-label="Cerrar ventana">
                 <X size={18} />
@@ -2136,13 +2176,20 @@ export default function GrupoDetalle() {
             </div>
             <div className="gd-edit-form">
               <label>
-                <span>Nombre del instructor</span>
-                <input value={instructorLiderTemporal} onChange={(e) => setInstructorLiderTemporal(e.target.value)} placeholder="Nombre del instructor lider" />
+                <span>Instructor</span>
+                <select value={instructorLiderTemporal} onChange={(e) => setInstructorLiderTemporal(e.target.value)} disabled={cargandoInstructores}>
+                  <option value="">{cargandoInstructores ? "Cargando instructores..." : "Seleccione instructor"}</option>
+                  {instructoresDisponibles.map((instructor) => (
+                    <option key={instructor.id_instructor} value={instructor.id_instructor}>
+                      {obtenerNombreInstructor(instructor)}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
             <div className="gd-edit-actions">
               <button type="button" className="grupos-secondary-btn" onClick={() => setModalInstructorLider(false)}>Cancelar</button>
-              <button type="button" className="grupos-primary-btn" onClick={guardarCambioInstructorLider}>Aplicar en vista</button>
+              <button type="button" className="grupos-primary-btn" onClick={guardarCambioInstructorLider} disabled={cargandoInstructores}>Guardar lider</button>
             </div>
           </section>
         </div>

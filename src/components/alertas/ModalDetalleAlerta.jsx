@@ -53,7 +53,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
   if (!isOpen) return null;
 
   const esCoordinador = getRolActual() === 'coordinador';
-  const puedeCerrar = esCoordinador && (alerta?.estado === 'ABIERTA' || alerta?.estado === 'ACTIVA');
+  const puedeCerrar = esCoordinador && alerta?.estado === 'ABIERTA';
   const nombreAprendiz = alerta?.aprendizNombre || alerta?.aprendiz?.nombre || '-';
 
   return (
@@ -230,7 +230,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
                       <div className="da-timeline-dot" />
                       <div className="da-timeline-content">
                         <div className="da-timeline-head">
-                          <strong>ACTIVA</strong>
+                          <strong>ABIERTA</strong>
                           <span>{formatFechaLarga(alerta.fechaCreacion)}</span>
                         </div>
                         <p>Estado inicial de la alerta</p>

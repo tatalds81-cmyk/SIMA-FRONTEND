@@ -49,23 +49,21 @@ describe('EP04 - Gestion de alertas tempranas y riesgos formativos', () => {
       cy.get('.ca-tabla, .ca-estado-vacio').should('exist');
     });
 
-    it('Filtra alertas por estado (valor aceptado por backend: ABIERTA)', () => {
+    it('Filtra alertas por estado usando un valor aceptado por el backend', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
       cy.visit('/alertas/consultar');
-      cy.get('.ca-select').eq(0).select('CERRADA'); // backend solo acepta ABIERTA/CERRADA, no ACTIVA
+      cy.get('[data-testid="select-alerta-estado"]').select('ABIERTA');
       cy.contains('button', 'Buscar').click();
       cy.get('.ca-tabla, .ca-estado-vacio').should('exist');
     });
 
-    it('[HALLAZGO CONFIRMADO] El filtro "Activa" del frontend no es soportado por el backend', () => {
-      // Documenta la inconsistencia: ConsultarAlertas.jsx ofrece la opción "ACTIVA",
-      // pero alerts.routes.js solo valida ['ABIERTA', 'CERRADA']. Se espera 400.
+    it('Ofrece solo estados soportados por el backend en el filtro', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
       cy.visit('/alertas/consultar');
-      cy.intercept('GET', '**/api/alerts*estado=ACTIVA*').as('filtroActiva');
-      cy.get('.ca-select').eq(0).select('ACTIVA');
-      cy.contains('button', 'Buscar').click();
-      cy.wait('@filtroActiva').its('response.statusCode').should('eq', 400);
+      cy.get('[data-testid="select-alerta-estado"] option').then(($options) => {
+        const valores = [...$options].map((option) => option.value);
+        expect(valores).to.deep.equal(['', 'ABIERTA', 'CERRADA']);
+      });
     });
 
     it('Filtra alertas por tipo', () => {
