@@ -361,8 +361,40 @@ export default function PanelInstructor() {
           setSesionesSemana(sesionesSemanaData);
         }
 
-        if (horariosInstructor.length) {
-          setSesionesSemana((actual) => combinarSesionesCalendario(actual, horariosInstructor));
+        const sesionesCalendario = horariosInstructor.length
+          ? combinarSesionesCalendario(sesionesSemanaData, horariosInstructor)
+          : sesionesSemanaData;
+        setSesionesSemana(sesionesCalendario);
+
+        const asistenciasSemanaResultado = await Promise.allSettled(
+          sesionesCalendario
+            .filter((sesion) => obtenerIdSesion(sesion))
+            .map((sesion) =>
+              fetchJson(`/api/educational-sessions/${obtenerIdSesion(sesion)}/attendances`)
+                .then((data) => ({
+                  idSesion: String(obtenerIdSesion(sesion)),
+                  asistencias: extraerAsistencias(data)
+                }))
+            )
+        );
+        if (!activo) return;
+
+        const totalAsistenciasPorSesion = new Map(
+          asistenciasSemanaResultado
+            .filter((result) => result.status === "fulfilled")
+            .map((result) => [result.value.idSesion, result.value.asistencias.length])
+        );
+        if (totalAsistenciasPorSesion.size) {
+          setSesionesSemana((actual) =>
+            actual.map((sesion) => {
+              const idSesion = String(obtenerIdSesion(sesion) || "");
+              if (!totalAsistenciasPorSesion.has(idSesion)) return sesion;
+              return {
+                ...sesion,
+                total_asistencias: totalAsistenciasPorSesion.get(idSesion)
+              };
+            })
+          );
         }
 
         const sesionesMesResultado = await fetchJson(`/api/educational-sessions?fecha_desde=${inicioMesActual()}&fecha_hasta=${finMesActual()}&solo_responsable=true&limit=100`).catch(() => ({ sesiones: [] }));

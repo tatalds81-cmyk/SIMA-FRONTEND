@@ -11,6 +11,7 @@ export const ESTADOS = {
 };
 
 export const ESTADOS_REGISTRABLES = ["PRESENTE", "INASISTENTE", "TARDE", "JUSTIFICADA"];
+export const ESTADOS_FILTRO = [...ESTADOS_REGISTRABLES, "PENDIENTE"];
 
 export const METODOS = [
   { value: "manual", label: "Manual" },
