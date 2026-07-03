@@ -350,7 +350,7 @@ export async function obtenerNotificaciones() {
     const res = data.data || data;
     const lista = res?.notificaciones || res?.data || (Array.isArray(res) ? res : []);
     return { data: lista, error: null };
-  } catch (error) {
+  } catch {
     return { data: [], error: null };
   }
 }
@@ -368,6 +368,91 @@ export async function marcarTodasComoLeidas() {
   try {
     const { data } = await api.patch('/api/notifications/read-all');
     return { data, error: null };
+  } catch (error) {
+    return { data: null, error: mensajeError(error) };
+  }
+}
+
+function obtenerPayloadJustificacion(fuente = {}) {
+  return fuente.data || fuente.metadata || fuente.detalle || fuente.payload || {};
+}
+
+function obtenerIdJustificacion(fuente = {}) {
+  const payload = obtenerPayloadJustificacion(fuente);
+  return (
+    fuente.id_justificacion ||
+    fuente.idJustificacion ||
+    fuente.justificacion_id ||
+    fuente.id_justificacion_asistencia ||
+    fuente.idJustificacionAsistencia ||
+    payload.id_justificacion ||
+    payload.idJustificacion ||
+    payload.justificacion_id ||
+    payload.id_justificacion_asistencia ||
+    payload.idJustificacionAsistencia ||
+    ''
+  );
+}
+
+function obtenerEndpointJustificacion(fuente = {}) {
+  const payload = obtenerPayloadJustificacion(fuente);
+  return (
+    fuente.endpoint_resolucion ||
+    fuente.endpointResolver ||
+    fuente.resolver_endpoint ||
+    fuente.url_resolucion ||
+    payload.endpoint_resolucion ||
+    payload.endpointResolver ||
+    payload.resolver_endpoint ||
+    payload.url_resolucion ||
+    ''
+  );
+}
+
+function endpointsResolverJustificacion(justificacion) {
+  const idJustificacion = obtenerIdJustificacion(justificacion);
+  const endpointNotificacion = obtenerEndpointJustificacion(justificacion);
+
+  if (!idJustificacion && !endpointNotificacion) {
+    throw new Error('No se encontro la justificacion para resolver.');
+  }
+
+  return [
+    endpointNotificacion,
+    idJustificacion ? `/api/attendance-justifications/${idJustificacion}/resolve` : '',
+    idJustificacion ? `/api/attendance-justifications/${idJustificacion}/status` : '',
+    idJustificacion ? `/api/justifications/${idJustificacion}/resolve` : '',
+    idJustificacion ? `/api/justificaciones/${idJustificacion}/resolver` : ''
+  ].filter(Boolean);
+}
+
+export async function resolverJustificacionAsistencia(justificacion, decision, observacion = '') {
+  const estado = String(decision || '').toUpperCase();
+  const aceptada = estado === 'ACEPTADA' || estado === 'APROBADA' || estado === 'ACEPTAR';
+  const estadoSolicitud = aceptada ? 'ACEPTADA' : 'RECHAZADA';
+  const payload = {
+    decision: estadoSolicitud,
+    estado: estadoSolicitud,
+    observacion,
+    observacion_instructor: observacion,
+    estado_asistencia: aceptada ? 'JUSTIFICADO' : 'INASISTENCIA'
+  };
+
+  try {
+    const endpoints = endpointsResolverJustificacion(justificacion);
+    let ultimoError = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const { data } = await api.patch(endpoint, payload);
+        return { data: data?.data || data, error: null };
+      } catch (error) {
+        ultimoError = error;
+        if (error.response?.status !== 404) break;
+      }
+    }
+
+    throw ultimoError || new Error('No fue posible resolver la justificacion.');
   } catch (error) {
     return { data: null, error: mensajeError(error) };
   }

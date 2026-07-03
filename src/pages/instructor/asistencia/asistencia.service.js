@@ -8,6 +8,125 @@ function getHeaders() {
   return headers;
 }
 
+function leerUsuarioActual() {
+  try {
+    return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function agregarValor(set, valor) {
+  if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
+}
+
+function obtenerIdentidadInstructorActual() {
+  const usuario = leerUsuarioActual();
+  const persona = usuario.persona || {};
+  const instructor = usuario.instructor || usuario.informacion_rol?.instructor || {};
+  const idsInstructor = new Set();
+  const idsUsuario = new Set();
+  const documentos = new Set();
+  const emails = new Set();
+
+  [
+    localStorage.getItem("id_instructor"),
+    usuario.id_instructor,
+    instructor.id_instructor,
+    usuario.informacion_rol?.id_instructor
+  ].forEach((valor) => agregarValor(idsInstructor, valor));
+
+  [usuario.id_usuario, usuario.id, instructor.usuario?.id_usuario].forEach((valor) => agregarValor(idsUsuario, valor));
+  [persona.numero_documento, usuario.numero_documento, localStorage.getItem("user_documento")].forEach((valor) => agregarValor(documentos, valor));
+  [usuario.email, instructor.usuario?.email, localStorage.getItem("user_email")].forEach((valor) => agregarValor(emails, valor));
+
+  return { idsInstructor, idsUsuario, documentos, emails };
+}
+
+function extraerAsignacionesInstructor(grupo) {
+  return [
+    grupo,
+    grupo?.instructor_lider,
+    grupo?.instructor,
+    grupo?.instructor_grupo,
+    grupo?.instructor_grupo?.instructor,
+    ...(Array.isArray(grupo?.instructores) ? grupo.instructores : []),
+    ...(Array.isArray(grupo?.asignaciones) ? grupo.asignaciones : []),
+    ...(Array.isArray(grupo?.instructores_asignados) ? grupo.instructores_asignados : [])
+  ].filter(Boolean);
+}
+
+function itemTieneReferenciaInstructor(item) {
+  return Boolean(
+    item?.id_instructor ||
+    item?.id_instructor_lider ||
+    item?.instructor?.id_instructor ||
+    item?.instructor_lider?.id_instructor ||
+    item?.instructor_grupo?.id_instructor ||
+    item?.instructor_grupo?.instructor?.id_instructor ||
+    item?.id_usuario ||
+    item?.usuario?.id_usuario ||
+    item?.instructor?.usuario?.id_usuario ||
+    item?.instructor_lider?.usuario?.id_usuario ||
+    item?.email ||
+    item?.usuario?.email ||
+    item?.numero_documento ||
+    item?.usuario?.persona?.numero_documento
+  );
+}
+
+function itemPerteneceInstructorActual(item, identidad) {
+  const persona = item?.usuario?.persona || item?.persona || item?.instructor?.usuario?.persona || item?.instructor_lider?.usuario?.persona || item?.instructor_grupo?.instructor?.usuario?.persona || {};
+  const idsInstructor = [
+    item?.id_instructor,
+    item?.id_instructor_lider,
+    item?.instructor?.id_instructor,
+    item?.instructor_lider?.id_instructor,
+    item?.instructor_grupo?.id_instructor,
+    item?.instructor_grupo?.instructor?.id_instructor
+  ].filter(Boolean).map(String);
+  const idsUsuario = [
+    item?.id_usuario,
+    item?.usuario?.id_usuario,
+    item?.instructor?.usuario?.id_usuario,
+    item?.instructor_lider?.usuario?.id_usuario,
+    item?.instructor_grupo?.instructor?.usuario?.id_usuario
+  ].filter(Boolean).map(String);
+  const documentos = [
+    item?.numero_documento,
+    persona?.numero_documento
+  ].filter(Boolean).map(String);
+  const emails = [
+    item?.email,
+    item?.usuario?.email,
+    item?.instructor?.usuario?.email,
+    item?.instructor_lider?.usuario?.email,
+    item?.instructor_grupo?.instructor?.usuario?.email
+  ].filter(Boolean).map(String);
+
+  return (
+    idsInstructor.some((valor) => identidad.idsInstructor.has(valor)) ||
+    idsUsuario.some((valor) => identidad.idsUsuario.has(valor)) ||
+    documentos.some((valor) => identidad.documentos.has(valor)) ||
+    emails.some((valor) => identidad.emails.has(valor))
+  );
+}
+
+function filtrarGruposDelInstructorActual(grupos) {
+  if (!Array.isArray(grupos) || !grupos.length) return [];
+
+  const identidad = obtenerIdentidadInstructorActual();
+  const gruposConReferencia = grupos.filter((grupo) =>
+    extraerAsignacionesInstructor(grupo).some(itemTieneReferenciaInstructor)
+  );
+
+  if (!gruposConReferencia.length) return grupos;
+
+  return grupos.filter((grupo) =>
+    extraerAsignacionesInstructor(grupo).some((item) => itemPerteneceInstructorActual(item, identidad))
+  );
+}
+
 export async function obtenerGruposInstructor() {
   const endpoints = [
     `${API_URL}/apprentices/grupos-activos`,
@@ -22,7 +141,8 @@ export async function obtenerGruposInstructor() {
     const grupos = extraerLista(data, "grupos");
     const fichas = extraerLista(data, "fichas");
     const lista = grupos.length ? grupos : fichas;
-    if (lista.length) return lista;
+    const listaFiltrada = filtrarGruposDelInstructorActual(lista);
+    if (listaFiltrada.length) return listaFiltrada;
   }
 
   return [];
@@ -281,25 +401,39 @@ export async function cancelarSesionAsistencia(idSesion, motivo = "Cancelada des
   });
 }
 
-export async function corregirAsistencia(idAsistencia, { estado, observacion }) {
+export async function corregirAsistencia(idAsistencia, { estado, observacion, horaRegistro, fechaHoraRegistro }) {
   if (!idAsistencia) throw new Error("No se encontro el registro de asistencia para actualizar.");
+  const payload = { estado, observacion };
+  if (horaRegistro) {
+    payload.hora_registro = horaRegistro;
+    payload.hora_marcacion = horaRegistro;
+  }
+  if (fechaHoraRegistro) payload.fecha_hora_registro = fechaHoraRegistro;
+
   return requestJson(`${API_URL}/attendances/${idAsistencia}/correction`, {
     method: "PATCH",
-    body: JSON.stringify({ estado, observacion })
+    body: JSON.stringify(payload)
   });
 }
 
-export async function registrarAsistenciaManual({ idSesion, idAprendiz, estado, observacion }) {
+export async function registrarAsistenciaManual({ idSesion, idAprendiz, estado, observacion, horaRegistro, fechaHoraRegistro }) {
   if (!idSesion) throw new Error("No hay una sesion abierta para registrar asistencia.");
   if (!idAprendiz) throw new Error("No se encontro el aprendiz para registrar asistencia.");
+  const payload = {
+    id_sesion_formacion: Number(idSesion),
+    id_aprendiz: Number(idAprendiz),
+    estado,
+    observacion
+  };
+
+  if (horaRegistro) {
+    payload.hora_registro = horaRegistro;
+    payload.hora_marcacion = horaRegistro;
+  }
+  if (fechaHoraRegistro) payload.fecha_hora_registro = fechaHoraRegistro;
 
   return requestJson(`${API_URL}/attendances/manual`, {
     method: "POST",
-    body: JSON.stringify({
-      id_sesion_formacion: Number(idSesion),
-      id_aprendiz: Number(idAprendiz),
-      estado,
-      observacion
-    })
+    body: JSON.stringify(payload)
   });
 }
