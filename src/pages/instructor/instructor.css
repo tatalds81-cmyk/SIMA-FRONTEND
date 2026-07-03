@@ -632,8 +632,8 @@
 }
 
 .instructor-calendar-day.pendiente {
-  background: linear-gradient(180deg, #fff7e6 0%, #fffbeb 100%);
-  border-color: #f8d79a;
+  background: linear-gradient(180deg, #fff1e6 0%, #fff7ed 100%);
+  border-color: #fdba74;
 }
 
 .instructor-calendar-day.con-sesiones {
@@ -704,8 +704,8 @@
 }
 
 .instructor-calendar-session.pendiente {
-  border-left-color: #f5b400;
-  background: #fffbeb;
+  border-left-color: #f97316;
+  background: #fff7ed;
 }
 
 .instructor-calendar-session.clickable {
@@ -808,7 +808,7 @@
 }
 
 .instructor-calendar-legend i.pendiente {
-  background: #f5b400;
+  background: #f97316;
 }
 
 .instructor-calendar-card-dark {
@@ -919,7 +919,7 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-legend i.pendiente {
-  background: #f5b400;
+  background: #f97316;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-grid {
@@ -961,8 +961,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-day.pendiente .instructor-calendar-head {
-  border-color: #f5b400;
-  background: #fff5d9;
+  border-color: #fdba74;
+  background: #ffedd5;
   color: #0b2442;
 }
 
@@ -1017,8 +1017,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-session.pendiente {
-  border-left-color: #f5b400;
-  background: #fffbeb;
+  border-left-color: #f97316;
+  background: #fff7ed;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-time {
@@ -1067,8 +1067,8 @@
 }
 
 .instructor-calendar-card-dark .instructor-calendar-session.pendiente em {
-  background: #fff5d9;
-  color: #9a6b00;
+  background: #ffedd5;
+  color: #c2410c;
 }
 
 .instructor-calendar-card-dark .instructor-calendar-empty {

@@ -426,11 +426,11 @@ export default function SesionActivaModal({
     return resolverSesionParaAbrir(sesionProgramada, idGrupo).catch(() => sesionProgramada);
   }
 
-  async function confirmarSesionAbierta(idGrupo, idSesionReal, sesionFallback) {
+  async function confirmarSesionAbierta(idGrupo, idSesionReal, sesionFallback, fechaSesion) {
     if (sesionEstaAbiertaEnBackend(sesionFallback)) return sesionFallback;
 
     for (let intento = 0; intento < 6; intento += 1) {
-      const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaHoy).catch(() => null);
+      const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaSesion || fechaHoy).catch(() => null);
       if (sesionYaAbierta && String(obtenerIdSesion(sesionYaAbierta)) === String(idSesionReal)) {
         return sesionYaAbierta;
       }
@@ -444,6 +444,7 @@ export default function SesionActivaModal({
     const idGrupo = obtenerIdGrupo(grupoActivo);
     const sesionProgramada = grupoActivo?.sesion;
     const idSesion = obtenerIdSesion(sesionProgramada);
+    const fechaSesionTrabajo = obtenerFechaSesion(sesionProgramada, fechaHoy);
 
     if (!idGrupo || !idSesion) {
       setMensajeError("No se encontro la ficha o la sesion programada.");
@@ -473,7 +474,7 @@ export default function SesionActivaModal({
           } else {
             estado = String(sesionRealActualizada?.estado || "").toUpperCase();
           }
-          const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaHoy).catch(() => null);
+          const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaSesionTrabajo).catch(() => null);
           if (sesionYaAbierta && (
             String(obtenerIdSesion(sesionYaAbierta)) === String(idSesionReal) ||
             sesionCoincideConBloque(sesionYaAbierta, sesionProgramada)
@@ -493,7 +494,7 @@ export default function SesionActivaModal({
       if (!idSesionAbierta) {
         throw new Error("No se encontro la sesion real para cargar asistencia.");
       }
-      const sesionConfirmada = await confirmarSesionAbierta(idGrupo, idSesionAbierta, sesionAbierta);
+      const sesionConfirmada = await confirmarSesionAbierta(idGrupo, idSesionAbierta, sesionAbierta, fechaSesionTrabajo);
       const sesionActiva = {
         ...sesionProgramada,
         ...sesionConfirmada,
@@ -505,13 +506,13 @@ export default function SesionActivaModal({
       guardarDatoPersistente("sima_asistencia_sesion_seleccionada", String(idSesionAbierta));
       guardarJsonPersistente("sima_asistencia_sesion_detalle", sesionActiva);
       guardarJsonPersistente("sima_asistencia_bloque_activo", {
-        fecha: obtenerFechaSesion(sesionActiva, fechaHoy),
+        fecha: obtenerFechaSesion(sesionActiva, fechaSesionTrabajo),
         hora_inicio: obtenerHoraInicioSesion(sesionActiva),
         hora_fin: obtenerHoraFinSesion(sesionActiva),
         id_grupo: idGrupo,
         numero_ficha: obtenerCodigo(grupoActivo)
       });
-      guardarDatoPersistente(obtenerClaveAviso(fechaHoy, sesionProgramada), "cerrado");
+      guardarDatoPersistente(obtenerClaveAviso(fechaSesionTrabajo, sesionProgramada), "cerrado");
       setVisible(false);
       window.dispatchEvent(new CustomEvent("sima:sesiones-actualizadas", {
         detail: { sesion: sesionActiva }
