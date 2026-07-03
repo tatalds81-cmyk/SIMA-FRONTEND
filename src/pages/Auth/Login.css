@@ -154,6 +154,25 @@
   box-shadow: 0 22px 42px rgba(9, 36, 68, 0.12);
 }
 
+.login-sima-app-brand {
+  width: 108px;
+  height: 92px;
+  margin: -8px auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 174, 0, 0.1), rgba(255, 255, 255, 0) 68%);
+}
+
+.login-sima-app-brand img {
+  width: 78px;
+  height: 78px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 12px rgba(255, 111, 0, 0.16));
+}
+
 .login-sima-title {
   margin: 0 0 8px;
   color: var(--sima-text);
@@ -433,6 +452,17 @@
   .login-sima-card {
     padding: 28px 20px;
     border-radius: 14px;
+  }
+
+  .login-sima-app-brand {
+    width: 88px;
+    height: 74px;
+    margin-bottom: 12px;
+  }
+
+  .login-sima-app-brand img {
+    width: 64px;
+    height: 64px;
   }
 
   .login-sima-title {
