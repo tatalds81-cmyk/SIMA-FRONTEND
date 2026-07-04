@@ -581,7 +581,7 @@ export default function Usuario() {
             <Upload size={18} />
             Carga masiva
           </button>
-          <button type="button" className="usuarios-primary-btn" onClick={() => setModalCrearAbierto(true)}>
+          <button type="button" className="usuarios-primary-btn" onClick={() => setModalCrearAbierto(true)} data-testid="users-create-button">
             <Plus size={19} />
             Crear usuario
           </button>
@@ -627,11 +627,12 @@ export default function Usuario() {
             setFiltroEstado(e.target.value);
             aplicarFiltrosUsuarios({ estadoFiltro: e.target.value });
           }}
+          data-testid="users-filter-status"
         >
           <option value="">Todos los estados</option>
           <option value="ACTIVO">Activo</option>
           <option value="INACTIVO">Inactivo</option>
-          <option value="SUSPENDIDO">Suspendido</option>
+          <option value="BLOQUEADO">Bloqueado</option>
         </select>
         <button type="button" onClick={buscarUsuarioPorDocumento}>
           <Search size={16} />
@@ -649,7 +650,7 @@ export default function Usuario() {
         </div>
 
         <div className="usuarios-table-wrap">
-          <table className="usuarios-table">
+          <table className="usuarios-table" data-testid="users-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -664,18 +665,18 @@ export default function Usuario() {
             <tbody>
               {usuariosPagina.length > 0 ? (
                 usuariosPagina.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} data-testid="users-row">
                     <td>{item.id}</td>
                     <td className="usuarios-documento">{item.tipo_documento} {item.numero_documento}</td>
                     <td>{item.nombres}</td>
                     <td>{item.apellidos}</td>
                     <td>{obtenerNombreRol(item)}</td>
                     <td>
-                      <span className="usuarios-status">{item.estado || "ACTIVO"}</span>
+                      <span className="usuarios-status" data-testid="users-status-badge">{item.estado || "ACTIVO"}</span>
                     </td>
                     <td>
                       <div className="usuarios-actions">
-                        <button type="button" className="usuarios-icon-btn" onClick={() => abrirDetalle(item)} title="Ver detalle">
+                        <button type="button" className="usuarios-icon-btn" onClick={() => abrirDetalle(item)} title="Ver detalle" data-testid="users-edit-button">
                           <Eye size={16} />
                         </button>
                         <button type="button" className="usuarios-icon-btn danger" onClick={() => eliminarUsuario(item.id)} title="Eliminar">
@@ -810,7 +811,7 @@ export default function Usuario() {
               {detalleModoEdicion ? (
                 <>
                   <button type="button" className="usuarios-secondary-btn" onClick={cancelarEdicionDetalle}>Cancelar</button>
-                  <button type="button" className="usuarios-primary-btn" onClick={guardarEdicionDetalle}>
+                  <button type="button" className="usuarios-primary-btn" onClick={guardarEdicionDetalle} data-testid="users-save-button">
                     <Save size={16} />
                     Guardar cambios
                   </button>

@@ -6,9 +6,7 @@
 
 export const ESTADO_ALERTA = {
   ABIERTA: 'ABIERTA',
-  ACTIVA: 'ACTIVA',
-  CERRADA: 'CERRADA',
-  EN_SEGUIMIENTO: 'EN_SEGUIMIENTO'
+  CERRADA: 'CERRADA'
 };
 
 export const TIPO_ALERTA = {
@@ -30,8 +28,6 @@ export const SEVERIDAD_COLORES = {
 
 export const ESTADO_COLORES = {
   ABIERTA:        { bg: '#FEE2E2', text: '#ef4444' },
-  ACTIVA:         { bg: '#FEE2E2', text: '#ef4444' },
-  CERRADA:        { bg: '#DCFCE7', text: '#238500' },
-  EN_SEGUIMIENTO: { bg: '#DBEAFE', text: '#0b2442' }
+  CERRADA:        { bg: '#DCFCE7', text: '#238500' }
 };
 

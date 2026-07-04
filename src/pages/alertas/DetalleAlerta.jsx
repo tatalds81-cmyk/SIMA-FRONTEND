@@ -45,7 +45,7 @@ export default function DetalleAlerta() {
   }, [id]);
 
   const esCoordinador = getRolActual() === 'coordinador';
-  const puedeCerrar = esCoordinador && (alerta?.estado === 'ABIERTA' || alerta?.estado === 'ACTIVA');
+  const puedeCerrar = esCoordinador && alerta?.estado === 'ABIERTA';
 
   if (loading) return (
     <div className="da-estado-carga">
@@ -88,7 +88,7 @@ export default function DetalleAlerta() {
 
         <div className="da-header-der">
           {puedeCerrar && (
-            <button className="da-btn-cerrar" onClick={() => setModalCerrarAbierto(true)}>
+            <button className="da-btn-cerrar" onClick={() => setModalCerrarAbierto(true)} data-testid="alert-close-button">
               <CheckCircle2 size={16} /> Cerrar alerta
             </button>
           )}
