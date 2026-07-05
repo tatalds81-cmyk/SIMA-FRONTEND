@@ -14,7 +14,7 @@ function limpiarParams(filtros = {}) {
   const p = {};
   Object.keys(filtros).forEach(k => {
     if (filtros[k] !== '' && filtros[k] !== null && filtros[k] !== undefined) {
-      p[k] = filtros[k];
+      p[k] = k === 'estado' && filtros[k] === 'ACTIVA' ? 'ABIERTA' : filtros[k];
     }
   });
   return p;

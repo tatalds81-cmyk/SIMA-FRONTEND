@@ -124,6 +124,12 @@ function obtenerEstadoSesion(sesion) {
   return String(sesion?.estado || "SIN_ESTADO").toUpperCase();
 }
 
+function esSesionAbiertaORealizada(sesion) {
+  return ["ABIERTA", "ACTIVA", "EN_CURSO", "CERRADA", "FINALIZADA"].includes(
+    obtenerEstadoSesion(sesion)
+  );
+}
+
 function obtenerFechaSesion(sesion) {
   return String(sesion?.fecha_clase || "").slice(0, 10);
 }
@@ -357,7 +363,7 @@ export default function HistorialAsistenciaGrupo() {
       });
 
       if (!activo) return;
-      const sesionesFiltradas = respuesta.sesiones;
+      const sesionesFiltradas = respuesta.sesiones.filter(esSesionAbiertaORealizada);
       setSesiones(sesionesFiltradas);
       const fechaActualValida = fechaSeleccionada && sesionesFiltradas.some((sesion) => obtenerFechaSesion(sesion) === fechaSeleccionada);
       const fechaHoy = formatearFechaISO(new Date());
