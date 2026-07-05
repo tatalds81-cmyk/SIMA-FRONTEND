@@ -3474,7 +3474,7 @@
 }
 
 .grupos-horario-reassign-grid {
-  grid-template-columns: 190px minmax(280px, 1fr);
+  grid-template-columns: 160px minmax(240px, 1fr) minmax(280px, 1fr);
 }
 
 .grupos-horario-modal.reasignacion .grupos-horario-check-grid.bloques {
