@@ -10,7 +10,8 @@ export const ESTADOS = {
   PENDIENTE: { label: "Sin registro", color: "#94a3b8", className: "pendiente" }
 };
 
-export const ESTADOS_REGISTRABLES = ["PRESENTE", "INASISTENTE", "TARDE"];
+export const ESTADOS_REGISTRABLES = ["PRESENTE", "INASISTENTE", "TARDE", "JUSTIFICADA"];
+export const ESTADOS_FILTRO = [...ESTADOS_REGISTRABLES, "PENDIENTE"];
 
 export const METODOS = [
   { value: "manual", label: "Manual" },

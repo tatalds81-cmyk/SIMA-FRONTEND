@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Ban, Building2, CalendarCheck, CheckCircle2, Clock3 } from "lucide-react";
+import { toast } from "react-toastify";
 import {
   abrirSesionAsistencia,
   cancelarSesionAsistencia,
@@ -218,6 +219,32 @@ function prioridadSesionParaAbrir(sesion) {
   return 0;
 }
 
+function ConfirmacionNativaToast({ onConfirmar, onCancelar }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <p style={{ margin: 0, fontSize: '15px', color: '#0b2442', fontWeight: '900' }}>
+        ¿Confirmas que deseas cancelar esta sesion?
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+        <button 
+          type="button" 
+          onClick={onConfirmar}
+          style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#238500', color: '#ffffff', fontSize: '14px', cursor: 'pointer', fontWeight: '900' }}
+        >
+          Aceptar
+        </button>
+        <button 
+          type="button" 
+          onClick={onCancelar}
+          style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#ef4444', fontSize: '14px', cursor: 'pointer', fontWeight: '900' }}
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SesionActivaModal({
   onRevisionCompleta,
   onSesionManualAtendida,
@@ -232,6 +259,8 @@ export default function SesionActivaModal({
   const [mensajeError, setMensajeError] = useState("");
   const [revisionInicialCompleta, setRevisionInicialCompleta] = useState(false);
   const [revisionAviso, setRevisionAviso] = useState(0);
+  const [modalCancelarAbierto, setModalCancelarAbierto] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
   const fechaHoy = useMemo(() => obtenerFechaLocal(), []);
   const rutaActual = location.pathname;
 
@@ -397,11 +426,11 @@ export default function SesionActivaModal({
     return resolverSesionParaAbrir(sesionProgramada, idGrupo).catch(() => sesionProgramada);
   }
 
-  async function confirmarSesionAbierta(idGrupo, idSesionReal, sesionFallback) {
+  async function confirmarSesionAbierta(idGrupo, idSesionReal, sesionFallback, fechaSesion) {
     if (sesionEstaAbiertaEnBackend(sesionFallback)) return sesionFallback;
 
     for (let intento = 0; intento < 6; intento += 1) {
-      const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaHoy).catch(() => null);
+      const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaSesion || fechaHoy).catch(() => null);
       if (sesionYaAbierta && String(obtenerIdSesion(sesionYaAbierta)) === String(idSesionReal)) {
         return sesionYaAbierta;
       }
@@ -415,6 +444,7 @@ export default function SesionActivaModal({
     const idGrupo = obtenerIdGrupo(grupoActivo);
     const sesionProgramada = grupoActivo?.sesion;
     const idSesion = obtenerIdSesion(sesionProgramada);
+    const fechaSesionTrabajo = obtenerFechaSesion(sesionProgramada, fechaHoy);
 
     if (!idGrupo || !idSesion) {
       setMensajeError("No se encontro la ficha o la sesion programada.");
@@ -444,7 +474,7 @@ export default function SesionActivaModal({
           } else {
             estado = String(sesionRealActualizada?.estado || "").toUpperCase();
           }
-          const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaHoy).catch(() => null);
+          const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaSesionTrabajo).catch(() => null);
           if (sesionYaAbierta && (
             String(obtenerIdSesion(sesionYaAbierta)) === String(idSesionReal) ||
             sesionCoincideConBloque(sesionYaAbierta, sesionProgramada)
@@ -464,7 +494,7 @@ export default function SesionActivaModal({
       if (!idSesionAbierta) {
         throw new Error("No se encontro la sesion real para cargar asistencia.");
       }
-      const sesionConfirmada = await confirmarSesionAbierta(idGrupo, idSesionAbierta, sesionAbierta);
+      const sesionConfirmada = await confirmarSesionAbierta(idGrupo, idSesionAbierta, sesionAbierta, fechaSesionTrabajo);
       const sesionActiva = {
         ...sesionProgramada,
         ...sesionConfirmada,
@@ -476,13 +506,13 @@ export default function SesionActivaModal({
       guardarDatoPersistente("sima_asistencia_sesion_seleccionada", String(idSesionAbierta));
       guardarJsonPersistente("sima_asistencia_sesion_detalle", sesionActiva);
       guardarJsonPersistente("sima_asistencia_bloque_activo", {
-        fecha: obtenerFechaSesion(sesionActiva, fechaHoy),
+        fecha: obtenerFechaSesion(sesionActiva, fechaSesionTrabajo),
         hora_inicio: obtenerHoraInicioSesion(sesionActiva),
         hora_fin: obtenerHoraFinSesion(sesionActiva),
         id_grupo: idGrupo,
         numero_ficha: obtenerCodigo(grupoActivo)
       });
-      guardarDatoPersistente(obtenerClaveAviso(fechaHoy, sesionProgramada), "cerrado");
+      guardarDatoPersistente(obtenerClaveAviso(fechaSesionTrabajo, sesionProgramada), "cerrado");
       setVisible(false);
       window.dispatchEvent(new CustomEvent("sima:sesiones-actualizadas", {
         detail: { sesion: sesionActiva }
@@ -500,15 +530,52 @@ export default function SesionActivaModal({
     }
   }
 
-  async function cancelarAviso() {
+  function abrirModalCancelar() {
+    let toastId;
+    toastId = toast(
+      <ConfirmacionNativaToast
+        onCancelar={() => toast.dismiss(toastId)}
+        onConfirmar={() => {
+          toast.dismiss(toastId);
+          setModalCancelarAbierto(true);
+          setMotivoCancelacion("");
+        }}
+      />,
+      {
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+        closeButton: false,
+        icon: false,
+        position: "top-right",
+        style: { 
+          width: 'min(380px, calc(100vw - 28px))', 
+          borderRadius: '8px', 
+          padding: '20px', 
+          background: '#ffffff',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          border: '1px solid #e5e7eb'
+        }
+      }
+    );
+
+  }
+
+  async function confirmarCancelacion(evento) {
+    evento?.preventDefault();
+    if (motivoCancelacion.trim().length < 20) {
+      toast.warning("El motivo debe tener al menos 20 caracteres.", { position: "top-right" });
+      return;
+    }
+
     const sesionProgramada = grupoActivo?.sesion;
     const idSesion = obtenerIdSesion(sesionProgramada);
-    if (!idSesion || !window.confirm("¿Confirmas que deseas cancelar esta sesion?")) return;
+    if (!idSesion) return;
 
     setAbriendoSesion(true);
     setMensajeError("");
     try {
-      const respuestaCancelacion = await cancelarSesionAsistencia(idSesion);
+      const respuestaCancelacion = await cancelarSesionAsistencia(idSesion, motivoCancelacion);
       const datosCancelados = respuestaCancelacion?.sesion || respuestaCancelacion?.data?.sesion || respuestaCancelacion || {};
       const sesionCancelada = {
         ...sesionProgramada,
@@ -520,11 +587,14 @@ export default function SesionActivaModal({
       guardarDatoPersistente(obtenerClaveAviso(fechaHoy, sesionProgramada), "cerrado");
       setVisible(false);
       setGrupoActivo(null);
+      setModalCancelarAbierto(false);
       window.dispatchEvent(new CustomEvent("sima:sesiones-actualizadas", {
         detail: { sesion: sesionCancelada }
       }));
+      toast.success("Sesion cancelada exitosamente.", { position: "top-right" });
     } catch (error) {
       setMensajeError(error.message || "No fue posible cancelar la sesion.");
+      toast.error(error.message || "No fue posible cancelar la sesion.", { position: "top-right" });
     } finally {
       setAbriendoSesion(false);
     }
@@ -597,12 +667,71 @@ export default function SesionActivaModal({
             <Clock3 size={17} />
             Mas tarde
           </button>
-          <button className="asistencia-session-action danger" type="button" onClick={cancelarAviso} disabled={abriendoSesion}>
+          <button className="asistencia-session-action danger" type="button" onClick={abrirModalCancelar} disabled={abriendoSesion}>
             <Ban size={17} />
-            {abriendoSesion ? "Procesando..." : "Cancelar sesion"}
+            Cancelar sesion
           </button>
         </div>
       </section>
+
+      {modalCancelarAbierto && (
+        <div className="asistencia-session-overlay" style={{ zIndex: 9999 }}>
+          <form className="grupos-horario-modal" onSubmit={confirmarCancelacion} style={{ width: 'min(100%, 480px)', padding: 0, overflow: 'hidden' }}>
+            <div className="grupos-horario-dark-header" style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', padding: '20px' }}>
+              <span className="grupos-horario-kicker danger" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Ban size={14} /> CANCELACION</span>
+              <h2 style={{ fontSize: '20px' }}>Motivo de cancelacion</h2>
+              <p style={{ margin: 0 }}>Por favor, indica el motivo por el cual deseas cancelar esta sesion. Este quedara registrado en el historial.</p>
+            </div>
+            
+            <div className="grupos-horario-body" style={{ padding: '20px', textAlign: 'left' }}>
+              <div className="grupos-horario-form-field">
+                <label style={{ width: '100%' }}>
+                  <textarea
+                    value={motivoCancelacion}
+                    onChange={(e) => setMotivoCancelacion(e.target.value)}
+                    placeholder="Escribe el motivo detallado aqui..."
+                    rows="5"
+                    style={{
+                      width: "100%",
+                      padding: "14px",
+                      borderRadius: "8px",
+                      border: "1px solid #d7e0ea",
+                      resize: "none",
+                      fontSize: "13px",
+                      fontFamily: "inherit",
+                      color: "#0b2442",
+                      outline: "none",
+                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
+                      transition: "border-color 0.2s"
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#238500'}
+                    onBlur={(e) => e.target.style.borderColor = '#d7e0ea'}
+                    required
+                    minLength={20}
+                  />
+                </label>
+                <div style={{ fontSize: "11px", color: motivoCancelacion.trim().length < 20 ? "#ef4444" : "#238500", marginTop: "8px", textAlign: "right", fontWeight: "700" }}>
+                  {motivoCancelacion.trim().length} / 20 caracteres minimos
+                </div>
+              </div>
+            </div>
+
+            <div className="grupos-horario-footer" style={{ borderTop: '1px solid #e1e8f0', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#f8fafc', borderRadius: '0 0 8px 8px' }}>
+              <button className="grupos-secondary-btn" type="button" onClick={() => setModalCancelarAbierto(false)} disabled={abriendoSesion}>
+                Volver
+              </button>
+              <button 
+                className="grupos-primary-btn" 
+                style={{ background: '#ef4444', borderColor: '#ef4444' }} 
+                type="submit" 
+                disabled={abriendoSesion || motivoCancelacion.trim().length < 20}
+              >
+                {abriendoSesion ? "Procesando..." : "Confirmar cancelacion"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

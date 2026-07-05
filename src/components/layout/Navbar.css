@@ -27,6 +27,12 @@
   box-shadow: 0 10px 24px rgba(5, 45, 79, 0.18);
 }
 
+.sima-navbar-main.navbar-superadmin {
+  background: var(--sima-navy);
+  border-bottom-color: var(--sima-navy);
+  box-shadow: none;
+}
+
 .sima-navbar-right {
   position: relative;
   display: flex;
@@ -51,6 +57,22 @@
 
 .navbar-instructor .profile-role {
   color: rgba(255, 255, 255, 0.78);
+}
+
+.navbar-superadmin .profile-section,
+.navbar-superadmin .profile-arrow,
+.navbar-superadmin .profile-name,
+.navbar-superadmin .notif-btn {
+  color: #ffffff;
+}
+
+.navbar-superadmin .profile-role {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.navbar-superadmin .notif-btn:hover,
+.navbar-superadmin .notif-btn.active {
+  color: #8fd375;
 }
 
 .sima-navbar-icon {

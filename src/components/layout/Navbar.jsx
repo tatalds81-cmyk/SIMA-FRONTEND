@@ -17,6 +17,7 @@ function Navbar() {
   const rolUsuario = (localStorage.getItem("rol") || "Administrador").toLowerCase();
   const esInstructor = rolUsuario === "instructor";
   const esCoordinador = rolUsuario === "coordinador";
+  const esSuperAdmin = rolUsuario === "super_admin";
 
   const manejarCerrarSesion = () => {
     limpiarSesionUsuario();
@@ -53,7 +54,7 @@ function Navbar() {
     .slice(0, 2);
 
   return (
-    <header className={`sima-navbar-main ${esInstructor ? "navbar-instructor" : ""}`}>
+    <header className={`sima-navbar-main ${esInstructor ? "navbar-instructor" : ""} ${esSuperAdmin ? "navbar-superadmin" : ""}`}>
       <div className="sima-navbar-right">
         <NotificacionCampana esCoordinador={esCoordinador} />
 
