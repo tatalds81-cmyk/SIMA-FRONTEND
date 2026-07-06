@@ -1684,7 +1684,6 @@ export default function AsistenciaInstructor() {
                   <option value="PRESENTE">Presente</option>
                   <option value="INASISTENTE">Ausente</option>
                   <option value="TARDE">Tarde</option>
-                  <option value="JUSTIFICADA">Justificada</option>
                 </select>
 
                 <label className="mcal-label" htmlFor="hora-manual">Hora del registro</label>

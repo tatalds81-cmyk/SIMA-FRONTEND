@@ -58,7 +58,6 @@ export default function TablaAsistencia({
                         <option value="PRESENTE">Presente</option>
                         <option value="INASISTENTE">Ausente</option>
                         <option value="TARDE">Tarde</option>
-                        <option value="JUSTIFICADA">Justificada</option>
                       </select>
                       <ChevronDown size={14} />
                     </label>
