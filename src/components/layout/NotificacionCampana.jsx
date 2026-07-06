@@ -336,13 +336,13 @@ export default function NotificacionCampana({ esCoordinador = false }) {
       return;
     }
 
-    setResultado(aceptada ? "Justificado" : "Ausente");
+    setResultado(aceptada ? "Justificado" : "Inasistente");
     setNotificaciones((actuales) => actuales.filter((item) => item.id !== justificacion.id));
     await cargarNotificaciones().catch(() => null);
     setProcesandoJustificacion(false);
   }
 
-  const claseResultadoJustificacion = resultado === "Ausente" ? "ausente" : resultado === "Justificado" ? "justificado" : "";
+  const claseResultadoJustificacion = resultado === "Inasistente" ? "ausente" : resultado === "Justificado" ? "justificado" : "";
 
   return (
     <>
@@ -426,7 +426,7 @@ export default function NotificacionCampana({ esCoordinador = false }) {
             <div className="justificacion-body">
               {resultado ? (
                 <div className={`justificacion-resultado ${claseResultadoJustificacion}`}>
-                  <span>{resultado === "Ausente" ? <X size={30} /> : <Check size={30} />}</span>
+                  <span>{resultado === "Inasistente" ? <X size={30} /> : <Check size={30} />}</span>
                   <h3>Estado actualizado a {resultado}</h3>
                   <p>La decisión se guardó en el backend.</p>
                   {observacion && <blockquote>"{observacion}"</blockquote>}

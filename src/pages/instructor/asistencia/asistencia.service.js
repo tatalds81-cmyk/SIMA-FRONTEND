@@ -204,7 +204,8 @@ export async function obtenerAprendicesPorGrupo(grupoId) {
 
   for (const id of idsUnicos) {
     const res = await fetch(`${API_URL}/apprentices/grupo/${id}?limit=1000`, {
-      headers: getHeaders()
+      headers: getHeaders(),
+      cache: "no-store"
     }).catch((error) => {
       ultimoError = error;
       return null;
@@ -240,6 +241,7 @@ function extraerPayload(data) {
 
 async function requestJson(endpoint, options = {}) {
   const res = await fetch(endpoint, {
+    cache: "no-store",
     ...options,
     headers: {
       ...getHeaders(),
@@ -322,7 +324,8 @@ export async function abrirSesionAsistencia(idSesion) {
 
 export async function obtenerAsistenciasSesion(idSesion) {
   if (!idSesion) return { sesion: null, asistencias: [] };
-  const data = await requestJson(`${API_URL}/educational-sessions/${idSesion}/attendances`);
+  const params = new URLSearchParams({ _actualizado: String(Date.now()) });
+  const data = await requestJson(`${API_URL}/educational-sessions/${idSesion}/attendances?${params.toString()}`);
   return {
     sesion: data.sesion || null,
     asistencias: extraerLista(data, "asistencias")
