@@ -88,7 +88,7 @@ export default function DetalleAlerta() {
 
         <div className="da-header-der">
           {puedeCerrar && (
-            <button className="da-btn-cerrar" onClick={() => setModalCerrarAbierto(true)}>
+            <button className="da-btn-cerrar" onClick={() => setModalCerrarAbierto(true)} data-testid="alert-close-button">
               <CheckCircle2 size={16} /> Cerrar alerta
             </button>
           )}

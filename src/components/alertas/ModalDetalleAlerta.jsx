@@ -82,7 +82,7 @@ export default function ModalDetalleAlerta({ isOpen, onClose, alertaId, onAlerta
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {puedeCerrar && (
-              <button className="da-btn-cerrar" onClick={() => setModalCerrarAbierto(true)}>
+              <button className="da-btn-cerrar" onClick={() => setModalCerrarAbierto(true)} data-testid="alert-close-button">
                 <CheckCircle2 size={16} /> Cerrar alerta
               </button>
             )}

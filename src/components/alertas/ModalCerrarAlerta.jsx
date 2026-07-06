@@ -86,6 +86,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
         className="mcal-modal" 
         role="dialog" 
         aria-modal="true" 
+        data-testid="alert-close-modal"
         style={{ 
           maxWidth: '480px', 
           display: 'flex', 
@@ -110,21 +111,6 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             Estás a punto de gestionar la alerta de <strong>{aprendizNombre}</strong>. 
             Proporciona la justificación del cierre.
           </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Estado de resolución</label>
-            <select 
-              value="CERRADA"
-              disabled
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: '6px', 
-                border: '1px solid #d1d5db', fontSize: '14px', outline: 'none',
-                backgroundColor: '#f8fafc'
-              }}
-            >
-              <option value="CERRADA">Cerrada / Resuelta</option>
-            </select>
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
@@ -204,6 +190,7 @@ export default function ModalCerrarAlerta({ isOpen, onClose, alertaId, aprendizN
             type="button" 
             onClick={handleConfirmar}
             disabled={loading}
+            data-testid="alert-close-submit"
             style={{ 
               padding: '8px 16px', borderRadius: '6px', border: 'none', 
               backgroundColor: yaCerrada ? '#0b2442' : '#ef4444', color: '#fff', 

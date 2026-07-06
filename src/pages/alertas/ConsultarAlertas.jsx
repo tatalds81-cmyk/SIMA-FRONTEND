@@ -263,7 +263,12 @@ export default function ConsultarAlertas() {
           {/* Estado */}
           <div className="ca-filtro-grupo">
             <label className="ca-filtro-label">Estado</label>
-            <select className="ca-select" data-testid="select-alerta-estado" value={filtrosLocales.estado} onChange={e => handleFiltroLocal('estado', e.target.value)}>
+            <select
+              className="ca-select"
+              value={filtrosLocales.estado}
+              onChange={e => handleFiltroLocal('estado', e.target.value)}
+              data-testid="alert-filter-status"
+            >
               <option value="">Todos</option>
               <option value="ABIERTA">Abierta</option>
               <option value="CERRADA">Cerrada</option>
@@ -390,7 +395,7 @@ export default function ConsultarAlertas() {
       {/* Tabla */}
       {!loading && !error && alertas.length > 0 && (
         <div className="ca-tabla-wrap">
-          <table className="ca-tabla">
+          <table className="ca-tabla" data-testid="alert-table">
             <thead>
               <tr>
                 <th>Aprendiz</th>
@@ -416,6 +421,7 @@ export default function ConsultarAlertas() {
                   <tr
                     key={alerta.id ?? alerta.alertaId}
                     className={esGrave ? 'ca-fila-grave' : ''}
+                    data-testid="alert-row"
                   >
                     <td>
                       <div className="ca-aprendiz-cell">
