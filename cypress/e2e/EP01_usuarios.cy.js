@@ -5,7 +5,7 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
     cy.fixture('credenciales').then((data) => { creds = data; });
   });
 
-  // ── H01: Cre usuario institucional add esto como prueba ────────────────────────────────
+  // ── H01: Crear usuario institucional ────────────────────────────────
   describe('H01 - Crear usuario institucional', () => {
     beforeEach(() => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
@@ -22,7 +22,8 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
         cy.get('input[placeholder="Numero de cedula"]').type(`1${sufijo}`);
         cy.get('input[placeholder="usuario@misena.edu.co"]').type(`laura.${sufijo}@misena.edu.co`);
         cy.get('input[placeholder="Numero de celular"]').should('be.enabled').type('3001234567');
-        cy.get('select').eq(1).select(1);
+        
+        cy.get('select').eq(1).select('instructor');
         cy.contains('button', 'Guardar usuario').click();
       });
       cy.contains('Usuario creado correctamente').should('be.visible');
@@ -37,9 +38,10 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
         cy.get('input[placeholder="Numero de cedula"]').type('1000000001'); // doc ya existente (coordinador seed)
         cy.get('input[placeholder="usuario@misena.edu.co"]').type('otro@misena.edu.co');
         cy.get('input[placeholder="Numero de celular"]').type('3009999999');
-        cy.get('select').eq(1).select(1);
+        cy.get('select').eq(1).select('instructor');
         cy.contains('button', 'Guardar usuario').click();
       });
+      
       cy.get('.usuarios-alert.info').should('be.visible');
     });
 
@@ -52,7 +54,7 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
         cy.get('input[placeholder="Numero de cedula"]').type('1099999999');
         cy.get('input[placeholder="usuario@misena.edu.co"]').type('coordinador@sena.edu.co'); // correo ya existente
         cy.get('input[placeholder="Numero de celular"]').type('3007777777');
-        cy.get('select').eq(1).select(1);
+        cy.get('select').eq(1).select('instructor');
         cy.contains('button', 'Guardar usuario').click();
       });
       cy.get('.usuarios-alert.info').should('be.visible');
@@ -75,18 +77,27 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
     });
 
     it('Muestra el listado de usuarios registrados', () => {
-      cy.get('.usuarios-table').should('be.visible');
-      cy.get('.usuarios-table tbody tr').should('have.length.greaterThan', 0);
+      cy.get('[data-testid="users-table"]').should('be.visible');
+      cy.get('[data-testid="users-row"]').should('have.length.greaterThan', 0);
     });
 
-    it('Filtra usuarios por nombre o documento', () => {
-      cy.get('input[placeholder="Buscar por nombre o documento"]').type('Franco{enter}');
-      cy.get('.usuarios-table tbody tr').should('contain.text', 'Franco');
+    it('Filtra usuarios por nombre, documento o correo', () => {
+      
+      cy.get('input[placeholder="Buscar por nombre, documento o correo"]').type('Franco{enter}');
+      cy.get('[data-testid="users-table"] tbody tr').should('contain.text', 'Franco');
     });
 
     it('Muestra mensaje vacío cuando no hay coincidencias', () => {
-      cy.get('input[placeholder="Buscar por nombre o documento"]').type('xxxNoExisteXXX{enter}');
+      cy.get('input[placeholder="Buscar por nombre, documento o correo"]').type('xxxNoExisteXXX{enter}');
       cy.contains('No hay usuarios para mostrar').should('be.visible');
+    });
+
+    it('Filtra usuarios por estado', () => {
+      
+      cy.get('[data-testid="users-filter-status"]').select('ACTIVO');
+      cy.get('[data-testid="users-table"] tbody tr').each(($tr) => {
+        cy.wrap($tr).find('[data-testid="users-status-badge"]').should('contain.text', 'ACTIVO');
+      });
     });
 
     it('Restringe el listado a usuarios distintos de coordinador', () => {
@@ -104,23 +115,23 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
     });
 
     it('Edita los datos permitidos de un usuario existente', () => {
-      cy.get('.usuarios-table tbody tr').first().find('.usuarios-icon-btn').first().click();
+      cy.get('[data-testid="users-table"] tbody tr').first().find('[data-testid="users-edit-button"]').click();
       cy.contains('button', 'Editar').click();
       cy.get('.usuarios-detail-field input[name="apellidos"]').clear().type('ApellidoEditado');
-      cy.contains('button', 'Guardar cambios').click();
+      cy.get('[data-testid="users-save-button"]').click();
       cy.contains('Usuario actualizado correctamente').should('be.visible');
     });
 
     it('Muestra la información actualizada después de guardar', () => {
-      cy.get('.usuarios-table tbody tr').first().find('.usuarios-icon-btn').first().click();
+      cy.get('[data-testid="users-table"] tbody tr').first().find('[data-testid="users-edit-button"]').click();
       cy.get('.usuarios-detail-modal').should('be.visible');
       cy.get('.usuarios-detail-main').should('contain.text', 'ApellidoEditado');
     });
 
     it('Elimina/desactiva un usuario existente', () => {
-      cy.get('.usuarios-table tbody tr').last().find('.usuarios-icon-btn.danger').click();
-      // confirm() del navegador
       cy.on('window:confirm', () => true);
+      cy.get('[data-testid="users-table"] tbody tr').last().find('.usuarios-icon-btn.danger').click();
+      cy.contains('Usuario eliminado correctamente').should('be.visible');
     });
   });
 
@@ -183,3 +194,4 @@ describe('EP01 - Gestión de usuarios, autenticación y control de acceso por ro
   });
 
 });
+
