@@ -18,7 +18,7 @@ import "./historial-asistencia.css";
 
 const RESUMEN_ASISTENCIA = [
   { key: "PRESENTE", label: "Presente", color: "#55A83B", backgroundColor: "#EAF6E6" },
-  { key: "INASISTENTE", label: "Ausente", color: "#EE6666", backgroundColor: "#FDECEC" },
+  { key: "INASISTENTE", label: "Inasistente", color: "#EE6666", backgroundColor: "#FDECEC" },
   { key: "TARDE", label: "Tarde", color: "#E9AC24", backgroundColor: "#FFF5D9" },
   { key: "JUSTIFICAD", label: "Justificado", color: "#0B2442", backgroundColor: "#EAF0F6" },
 ];

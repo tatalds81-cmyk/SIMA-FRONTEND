@@ -1161,7 +1161,7 @@
 
 .gd-resumen-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(390px, .9fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
