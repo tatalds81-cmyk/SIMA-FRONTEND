@@ -31,6 +31,7 @@
   background: var(--sima-navy);
   border-bottom-color: var(--sima-navy);
   box-shadow: none;
+  padding-right: 62px;
 }
 
 .sima-navbar-right {
@@ -265,6 +266,10 @@
 
   .profile-arrow {
     display: none;
+  }
+
+  .sima-navbar-main.navbar-superadmin {
+    padding-right: 18px;
   }
 }
 

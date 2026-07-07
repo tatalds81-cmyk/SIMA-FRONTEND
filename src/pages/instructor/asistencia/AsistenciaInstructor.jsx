@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
+import { toast } from "react-toastify";
 import {
   AlertTriangle,
   ChevronDown,
@@ -30,7 +31,6 @@ import {
   METODOS
 } from "./asistencia.constants";
 import {
-  cerrarSesionAsistencia,
   corregirAsistencia,
   generarQrSesion,
   obtenerAprendicesPorGrupo,
@@ -227,7 +227,6 @@ export default function AsistenciaInstructor() {
   const [grupoDetalleActivo, setGrupoDetalleActivo] = useState(null);
   const [qrSesion, setQrSesion] = useState(null);
   const [guardandoAsistencia, setGuardandoAsistencia] = useState(false);
-  const [cerrandoSesionAutomatica, setCerrandoSesionAutomatica] = useState(false);
   const [modalHuellaAbierto, setModalHuellaAbierto] = useState(false);
   const [leyendoHuella, setLeyendoHuella] = useState(false);
   const [estadoHuella, setEstadoHuella] = useState("ESPERANDO");
@@ -582,50 +581,27 @@ export default function AsistenciaInstructor() {
 
     setSesionActiva(sesionActualizada);
     setAprendices(aprendicesActualizados);
-    cerrarSesionSiEstaCompleta(sesionActualizada, aprendicesActualizados);
-  }
-
-  async function cerrarSesionSiEstaCompleta(sesion, listaAprendices) {
-    const idSesion = obtenerIdSesion(sesion);
-    const estadoSesion = String(sesion?.estado || "").toUpperCase();
-    const estaCerrada = ["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesion);
-    const todosRegistrados = listaAprendices.length > 0 &&
-      listaAprendices.every((aprendiz) => ESTADOS_REGISTRABLES.includes(aprendiz.estado));
-
-    if (!idSesion || estaCerrada || !todosRegistrados || cerrandoSesionAutomatica) return;
-
-    setCerrandoSesionAutomatica(true);
-    try {
-      const respuesta = await cerrarSesionAsistencia(idSesion);
-      const sesionCerrada = respuesta?.sesion || respuesta?.data?.sesion || respuesta || {
-        ...sesion,
-        estado: "CERRADA"
-      };
-      setSesionActiva((actual) => actual ? { ...actual, ...sesionCerrada, estado: sesionCerrada.estado || "CERRADA" } : actual);
-      setMensajeError(false);
-      setMensaje("Asistencia completa. La sesion se cerro automaticamente.");
-      window.dispatchEvent(new CustomEvent("sima:sesiones-actualizadas", {
-        detail: { sesion: { ...sesion, ...sesionCerrada, id_sesion_formacion: idSesion, estado: sesionCerrada.estado || "CERRADA" } }
-      }));
-    } catch (error) {
-      setMensajeError(true);
-      setMensaje(obtenerMensajeError(error, "La asistencia esta completa, pero no fue posible cerrar la sesion automaticamente."));
-    } finally {
-      setCerrandoSesionAutomatica(false);
-    }
   }
 
   useEffect(() => {
     if (!haySesionActiva || guardandoAsistencia || aprendizManual) return undefined;
 
-    const intervalo = window.setInterval(() => {
+    const actualizarAsistencia = () => {
       if (document.hidden) return;
       recargarAsistenciasSesion(sesionActiva).catch((error) => {
         console.error("Error refrescando asistencia automaticamente:", error);
       });
-    }, 15000);
+    };
 
-    return () => window.clearInterval(intervalo);
+    const intervalo = window.setInterval(actualizarAsistencia, 5000);
+    window.addEventListener("focus", actualizarAsistencia);
+    document.addEventListener("visibilitychange", actualizarAsistencia);
+
+    return () => {
+      window.clearInterval(intervalo);
+      window.removeEventListener("focus", actualizarAsistencia);
+      document.removeEventListener("visibilitychange", actualizarAsistencia);
+    };
   }, [aprendizManual, guardandoAsistencia, grupoActual, grupoSeleccionado, haySesionActiva, sesionActiva]);
 
   async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion, horaRegistro = obtenerHoraActual(), opciones = {}) {
@@ -712,19 +688,16 @@ export default function AsistenciaInstructor() {
         "Actualizacion manual realizada por instructor responsable",
         obtenerHoraActual()
       );
-      setMensajeError(false);
-      setMensaje("Asistencia actualizada en el backend.");
-    } catch (error) {
-      setMensajeError(true);
-      setMensaje(obtenerMensajeError(error, "No fue posible actualizar la asistencia."));
+      toast.success("Asistencia registrada");
+    } catch {
+      toast.error("Asistencia no registrada");
     } finally {
       setGuardandoAsistencia(false);
     }
   }
 
   function guardarAsistencia() {
-    setMensajeError(false);
-    setMensaje("Los cambios manuales se guardan automaticamente en el backend.");
+    setMensaje("");
     setModoManual(false);
   }
 
@@ -774,12 +747,10 @@ export default function AsistenciaInstructor() {
     setGuardandoAsistencia(true);
     try {
       await guardarEstadoBackend(aprendizManual, formManual.estado, observacion, formManual.hora || obtenerHoraActual());
-      setMensajeError(false);
-      setMensaje("Cambio manual guardado en el backend.");
+      toast.success("Asistencia registrada");
       setAprendizManual(null);
-    } catch (error) {
-      setMensajeError(true);
-      setMensaje(obtenerMensajeError(error, "No fue posible guardar el cambio manual."));
+    } catch {
+      toast.error("Asistencia no registrada");
     } finally {
       setGuardandoAsistencia(false);
     }
@@ -814,26 +785,22 @@ export default function AsistenciaInstructor() {
       if (resultado?.match_status === "MATCH_OK" && asistenciaRegistrada) {
         setEstadoHuella("REGISTRADA");
         setDetalleHuella(`${backendMessage || "Asistencia registrada por huella."}${usuarioIdentificado}`);
-        setMensajeError(false);
-        setMensaje("Asistencia registrada por huella correctamente.");
+        toast.success("Asistencia registrada");
       } else if (resultado?.match_status === "MATCH_OK") {
         setEstadoHuella("ERROR");
         setDetalleHuella(`${backendMessage || "Huella identificada, pero el backend no registro la asistencia."}${usuarioIdentificado}`);
-        setMensajeError(true);
-        setMensaje(backendMessage || "Huella identificada, pero no se pudo registrar la asistencia.");
+        toast.error("Asistencia no registrada");
       } else {
         setEstadoHuella("NO_IDENTIFICADA");
         setDetalleHuella(backendMessage || "Huella no identificada. Intenta nuevamente o usa QR/manual.");
-        setMensajeError(true);
-        setMensaje("No se pudo identificar la huella.");
+        toast.error("Asistencia no registrada");
       }
 
       await recargarAsistenciasSesion(sesionActiva);
     } catch (error) {
       setEstadoHuella("ERROR");
       setDetalleHuella(error?.message || "No fue posible registrar asistencia por huella.");
-      setMensajeError(true);
-      setMensaje(obtenerMensajeError(error, "No fue posible registrar asistencia por huella."));
+      toast.error("Asistencia no registrada");
     } finally {
       setLeyendoHuella(false);
     }
@@ -1682,7 +1649,7 @@ export default function AsistenciaInstructor() {
                 <label className="mcal-label" htmlFor="estado-manual">Cambiar estado a</label>
                 <select id="estado-manual" name="estado" className="mcal-select" value={formManual.estado} onChange={cambiarFormManual}>
                   <option value="PRESENTE">Presente</option>
-                  <option value="INASISTENTE">Ausente</option>
+                  <option value="INASISTENTE">Inasistente</option>
                   <option value="TARDE">Tarde</option>
                 </select>
 

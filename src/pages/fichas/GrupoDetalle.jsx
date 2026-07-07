@@ -265,6 +265,7 @@ function aprendizInactivo(item) {
 
 function obtenerInasistenciasAprendiz(item) {
   const posibles = [
+    item?.inasistencias_acumuladas,
     item?.inasistencias_validas,
     item?.total_inasistencias_validas,
     item?.inasistencias,
@@ -676,6 +677,44 @@ async function consultarGrupoBase(idGrupo) {
   return { grupoBackend, listaAprendices };
 }
 
+async function consultarInasistenciasAcumuladas(idGrupo) {
+  const sesiones = [];
+  for (let pagina = 1; pagina <= 50; pagina += 1) {
+    const sesionesResp = await api.get("/api/educational-sessions", {
+      params: { id_grupo: idGrupo, limit: 100, page: pagina },
+    });
+    const lote = extraerLista(payload(sesionesResp.data), "sesiones");
+    sesiones.push(...lote);
+    if (lote.length < 100) break;
+  }
+  if (!sesiones.length) return new Map();
+
+  const respuestas = await Promise.allSettled(
+    sesiones.map((sesion) => {
+      const idSesion = sesion?.id_sesion_formacion || sesion?.id;
+      return idSesion
+        ? api.get(`/api/educational-sessions/${idSesion}/attendances`)
+        : Promise.resolve(null);
+    })
+  );
+
+  const acumuladas = new Map();
+  respuestas.forEach((respuesta) => {
+    if (respuesta.status !== "fulfilled" || !respuesta.value) return;
+    const asistencias = extraerLista(payload(respuesta.value.data), "asistencias");
+    asistencias.forEach((registro) => {
+      const estado = textoPlano(registro?.estado_asistencia || registro?.estado_ep05 || registro?.estado);
+      if (estado !== "INASISTENCIA" && estado !== "INASISTENTE" && estado !== "AUSENTE") return;
+      const idAprendiz = registro?.id_aprendiz || registro?.aprendiz?.id_aprendiz || registro?.aprendiz?.id;
+      if (!idAprendiz) return;
+      const clave = String(idAprendiz);
+      acumuladas.set(clave, (acumuladas.get(clave) || 0) + 1);
+    });
+  });
+
+  return acumuladas;
+}
+
 function camposNoPersistidos(grupoBackend, cambios) {
   const pendientes = [];
   if (normalizarFechaInput(grupoBackend?.fecha_inicio) !== cambios.fecha_inicio) {
@@ -811,7 +850,6 @@ export default function GrupoDetalle() {
   const [errorHorario, setErrorHorario] = useState("");
   const [grupoHorario, setGrupoHorario] = useState(null);
   const [metricas, setMetricas] = useState(null);
-  const [periodoAsist, setPeriodoAsist] = useState("Hoy");
   const [tabDetalle, setTabDetalle] = useState("resumen");
   const [aprendizEditando, setAprendizEditando] = useState(null);
   const [aprendizForm, setAprendizForm] = useState(APRENDIZ_FORM_VACIO);
@@ -843,8 +881,17 @@ export default function GrupoDetalle() {
         setCargando(true);
         setError("");
 
-        const { grupoBackend, listaAprendices } = await consultarGrupoBase(id);
+        const { grupoBackend, listaAprendices: aprendicesBase } = await consultarGrupoBase(id);
         const grupoSeleccionado = resolverGrupoSeleccionado(grupoBackend, grupoNavegacion);
+        const idGrupoConsulta = obtenerIdGrupoBackend(grupoSeleccionado, id);
+        const inasistenciasAcumuladas = await consultarInasistenciasAcumuladas(idGrupoConsulta).catch((errorInasistencias) => {
+          console.warn("No fue posible acumular las inasistencias del grupo", errorInasistencias);
+          return new Map();
+        });
+        const listaAprendices = aprendicesBase.map((aprendiz) => ({
+          ...aprendiz,
+          inasistencias_acumuladas: inasistenciasAcumuladas.get(String(obtenerIdAprendiz(aprendiz))) || 0,
+        }));
 
         let alertasNormalizadas = normalizarAlertas([], listaAprendices);
         try {
@@ -1380,8 +1427,6 @@ export default function GrupoDetalle() {
   );
 
   /* -- render -- */
-  const asistenciaPeriodo = asistencia?.[periodoAsist.toLowerCase()];
-  const hayDatosAsistencia = Boolean(asistencia?.tieneDatos && asistenciaPeriodo);
   const idPerfilAprendiz = String(obtenerIdAprendiz(perfilAprendiz) ?? "");
   const datosPerfilAprendiz = perfilAprendiz
     ? construirPerfilAprendiz(perfilAprendiz, detalle, alertas?.porAprendiz?.[idPerfilAprendiz] || {})
@@ -1444,42 +1489,6 @@ export default function GrupoDetalle() {
 
       {tabDetalle === "resumen" && (
         <section className="gd-tab-panel gd-resumen-grid">
-          <article className="fichas-panel gd-chart-card gd-panel-priority">
-            <div className="gd-card-header">
-              <h2>Asistencia - {periodoAsist}</h2>
-              <div className="gd-period-btns">
-                {["Hoy", "Semana", "Mes"].map(p => (
-                  <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
-                ))}
-              </div>
-            </div>
-            {hayDatosAsistencia ? (
-              <div className="gd-bar-chart">
-                <div className="gd-bar-scale">
-                  {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
-                </div>
-                <div className="gd-bars-wrap">
-                  {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
-                    const pct = asistenciaPeriodo?.[clave] ?? 0;
-                    return (
-                      <div key={clave} className="gd-bar-item">
-                        <span>{pct}%</span>
-                        <div className="gd-bar-track">
-                          <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
-                        </div>
-                        <small>{label}</small>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="gd-chart-empty">
-                No hay datos de asistencia registrados para este periodo.
-              </div>
-            )}
-          </article>
-
           <article className="fichas-panel gd-summary-card">
             <div className="gd-card-header">
               <div>
@@ -1699,43 +1708,6 @@ export default function GrupoDetalle() {
 
       {/* -- FILA PRINCIPAL: asistencia + línea de tiempo -- */}
       <section className="gd-main-grid gd-legacy-hidden">
-        {/* Asistencia */}
-        <article className="fichas-panel gd-chart-card">
-          <div className="gd-card-header">
-            <h2>Asistencia - {periodoAsist}</h2>
-            <div className="gd-period-btns">
-              {["Hoy", "Semana", "Mes"].map(p => (
-                <button key={p} type="button" className={`gd-period-btn${periodoAsist === p ? " active" : ""}`} onClick={() => setPeriodoAsist(p)}>{p}</button>
-              ))}
-            </div>
-          </div>
-          {hayDatosAsistencia ? (
-            <div className="gd-bar-chart">
-              <div className="gd-bar-scale">
-                {["100%","75%","50%","25%","0%"].map(v => <span key={v}>{v}</span>)}
-              </div>
-              <div className="gd-bars-wrap">
-                {BARRA_ASISTENCIA.map(({ clave, label, color }) => {
-                  const pct = asistenciaPeriodo?.[clave] ?? 0;
-                  return (
-                    <div key={clave} className="gd-bar-item">
-                      <span>{pct}%</span>
-                      <div className="gd-bar-track">
-                        <span className="gd-bar-fill" style={{ height: `${pct}%`, background: color }} />
-                      </div>
-                      <small>{label}</small>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="gd-chart-empty">
-              No hay datos de asistencia registrados para este periodo.
-            </div>
-          )}
-        </article>
-
         {/* Línea de tiempo */}
         <article className="fichas-panel gd-timeline-card">
           <div className="gd-card-header">

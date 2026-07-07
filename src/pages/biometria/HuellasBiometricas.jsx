@@ -201,7 +201,6 @@ export default function HuellasBiometricas() {
     <div className="bio-page">
       <section className="bio-hero">
         <div>
-          <p className="bio-eyebrow">Fase 2.5</p>
           <h1>Operacion biometrica BioMini</h1>
           <p>
             Gestiona huellas institucionales desde el lector local sin pegar plantillas base64,

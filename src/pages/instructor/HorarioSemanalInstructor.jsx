@@ -86,22 +86,6 @@ const etiquetaEstadoSesion = (estado) => {
   return String(estado || "Proxima sesion");
 };
 
-const sesionFueAbiertaDesdeAsistencia = (sesion) => {
-  if (typeof window === "undefined") return false;
-  const idsSesion = [
-    sesion.id_sesion_formacion,
-    sesion.id
-  ].filter(Boolean).map(String);
-  const idsActivos = [
-    window.localStorage.getItem("sima_asistencia_sesion_activa"),
-    window.sessionStorage.getItem("sima_asistencia_sesion_activa"),
-    window.localStorage.getItem("sima_asistencia_sesion_seleccionada"),
-    window.sessionStorage.getItem("sima_asistencia_sesion_seleccionada")
-  ].filter(Boolean).map(String);
-
-  return idsSesion.some((id) => idsActivos.includes(id));
-};
-
 const obtenerEstadoSesion = (sesion, fechaISO, horas, ahora) => {
   const estado = String(sesion.estado || "").toUpperCase();
   if (["CANCELADA", "CANCELADO"].includes(estado)) return "CANCELADA";
@@ -114,16 +98,14 @@ const obtenerEstadoSesion = (sesion, fechaISO, horas, ahora) => {
   const fin = new Date(`${fechaISO}T${horas.fin}:00`);
   const inicioValido = !Number.isNaN(inicio.getTime());
   const finValido = !Number.isNaN(fin.getTime());
-  const antesInicio = inicioValido && ahora < inicio;
-  const despuesFin = finValido && ahora > fin;
-  if (sesionFueAbiertaDesdeAsistencia(sesion)) return despuesFin ? "CERRADA" : "ACTIVA";
-  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estado)) return despuesFin ? "CERRADA" : "ACTIVA";
-  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) {
-    if (antesInicio) return "PROGRAMADA";
-    return despuesFin ? "CERRADA" : "PROGRAMADA";
+  if (inicioValido && finValido) {
+    if (ahora < inicio) return "PROGRAMADA";
+    if (ahora >= fin) return "CERRADA";
+    return "ACTIVA";
   }
-  if (antesInicio) return "PROGRAMADA";
-  if (despuesFin) return "CERRADA";
+
+  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estado)) return "ACTIVA";
+  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) return "CERRADA";
   if (["PENDIENTE", "PROGRAMADA", ""].includes(estado)) return "PENDIENTE";
 
   return "PROGRAMADA";

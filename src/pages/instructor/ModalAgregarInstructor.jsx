@@ -5,7 +5,7 @@ import "./ModalAgregarInstructor.css";
 
 const API_URL = "/api";
 
-// â”€â”€â”€ Auth helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Auth helper
 function getHeaders() {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
   const headers = { "Content-Type": "application/json" };
@@ -37,13 +37,13 @@ function ConfirmacionEstadoInstructor({ accion, nombre, onConfirmar, onCancelar 
       </div>
       <div className="mg-confirm-toast-body">
         <strong>
-          {esActivar ? "Â¿EstÃ¡s seguro de activar este instructor?" : "Â¿EstÃ¡s seguro de inactivar este instructor?"}
+          {esActivar ? "¿Estás seguro de activar este instructor?" : "¿Estás seguro de inactivar este instructor?"}
         </strong>
         <span>
           {nombre}
           {esActivar
-            ? " volverÃ¡ a estar disponible en el grupo."
-            : " se desvincularÃ¡ de sus horarios actuales."}
+            ? " volverá a estar disponible en el grupo."
+            : " se desvinculará de sus horarios actuales."}
         </span>
         <div className="mg-confirm-toast-actions">
           <button type="button" className="mg-confirm-toast-cancel" onClick={onCancelar}>
@@ -54,7 +54,7 @@ function ConfirmacionEstadoInstructor({ accion, nombre, onConfirmar, onCancelar 
             className={`mg-confirm-toast-confirm ${esActivar ? "activar" : "inactivar"}`}
             onClick={onConfirmar}
           >
-            SÃ­
+            Sí
           </button>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
     }
   }
 
-  // POST /api/instructor-groups/grupo/:idGrupo â€” body: { id_instructor }
+  // POST /api/instructor-groups/grupo/:idGrupo — body: { id_instructor }
   async function handleAgregar() {
     if (!seleccionado) return;
     setAsignando(true);
@@ -148,7 +148,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
 
   // PATCH /api/instructor-groups/grupo/:idGrupo/instructor/:idInstructor
   // body: { estado: 'ACTIVO' | 'INACTIVO' }
-  // â”€â”€â”€ BUG CORREGIDO: parÃ¡metro y URL usan el mismo nombre â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // BUG CORREGIDO: parámetro y URL usan el mismo nombre
   async function handleCambiarEstado(id_instructor, estadoActual) {
     const nuevoEstado = estadoActual === "ACTIVO" ? "INACTIVO" : "ACTIVO";
     const instructorActual = actuales.find((item) => Number(item.id_instructor) === Number(id_instructor));
@@ -181,7 +181,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
     try {
       const res = await fetch(
         `${API_URL}/instructor-groups/grupo/${idGrupo}/instructor/${id_instructor}`,
-        //                                                               â†‘ corregido â€” antes decÃ­a ${idInstructor} (variable inexistente)
+        // Corregido: antes decía ${idInstructor} (variable inexistente)
         {
           method: "PATCH",
           headers: getHeaders(),
@@ -214,7 +214,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
       .map((a) => Number(a.id_instructor))
   );
 
-  // El lÃ­der no se gestiona como instructor de apoyo (H16 + backend lo rechaza con 400)
+  // El líder no se gestiona como instructor de apoyo (H16 + backend lo rechaza con 400)
   const actualesSinLider = actuales.filter(
     (a) => Number(a.id_instructor) !== idLider
   );
@@ -249,7 +249,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
               Gestionar instructores
             </h2>
             <p className="mg-modal-subtitle">
-              Solo el instructor lÃ­der puede agregar o gestionar instructores de apoyo.
+              Solo el instructor líder puede agregar o gestionar instructores de apoyo.
             </p>
           </div>
           <button
@@ -262,7 +262,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
           </button>
         </div>
 
-        {/* â”€â”€ SecciÃ³n 1: Instructores actuales del grupo â”€â”€ */}
+        {/* Sección 1: Instructores actuales del grupo */}
         <div className="mg-seccion">
           <h3 className="mg-seccion-titulo">Instructores en el grupo</h3>
 
@@ -304,13 +304,13 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
               ))}
             </div>
           ) : (
-            <p className="mg-modal-empty">No hay instructores asignados aÃºn.</p>
+            <p className="mg-modal-empty">No hay instructores asignados aún.</p>
           )}
         </div>
 
         <div className="mg-divider" />
 
-        {/* â”€â”€ SecciÃ³n 2: Agregar nuevo instructor â”€â”€ */}
+        {/* Sección 2: Agregar nuevo instructor */}
         <div className="mg-seccion">
           <h3 className="mg-seccion-titulo">Agregar instructor de apoyo</h3>
 
@@ -355,7 +355,7 @@ export default function ModalAgregarInstructor({ grupo, onCerrar, onAsignacionCo
               <p className="mg-modal-empty">
                 {busqueda
                   ? "Sin resultados"
-                  : "Todos los instructores disponibles ya estÃ¡n en el grupo."}
+                  : "Todos los instructores disponibles ya están en el grupo."}
               </p>
             )}
           </div>

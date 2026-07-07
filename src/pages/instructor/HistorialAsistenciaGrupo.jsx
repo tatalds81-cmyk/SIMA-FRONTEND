@@ -18,7 +18,7 @@ import "./historial-asistencia.css";
 
 const RESUMEN_ASISTENCIA = [
   { key: "PRESENTE", label: "Presente", color: "#55A83B", backgroundColor: "#EAF6E6" },
-  { key: "INASISTENTE", label: "Ausente", color: "#EE6666", backgroundColor: "#FDECEC" },
+  { key: "INASISTENTE", label: "Inasistente", color: "#EE6666", backgroundColor: "#FDECEC" },
   { key: "TARDE", label: "Tarde", color: "#E9AC24", backgroundColor: "#FFF5D9" },
   { key: "JUSTIFICAD", label: "Justificado", color: "#0B2442", backgroundColor: "#EAF0F6" },
 ];
@@ -122,6 +122,12 @@ function prepararRegistrosHistorial(asistencias) {
 
 function obtenerEstadoSesion(sesion) {
   return String(sesion?.estado || "SIN_ESTADO").toUpperCase();
+}
+
+function esSesionAbiertaORealizada(sesion) {
+  return ["ABIERTA", "ACTIVA", "EN_CURSO", "CERRADA", "FINALIZADA"].includes(
+    obtenerEstadoSesion(sesion)
+  );
 }
 
 function obtenerFechaSesion(sesion) {
@@ -357,7 +363,7 @@ export default function HistorialAsistenciaGrupo() {
       });
 
       if (!activo) return;
-      const sesionesFiltradas = respuesta.sesiones;
+      const sesionesFiltradas = respuesta.sesiones.filter(esSesionAbiertaORealizada);
       setSesiones(sesionesFiltradas);
       const fechaActualValida = fechaSeleccionada && sesionesFiltradas.some((sesion) => obtenerFechaSesion(sesion) === fechaSeleccionada);
       const fechaHoy = formatearFechaISO(new Date());

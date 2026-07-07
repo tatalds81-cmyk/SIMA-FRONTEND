@@ -142,14 +142,37 @@ export default function Aprendices() {
     return headers;
   }
 
-  function normalizarAprendiz(item) {
+  function obtenerTextoCampo(valor, claves = []) {
+    if (typeof valor === "string" || typeof valor === "number") return String(valor);
+    if (!valor || typeof valor !== "object") return "";
+
+    for (const clave of claves) {
+      const candidato = valor[clave];
+      if (typeof candidato === "string" || typeof candidato === "number") return String(candidato);
+    }
+
+    return "";
+  }
+
+  function normalizarAprendiz(item, grupoConsulta = null) {
     const usuario = item.usuario || {};
     const persona = usuario.persona || item.persona || {};
     const grupoActivo =
       item.aprendiz_grupos?.find((aprendizGrupo) => aprendizGrupo.estado === "ACTIVO")?.grupo ||
-      item.grupo ||
+      (item.grupo && typeof item.grupo === "object" ? item.grupo : null) ||
+      grupoConsulta ||
       {};
-    const numeroFicha = grupoActivo.numero_ficha || grupoActivo.numero_grupo || item.numero_ficha || item.grupo || "-";
+    const numeroFicha =
+      grupoActivo.numero_ficha ||
+      grupoActivo.numero_grupo ||
+      grupoActivo.codigo ||
+      item.numero_ficha ||
+      obtenerTextoCampo(item.grupo) ||
+      "-";
+    const email =
+      obtenerTextoCampo(usuario.email, ["email", "correo", "value", "valor"]) ||
+      obtenerTextoCampo(item.email, ["email", "correo", "value", "valor"]) ||
+      obtenerTextoCampo(item.correo, ["email", "correo", "value", "valor"]);
 
     return {
       id: item.id_aprendiz || item.id_usuario || item.id,
@@ -159,7 +182,7 @@ export default function Aprendices() {
       apellidos: persona.apellidos || item.apellidos || "",
       tipo_documento: persona.tipo_documento || item.tipo_documento || "",
       numero_documento: persona.numero_documento || item.numero_documento || "",
-      email: usuario.email || item.email || item.correo || "",
+      email,
       telefono: persona.telefono || item.telefono || "",
       grupo: numeroFicha,
       numero_ficha: numeroFicha,
@@ -203,7 +226,10 @@ export default function Aprendices() {
           if (!res.ok) return [];
           const data = await res.json().catch(() => null);
           const lista = data?.data?.aprendices || data?.data || [];
-          return Array.isArray(lista) ? lista : [];
+          const grupoRespuesta = data?.data?.grupo || grupo;
+          return Array.isArray(lista)
+            ? lista.map((item) => normalizarAprendiz(item, grupoRespuesta))
+            : [];
         } catch {
           return [];
         }
@@ -212,7 +238,7 @@ export default function Aprendices() {
 
     const mapa = new Map();
     respuestas.flat().forEach((item) => {
-      const aprendiz = normalizarAprendiz(item);
+      const aprendiz = item.numero_ficha ? item : normalizarAprendiz(item);
       const key = aprendiz.numero_documento || aprendiz.id;
       if (!mapa.has(key)) {
         mapa.set(key, aprendiz);
