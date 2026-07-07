@@ -5,8 +5,15 @@ export const formatearFechaISO = (fecha) => {
   return `${anio}-${mes}-${dia}`;
 };
 
+const crearFechaLocal = (valor) => {
+  if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    return new Date(`${valor}T12:00:00`);
+  }
+  return new Date(valor);
+};
+
 export const inicioSemanaActual = (fechaBase = new Date()) => {
-  const fecha = new Date(fechaBase);
+  const fecha = crearFechaLocal(fechaBase);
   const dia = fecha.getDay() || 7;
   fecha.setDate(fecha.getDate() - dia + 1);
   return formatearFechaISO(fecha);

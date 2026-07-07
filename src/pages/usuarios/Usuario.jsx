@@ -15,6 +15,16 @@ const detalleVacio = {
   telefono: ""
 };
 
+const ROLES_GESTIONABLES_COORDINADOR = new Set(["aprendiz", "instructor"]);
+
+function normalizarNombreRol(valor) {
+  return String(valor || "").toLowerCase().trim();
+}
+
+function rolGestionablePorCoordinador(rolItem) {
+  return ROLES_GESTIONABLES_COORDINADOR.has(normalizarNombreRol(rolItem?.nombre));
+}
+
 function textoError(valor, fallback = "Error al guardar el usuario") {
   if (!valor) return fallback;
   if (typeof valor === "string") return valor;
@@ -67,6 +77,12 @@ export default function Usuario() {
   const URL_AREAS = "/api/coordinator-areas/areas";
   const USUARIOS_POR_PAGINA = 5;
   const LIMITE_CARGA_USUARIOS = 1000;
+  const rolActual = normalizarNombreRol(localStorage.getItem("rol"));
+  const esCoordinadorActual = rolActual === "coordinador";
+  const rolesFormulario = useMemo(
+    () => esCoordinadorActual ? roles.filter(rolGestionablePorCoordinador) : roles,
+    [roles, esCoordinadorActual]
+  );
 
   useEffect(() => {
     cargarUsuarios();
@@ -309,6 +325,13 @@ export default function Usuario() {
 
     const esAprendiz = esRolAprendiz(rol);
     const esCoordinador = esRolCoordinador(rol);
+    const rolSeleccionado = roles.find((item) => Number(item.id_rol) === Number(rol));
+
+    if (esCoordinadorActual && !rolGestionablePorCoordinador(rolSeleccionado)) {
+      setMensaje("El coordinador solo puede crear usuarios instructores o aprendices.");
+      return;
+    }
+
     if (esAprendiz && !grupoSeleccionado) {
       setMensaje("Debe seleccionar la ficha activa a la que pertenece el aprendiz.");
       return;
@@ -403,6 +426,12 @@ export default function Usuario() {
 
   function iniciarEdicionDetalle() {
     if (!usuarioDetalle) return;
+    const rolUsuario = roles.find((item) => Number(item.id_rol) === Number(usuarioDetalle.id_rol));
+    if (esCoordinadorActual && !rolGestionablePorCoordinador(rolUsuario)) {
+      setMensaje("El coordinador solo puede actualizar usuarios instructores o aprendices.");
+      return;
+    }
+
     setDetalleForm({
       id_usuario: usuarioDetalle.id_usuario,
       email: usuarioDetalle.email,
@@ -441,6 +470,12 @@ export default function Usuario() {
 
   async function guardarEdicionDetalle() {
     if (!usuarioDetalle) return;
+    const rolSeleccionado = roles.find((item) => Number(item.id_rol) === Number(detalleForm.id_rol));
+
+    if (esCoordinadorActual && !rolGestionablePorCoordinador(rolSeleccionado)) {
+      setMensaje("El coordinador solo puede actualizar usuarios instructores o aprendices.");
+      return;
+    }
 
     const data = {
       email: detalleForm.email.trim(),
@@ -780,7 +815,7 @@ export default function Usuario() {
                     {detalleModoEdicion ? (
                       <select name="id_rol" value={detalleForm.id_rol} onChange={cambiarDetalleForm}>
                         <option value="">Seleccione</option>
-                        {roles.map((item) => (
+                        {rolesFormulario.map((item) => (
                           <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
                         ))}
                       </select>
@@ -909,7 +944,7 @@ export default function Usuario() {
                   <span>Rol</span>
                   <select value={rol} onChange={(e) => cambiarRolCrear(e.target.value)} required>
                     <option value="">Seleccione un rol</option>
-                    {roles.map((item) => (
+                    {rolesFormulario.map((item) => (
                       <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
                     ))}
                   </select>

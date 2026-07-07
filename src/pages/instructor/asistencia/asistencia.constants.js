@@ -5,7 +5,7 @@ export const HISTORIAL_POR_PAGINA = 4;
 export const ESTADOS = {
   PRESENTE: { label: "Presente", color: "#238500", className: "presente" },
   TARDE: { label: "Tarde", color: "#f5b400", className: "retardado" },
-  INASISTENTE: { label: "Ausente", color: "#ef4444", className: "ausente" },
+  INASISTENTE: { label: "Inasistente", color: "#ef4444", className: "ausente" },
   JUSTIFICADA: { label: "Justificada", color: "#0b2442", className: "justificado" },
   PENDIENTE: { label: "Sin registro", color: "#94a3b8", className: "pendiente" }
 };
