@@ -119,14 +119,14 @@ function sesionSigueVigente(sesion) {
 
 function sesionDebeIniciarse(sesion, fechaISO) {
   const inicio = crearFechaHora(fechaISO, obtenerHoraInicioSesion(sesion));
-  return !inicio || new Date() >= inicio;
+  return !inicio || new Date().getTime() >= inicio.getTime() - (MINUTOS_RECORDATORIO * 60 * 1000);
 }
 
 function sesionEstaEnHorarioActual(sesion, fechaISO) {
   const inicio = crearFechaHora(fechaISO, obtenerHoraInicioSesion(sesion));
   const fin = crearFechaHora(fechaISO, obtenerHoraFinSesion(sesion));
   const ahora = new Date();
-  if (inicio && ahora < inicio) return false;
+  if (inicio && ahora.getTime() < inicio.getTime() - (MINUTOS_RECORDATORIO * 60 * 1000)) return false;
   if (fin && ahora > fin) return false;
   return true;
 }
@@ -295,10 +295,11 @@ export default function SesionActivaModal({
       if (!activo) return;
       const ahora = Date.now();
       const esperas = sesiones
-        .filter((sesion) => sesionEstaProgramada(sesion) && sesionSigueVigente(sesion) && !sesionYaEstaAbiertaEnEsteNavegador(sesion))
+        .filter((sesion) => sesionEstaProgramada(sesion) && sesionSigueVigente(sesion))
         .map((sesion) => crearFechaHora(fechaHoy, obtenerHoraInicioSesion(sesion)))
         .filter((inicio) => inicio && inicio.getTime() > ahora)
-        .map((inicio) => inicio.getTime() - ahora);
+        .map((inicio) => inicio.getTime() - (MINUTOS_RECORDATORIO * 60 * 1000) - ahora)
+        .filter((espera) => espera > 0);
       const hastaProximaSesion = esperas.length ? Math.min(...esperas) + 250 : Number.POSITIVE_INFINITY;
       const espera = Math.min(hastaProximaSesion, 10 * 60 * 1000);
       temporizadorRevision = window.setTimeout(revisarSesionActiva, Math.max(1000, espera));
@@ -327,7 +328,6 @@ export default function SesionActivaModal({
         .filter((sesion) =>
           sesionEstaProgramada(sesion) &&
           sesionSigueVigente(sesion) &&
-          !sesionYaEstaAbiertaEnEsteNavegador(sesion) &&
           sesionDebeIniciarse(sesion, fechaHoy) &&
           sesionEstaEnHorarioActual(sesion, fechaHoy)
         )

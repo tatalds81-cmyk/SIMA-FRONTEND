@@ -36,6 +36,8 @@ function agregarValor(set, valor) {
   if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
 }
 
+const limitarDigitos = (valor, maximo = 10) => String(valor || "").replace(/\D/g, "").slice(0, maximo);
+
 function leerUsuarioActual() {
   try {
     return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
@@ -71,7 +73,6 @@ function esGrupoLideradoPorInstructorActual(grupo) {
   const candidatos = [
     grupo?.id_instructor_lider,
     grupo?.instructor_lider?.id_instructor,
-    grupo?.instructor?.id_instructor,
   ].filter(Boolean).map(String);
 
   return candidatos.some((id) => idsInstructor.has(id));
@@ -288,7 +289,10 @@ export default function Aprendices() {
 
   function cambiarCampo(e) {
     const { name, value } = e.target;
-    setForm((actual) => ({ ...actual, [name]: value }));
+    const valorLimpio = ["numero_documento", "telefono"].includes(name)
+      ? limitarDigitos(value)
+      : value;
+    setForm((actual) => ({ ...actual, [name]: valorLimpio }));
     setErrores((actual) => ({ ...actual, [name]: "" }));
   }
 
@@ -341,17 +345,28 @@ export default function Aprendices() {
 
   function cambiarDetalleForm(e) {
     const { name, value } = e.target;
-    setDetalleForm((actual) => ({ ...actual, [name]: value }));
+    const valorLimpio = ["numero_documento", "telefono"].includes(name)
+      ? limitarDigitos(value)
+      : value;
+    setDetalleForm((actual) => ({ ...actual, [name]: valorLimpio }));
   }
 
   function validarIndividual() {
     const nuevosErrores = {};
+    const grupoFormulario = grupos.find(
+      (grupo) => String(obtenerCodigoGrupo(grupo)) === String(form.numero_ficha)
+    );
     if (!form.nombres.trim()) nuevosErrores.nombres = "Campo obligatorio";
     if (!form.apellidos.trim()) nuevosErrores.apellidos = "Campo obligatorio";
     if (!form.tipo_documento) nuevosErrores.tipo_documento = "Campo obligatorio";
     if (!form.numero_documento.trim()) nuevosErrores.numero_documento = "Campo obligatorio";
+    else if (form.numero_documento.length < 6) nuevosErrores.numero_documento = "Debe tener entre 6 y 10 numeros";
     if (!form.email.trim()) nuevosErrores.email = "Campo obligatorio";
+    if (form.telefono && form.telefono.length !== 10) nuevosErrores.telefono = "Debe tener 10 numeros";
     if (!form.numero_ficha) nuevosErrores.numero_ficha = "Seleccione un grupo activo";
+    else if (esInstructorSesionActual() && !esGrupoLideradoPorInstructorActual(grupoFormulario)) {
+      nuevosErrores.numero_ficha = "Solo el instructor lider puede agregar aprendices a esta ficha";
+    }
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -677,7 +692,7 @@ export default function Aprendices() {
                   <div className="aprendices-detail-field">
                     <span>Documento</span>
                     {detalleModoEdicion ? (
-                      <input name="numero_documento" value={detalleForm.numero_documento} onChange={cambiarDetalleForm} />
+                      <input name="numero_documento" value={detalleForm.numero_documento} onChange={cambiarDetalleForm} inputMode="numeric" pattern="[0-9]*" maxLength={10} />
                     ) : (
                       <strong>{aprendizDetalle.numero_documento || "-"}</strong>
                     )}
@@ -731,7 +746,7 @@ export default function Aprendices() {
                   <div className="aprendices-detail-contact-item">
                     <Phone size={18} />
                     {detalleModoEdicion ? (
-                      <input name="telefono" value={detalleForm.telefono} onChange={cambiarDetalleForm} />
+                      <input name="telefono" value={detalleForm.telefono} onChange={cambiarDetalleForm} inputMode="numeric" pattern="[0-9]*" maxLength={10} />
                     ) : (
                       <span>{aprendizDetalle.telefono || "No registrado"}</span>
                     )}
@@ -794,12 +809,12 @@ export default function Aprendices() {
                   </select>
                   {errores.tipo_documento && <small className="error">{errores.tipo_documento}</small>}
                 </label>
-                <Campo label="Numero de documento" name="numero_documento" value={form.numero_documento} onChange={cambiarCampo} error={errores.numero_documento} />
+                <Campo label="Numero de documento" name="numero_documento" value={form.numero_documento} onChange={cambiarCampo} error={errores.numero_documento} soloNumeros maxLength={10} />
               </div>
 
               <div className="aprendices-form-grid">
                 <Campo label="Correo institucional" name="email" type="email" value={form.email} onChange={cambiarCampo} error={errores.email} />
-                <Campo label="Telefono" name="telefono" value={form.telefono} onChange={cambiarCampo} />
+                <Campo label="Telefono" name="telefono" value={form.telefono} onChange={cambiarCampo} error={errores.telefono} soloNumeros maxLength={10} />
               </div>
 
               <label>
@@ -866,11 +881,20 @@ export default function Aprendices() {
   );
 }
 
-function Campo({ label, name, value, onChange, error, type = "text" }) {
+function Campo({ label, name, value, onChange, error, type = "text", soloNumeros = false, maxLength }) {
   return (
     <label>
       <span>{label}</span>
-      <input name={name} type={type} value={value} onChange={onChange} className={error ? "invalid" : ""} />
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        className={error ? "invalid" : ""}
+        inputMode={soloNumeros ? "numeric" : undefined}
+        pattern={soloNumeros ? "[0-9]*" : undefined}
+        maxLength={maxLength}
+      />
       {error && <small className="error">{error}</small>}
     </label>
   );
