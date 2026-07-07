@@ -39,7 +39,6 @@ export default function PanelCoordinador() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [filtroResumenActivo, setFiltroResumenActivo] = useState("asistencia");
-  const [filtroOperativoActivo, setFiltroOperativoActivo] = useState("inasistencias");
   const [mostrarTodosProgramas, setMostrarTodosProgramas] = useState(false);
 
   useEffect(() => {
@@ -388,14 +387,6 @@ export default function PanelCoordinador() {
               <strong>{kpis.total_inasistencias_validas ?? 0}</strong>
               <p>Inasistencias validas registradas</p>
             </div>
-            <button
-              className={`coordinador-select-btn ${filtroOperativoActivo === "inasistencias" ? "active" : ""}`}
-              type="button"
-              onClick={() => setFiltroOperativoActivo("inasistencias")}
-            >
-              Inasistencias
-              {filtroOperativoActivo === "inasistencias" ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-            </button>
           </div>
 
           <div className="coordinador-bars" aria-label="Resumen operativo por jornada">
