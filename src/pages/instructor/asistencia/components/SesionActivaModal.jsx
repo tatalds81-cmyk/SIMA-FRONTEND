@@ -136,6 +136,16 @@ function sesionEstaProgramada(sesion) {
   return ESTADOS_ABRIBLES.includes(estado);
 }
 
+function obtenerEstadoSesion(sesion) {
+  return String(sesion?.estado || sesion?.estadoCalendario || "").toUpperCase();
+}
+
+function describirEstadoSesion(estado) {
+  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) return "cerrada";
+  if (["CANCELADA", "CANCELADO"].includes(estado)) return "cancelada";
+  return estado ? estado.toLowerCase() : "no disponible";
+}
+
 function sesionYaEstaAbiertaEnEsteNavegador(sesion) {
   const idsSesion = [
     sesion?.id_sesion_formacion,
@@ -368,7 +378,7 @@ export default function SesionActivaModal({
       const sesionesAbribles = sesionesDelBloque
         .filter((sesion) => sesionEstaProgramada(sesion))
         .sort((a, b) => prioridadSesionParaAbrir(b) - prioridadSesionParaAbrir(a));
-      return sesionesAbribles[0] || sesionesDelBloque[0] || null;
+      return sesionesAbribles[0] || null;
     };
 
     const buscarSesionReal = async () => {
@@ -456,11 +466,15 @@ export default function SesionActivaModal({
 
     try {
       let sesionAbierta = await obtenerSesionRealDelBloque(sesionProgramada, idGrupo);
-      let estado = String(sesionAbierta?.estado || sesionProgramada?.estado || "").toUpperCase();
       let idSesionReal = obtenerIdSesionFormacion(sesionAbierta);
+      let estado = obtenerEstadoSesion(sesionAbierta || sesionProgramada);
 
       if (!idSesionReal) {
         throw new Error("No se encontro la sesion real para cargar asistencia.");
+      }
+
+      if (!sesionEstaProgramada(sesionAbierta)) {
+        throw new Error(`Esta sesion ya esta ${describirEstadoSesion(estado)} y no se puede abrir para asistencia.`);
       }
 
       if (!sesionEstaAbiertaEnBackend(sesionAbierta)) {
@@ -472,7 +486,7 @@ export default function SesionActivaModal({
             sesionAbierta = sesionRealActualizada;
             idSesionReal = obtenerIdSesionFormacion(sesionRealActualizada) || idSesionReal;
           } else {
-            estado = String(sesionRealActualizada?.estado || "").toUpperCase();
+            estado = obtenerEstadoSesion(sesionRealActualizada);
           }
           const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaSesionTrabajo).catch(() => null);
           if (sesionYaAbierta && (
