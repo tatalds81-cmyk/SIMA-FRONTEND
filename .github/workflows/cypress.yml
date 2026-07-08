@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [ testCypress ]
+    
+concurrency:
+  group: cypress-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e:
