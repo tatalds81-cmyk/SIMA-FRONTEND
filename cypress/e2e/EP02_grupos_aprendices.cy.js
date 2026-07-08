@@ -1,18 +1,18 @@
-describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder', () => {
+describe('EP02 - Gestionn de aprendices, grupos formativos e instructor li­der', () => {
   let creds;
 
   before(() => {
     cy.fixture('credenciales').then((data) => { creds = data; });
   });
 
-  // ── H07: Crear grupo formativo ───────────────────────────────────────
+  // H07: Crear grupo formativo
   describe('H07 - Crear grupo formativo', () => {
     beforeEach(() => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
     });
 
-    it('Crea un grupo con datos válidos', () => {
+    it('Crea un grupo con datos validos', () => {
       cy.contains('button', 'Crear grupo').click();
       cy.get('.grupos-modal').within(() => {
         cy.get('[data-testid="input-numero-grupo"]').type('9999999'); // numero de ficha
@@ -50,16 +50,16 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
       cy.contains('small.error', 'Este campo es obligatorio').should('exist');
     });
 
-    it('Rechaza creación si el usuario no es coordinador', () => {
+    it('Rechaza creacion si el usuario no es coordinador', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
       cy.visit('/fichas');
       cy.url().should('include', '/instructor/grupos');
     });
   });
 
-  // ── H08: Consultar y filtrar grupos formativos ──────────────────────
+  //  H08: Consultar y filtrar 
   describe('H08 - Consultar y filtrar grupos formativos', () => {
-    it('El coordinador consulta los grupos de sus áreas', () => {
+    it('El coordinador consulta los grupos de sus Ã¡reas', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').should('have.length.greaterThan', 0);
@@ -72,21 +72,21 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
       cy.get('.grupos-table tbody tr').should('exist');
     });
 
-    it('El instructor consulta únicamente sus grupos asignados', () => {
+    it('El instructor consulta unicamente sus grupos asignados', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
       cy.visit('/instructor/grupos');
       cy.get('body').should('exist'); // vista MisGrupos cargada
     });
   });
 
-  // ── H09: Consultar detalle de grupo formativo ───────────────────────
+  // H09: Consultar detalle de grupo formativo 
   describe('H09 - Consultar detalle de grupo formativo', () => {
     it('El coordinador consulta el detalle de un grupo', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
       cy.url().should('match', /\/fichas\/\d+/);
-      cy.get('.gd-kpi-grid').should('be.visible'); // confirma que el detalle del grupo cargó
+      cy.get('.gd-kpi-grid').should('be.visible'); // confirma que el detalle del grupo cargÃ³
     });
 
     it('Muestra los aprendices vinculados al grupo', () => {
@@ -104,9 +104,9 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H10: Actualizar datos básicos del grupo ─────────────────────────
-  describe('H10 - Actualizar datos básicos del grupo', () => {
-    it('El coordinador actualiza datos básicos del grupo', () => {
+  //  H10: Actualizar datos basicos del grupo
+  describe('H10 - Actualizar datos basicos del grupo', () => {
+    it('El coordinador actualiza datos basicos del grupo', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
@@ -117,7 +117,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
       cy.contains('actualizado correctamente').should('be.visible');
     });
 
-    it('Recalcula la fecha de finalización al cambiar la duración', () => {
+    it('Recalcula la fecha de finalización al cambiar la duracion, () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
@@ -128,7 +128,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H11: Cambiar estado del grupo formativo ─────────────────────────
+  // H11: Cambiar estado del grupo formativo 
   describe('H11 - Cambiar estado del grupo formativo', () => {
     it('Impide que un instructor cambie el estado del grupo', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
@@ -137,15 +137,14 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
 
     
-    it('El botón "Cambiar estado" no está disponible para el coordinador (regresión pendiente)', () => {
+    it('El boton "Cambiar estado" no esta disponible para el coordinador (regresion pendiente)', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
       cy.contains('button', 'Cambiar estado').should('exist').and('not.be.visible');
     });
 
-    it.skip('El coordinador cambia el estado del grupo llamando al backend (bloqueado por regresión activa)', () => {
-      .
+    it.skip('El coordinador cambia el estado del grupo llamando al backend (bloqueado por regresión en activa)', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
@@ -158,15 +157,15 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H12: Asignar instructor líder a grupo ───────────────────────────
-  describe('H12 - Asignar instructor líder a grupo', () => {
-    it('Muestra el instructor líder asignado en el detalle del grupo', () => {
+  //  H12: Asignar instructor lider a grupo
+  describe('H12 - Asignar instructor lÃ­der a grupo', () => {
+    it('Muestra el instructor lider asignado en el detalle del grupo', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().should('contain.text', 'Franco');
     });
 
-    it('Permite seleccionar instructor líder al crear grupo', () => {
+    it('Permite seleccionar instructor lider al crear grupo', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.contains('button', 'Crear grupo').click();
@@ -176,14 +175,14 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H13: Registrar aprendiz individual ──────────────────────────────
+  // H13: Registrar aprendiz individual 
   describe('H13 - Registrar aprendiz individual', () => {
     beforeEach(() => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/aprendices');
     });
 
-    it('Registra un aprendiz con datos válidos', () => {
+    it('Registra un aprendiz con datos validos', () => {
       cy.contains('button', 'Registrar aprendiz').click();
       cy.get('.aprendices-modal').within(() => {
         cy.get('input[name="nombres"]').type('Pedro');
@@ -194,12 +193,11 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
         cy.get('select[name="numero_ficha"]').select(1);
         cy.contains('button', 'Guardar aprendiz').click();
       });
-      // El mensaje ahora se muestra vía toast (react-toastify) y no en un div
-      // inline, pero el texto sigue siendo el mismo y queda visible en el DOM.
+      
       cy.contains('Aprendiz registrado correctamente').should('be.visible');
     });
 
-    it('Valida que el documento no esté registrado previamente', () => {
+    it('Valida que el documento no estÃ© registrado previamente', () => {
       cy.contains('button', 'Registrar aprendiz').click();
       cy.get('.aprendices-modal').within(() => {
         cy.get('input[name="nombres"]').type('Duplicado');
@@ -222,7 +220,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H14: Registrar aprendices masivamente ───────────────────────────
+  // H14: Registrar aprendices masivamente 
   describe('H14 - Registrar aprendices masivamente', () => {
     beforeEach(() => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
@@ -231,7 +229,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
 
     it('Abre el modal de carga masiva', () => {
       cy.contains('button', 'Carga masiva').click();
-      cy.contains('Carga de archivo').should('exist'); // título real del modal en aprendices-modal-header
+      cy.contains('Carga de archivo').should('exist'); // ti­tulo real del modal en aprendices-modal-header
     });
 
     it('Exige seleccionar un archivo antes de cargar', () => {
@@ -246,7 +244,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H15: Consultar aprendices por grupo ─────────────────────────────
+  //  H15: Consultar aprendices por grupo area
   describe('H15 - Consultar aprendices por grupo', () => {
     it('Muestra los aprendices vinculados a un grupo', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
@@ -262,7 +260,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H16: Consultar detalle de aprendiz ──────────────────────────────
+  //  H16: Consultar detalle de aprendiz 
   describe('H16 - Consultar detalle de aprendiz', () => {
     it('Muestra el detalle de un aprendiz', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
@@ -272,8 +270,8 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H17: Actualizar datos básicos del aprendiz ──────────────────────
-  describe('H17 - Actualizar datos básicos del aprendiz', () => {
+  // H17: Actualizar datos bÃ¡sicos del aprendiz 
+  describe('H17 - Actualizar datos bÃ¡sicos del aprendiz', () => {
     it('Edita los datos de un aprendiz existente', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/aprendices');
@@ -285,23 +283,22 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H18: Desactivar aprendiz o cuenta asociada ──────────────────────
+  // H18: Desactivar aprendiz o cuenta asociada 
   describe('H18 - Desactivar aprendiz o cuenta asociada', () => {
-    it('Permite desactivar un aprendiz sin eliminarlo físicamente', () => {
+    it('Permite desactivar un aprendiz sin eliminarlo fisicamente', () => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/aprendices');
-      // eliminarAprendiz ya NO usa window.confirm: ahora abre un toast de
-      // confirmación propio (ConfirmacionEliminarAprendiz) con botones "Sí"/"No".
+    
       cy.get('.aprendices-table tbody tr').last().find('.aprendices-icon-btn.danger').click();
-      cy.contains('button', 'Sí').click();
+      cy.contains('button', 'SI­').click();
       cy.contains('eliminado correctamente').should('be.visible');
     });
   });
 
-  // ── H19: Asignar instructores de apoyo a grupo formativo ────────────
+  // H19: Asignar instructores de apoyo a grupo formativo 
   describe('H19 - Asignar instructores de apoyo a grupo formativo', () => {
     it('Documentado como historia parcialmente implementada (HECHO en backlog)', () => {
-      // El backlog indica HECHO; validar al menos que el detalle de grupo no falle
+      
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
@@ -309,7 +306,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H20: Consultar dashboard del instructor ──────────────────────────
+  //  H20: Consultar dashboard del instructor 
   describe('H20 - Consultar dashboard del instructor', () => {
     it('El instructor accede a su dashboard con resumen de grupos', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
@@ -323,20 +320,15 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     });
   });
 
-  // ── H21-H24: Horarios formativos (creación, consulta, edición, conflictos) ──
+  // H21-H24: Horarios formativos
   describe('H21 a H24 - Horario formativo del grupo', () => {
     beforeEach(() => {
       cy.loginComo(creds.coordinador.documento, creds.coordinador.password);
       cy.visit('/fichas');
     });
 
-    // NOTA: en Fichas.jsx la tabla de grupos del coordinador ya no tiene un
-    // botón directo de "Ver horario" (aria-label*="Ver horario"); ese botón
-    // solo existe hoy en MisGrupos.jsx para el instructor líder, con el
-    // aria-label "Asignar horario a la ficha X". Para el coordinador, el
-    // horario se consulta entrando al detalle del grupo y usando la pestaña
-    // "Horario" (tabsDetalle en GrupoDetalle.jsx).
-    it('H21 - Permite abrir la pestaña de horario de un grupo', () => {
+
+    it('H21 - Permite abrir la prestación de horario de un grupo', () => {
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
       cy.contains('button', 'Horario').click();
       cy.get('.grupos-horario-week, [class*="horario"]').should('exist');
@@ -351,7 +343,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
     it('H24 - Muestra mensaje de conflicto al cruzar horarios (si aplica regla)', () => {
       cy.get('.grupos-table tbody tr').first().find('[data-testid="btn-ver-detalle-grupo"]').click();
       cy.contains('button', 'Horario').click();
-      // Validación de conflicto depende del formulario interno de HorarioGrupoModal
+      // ValidaciÃ³n de conflicto depende del formulario interno de HorarioGrupoModal
       cy.get('body').should('exist');
     });
   });
