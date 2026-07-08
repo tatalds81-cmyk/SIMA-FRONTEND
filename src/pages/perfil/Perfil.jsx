@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Building2, Camera, Edit3, ImagePlus, Mail, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
+import { guardarFotoPerfil, leerFotoPerfil } from "../../utils/profilePhoto";
 import "./perfil.css";
 
 const perfilVacio = {
@@ -18,7 +19,7 @@ export default function Perfil() {
   const [guardando, setGuardando] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [menuFotoAbierto, setMenuFotoAbierto] = useState(false);
-  const [fotoPerfil, setFotoPerfil] = useState("");
+  const [fotoPerfil, setFotoPerfil] = useState(() => leerFotoPerfil());
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
 
@@ -57,6 +58,8 @@ export default function Perfil() {
   }
 
   useEffect(() => {
+    // La carga inicial sincroniza el componente con el perfil remoto.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarPerfil();
   }, []);
 
@@ -125,18 +128,7 @@ export default function Perfil() {
           foto_perfil_url: fotoUrl
         }
       }));
-
-      try {
-        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
-        userData.persona = {
-          ...(userData.persona || {}),
-          foto_perfil_url: fotoUrl
-        };
-        localStorage.setItem("user_data", JSON.stringify(userData));
-        window.dispatchEvent(new CustomEvent("sima-profile-photo-updated", { detail: { foto_perfil_url: fotoUrl } }));
-      } catch {
-        // El avatar ya fue actualizado en pantalla; ignoramos errores de cache local.
-      }
+      guardarFotoPerfil(fotoUrl);
 
       setMensaje(data?.message || "Foto de perfil actualizada correctamente.");
       setMensajeError(false);
@@ -217,6 +209,10 @@ export default function Perfil() {
           >
             {fotoPerfil ? <img src={fotoPerfil} alt="" /> : (iniciales || "US")}
           </button>
+          <span className="perfil-avatar-edit-indicator" aria-hidden="true">
+            <Camera size={15} />
+          </span>
+          {!menuFotoAbierto && <span className="perfil-avatar-tooltip" role="tooltip">Cambiar foto</span>}
           {menuFotoAbierto && (
             <div className="perfil-photo-menu">
               <label>

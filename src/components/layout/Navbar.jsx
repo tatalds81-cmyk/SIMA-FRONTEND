@@ -8,20 +8,12 @@ import {
 import "./Navbar.css";
 import NotificacionCampana from "./NotificacionCampana";
 import { limpiarSesionUsuario } from "../../utils/storage";
-
-function leerFotoPerfil() {
-  try {
-    const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
-    return userData?.persona?.foto_perfil_url || "";
-  } catch {
-    return "";
-  }
-}
+import { escucharCambiosFotoPerfil, leerFotoPerfil } from "../../utils/profilePhoto";
 
 function Navbar() {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [fotoPerfil, setFotoPerfil] = useState(leerFotoPerfil);
+  const [fotoPerfil, setFotoPerfil] = useState(() => leerFotoPerfil());
 
   const nombreUsuario = localStorage.getItem("username") || localStorage.getItem("usuario") || "Carlos Loda";
   const rolUsuario = (localStorage.getItem("rol") || "Administrador").toLowerCase();
@@ -54,18 +46,7 @@ function Navbar() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const actualizarFoto = (event) => {
-      setFotoPerfil(event.detail?.foto_perfil_url || leerFotoPerfil());
-    };
-
-    window.addEventListener("sima-profile-photo-updated", actualizarFoto);
-    window.addEventListener("storage", actualizarFoto);
-    return () => {
-      window.removeEventListener("sima-profile-photo-updated", actualizarFoto);
-      window.removeEventListener("storage", actualizarFoto);
-    };
-  }, []);
+  useEffect(() => escucharCambiosFotoPerfil(setFotoPerfil), []);
 
   const initials = nombreUsuario
     .split(" ")
@@ -83,7 +64,7 @@ function Navbar() {
 
         <button className="profile-section" type="button" onClick={toggleProfileMenu}>
           <span className="profile-avatar-circle">
-            {fotoPerfil ? <img src={fotoPerfil} alt="" /> : (initials || "CL")}
+            {fotoPerfil ? <img src={fotoPerfil} alt="Foto de perfil" /> : (initials || "CL")}
           </span>
           <span className="profile-info">
             <span className="profile-name">{nombreUsuario}</span>
