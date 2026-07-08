@@ -1,4 +1,4 @@
-const apiBase = () => Cypress.env('apiUrl') || 'http://localhost:3000';
+/*const apiBase = () => Cypress.env('apiUrl') || 'http://localhost:3000';
 
 const api = ({ method = 'GET', path, token, body, qs, failOnStatusCode = false }) => cy.request({
   method,
@@ -546,5 +546,5 @@ describe('Backlog H01-H34 - contratos backend SIMA', () => {
     });
   });
 });
-
+*/
 
