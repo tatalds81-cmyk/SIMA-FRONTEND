@@ -8,6 +8,8 @@ const perfilVacio = {
   password_actual: "",
   password_nuevo: ""
 };
+const FOTO_MAX_BYTES = 2 * 1024 * 1024;
+const FOTO_TIPOS_PERMITIDOS = ["image/jpeg", "image/png", "image/webp"];
 
 export default function Perfil() {
   const [perfil, setPerfil] = useState(null);
@@ -37,6 +39,7 @@ export default function Perfil() {
 
       const perfilData = data?.data || data;
       setPerfil(perfilData);
+      setFotoPerfil(perfilData?.persona?.foto_perfil_url || "");
       setForm({
         email: perfilData?.email || "",
         telefono: perfilData?.persona?.telefono || "",
@@ -74,16 +77,77 @@ export default function Perfil() {
 
   const areaPrincipal = perfil?.informacion_rol?.areas_asignadas?.[0] || "";
 
-  function cambiarFotoPerfil(e) {
+  async function cambiarFotoPerfil(e) {
     const archivo = e.target.files?.[0];
     if (!archivo) return;
+    e.target.value = "";
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFotoPerfil(reader.result?.toString() || "");
+    if (!FOTO_TIPOS_PERMITIDOS.includes(archivo.type)) {
+      setMensaje("Formato no permitido. Usa JPG, PNG o WEBP.");
+      setMensajeError(true);
       setMenuFotoAbierto(false);
-    };
-    reader.readAsDataURL(archivo);
+      return;
+    }
+
+    if (archivo.size > FOTO_MAX_BYTES) {
+      setMensaje("La imagen de perfil no puede superar 2 MB.");
+      setMensajeError(true);
+      setMenuFotoAbierto(false);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(archivo);
+    setFotoPerfil(previewUrl);
+    setMenuFotoAbierto(false);
+    setGuardando(true);
+    setMensaje("");
+    setMensajeError(false);
+
+    try {
+      const formData = new FormData();
+      formData.append("foto", archivo);
+
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      const res = await fetch("/api/profile/photo", {
+        method: "PATCH",
+        headers: token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible subir la foto de perfil");
+
+      const fotoUrl = data?.data?.foto_perfil_url || "";
+      setFotoPerfil(fotoUrl);
+      setPerfil((actual) => ({
+        ...actual,
+        persona: {
+          ...(actual?.persona || {}),
+          foto_perfil_url: fotoUrl
+        }
+      }));
+
+      try {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        userData.persona = {
+          ...(userData.persona || {}),
+          foto_perfil_url: fotoUrl
+        };
+        localStorage.setItem("user_data", JSON.stringify(userData));
+        window.dispatchEvent(new CustomEvent("sima-profile-photo-updated", { detail: { foto_perfil_url: fotoUrl } }));
+      } catch {
+        // El avatar ya fue actualizado en pantalla; ignoramos errores de cache local.
+      }
+
+      setMensaje(data?.message || "Foto de perfil actualizada correctamente.");
+      setMensajeError(false);
+    } catch (error) {
+      setFotoPerfil(perfil?.persona?.foto_perfil_url || "");
+      setMensaje(error.message || "No fue posible subir la foto de perfil.");
+      setMensajeError(true);
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setGuardando(false);
+    }
   }
 
   function cambiarCampo(e) {
