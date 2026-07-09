@@ -15,3 +15,9 @@
 
 // Import commands.js using ES2015 syntax:
 import './commands'
+
+afterEach(function () {
+  if (this.currentTest.state === 'passed') {
+    cy.screenshot(this.currentTest.fullTitle());
+  }
+});
