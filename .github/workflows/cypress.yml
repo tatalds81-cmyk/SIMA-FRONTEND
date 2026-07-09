@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [ testCypress ]
-    
+
 concurrency:
   group: cypress-${{ github.ref }}
   cancel-in-progress: true
@@ -76,8 +76,8 @@ jobs:
       - name: Correr pruebas Cypress
         run: cd frontend && npx cypress run
 
-      - name: Guardar capturas si falla
-        if: failure()
+      - name: Guardar capturas (pasen o fallen)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cypress-screenshots
