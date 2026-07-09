@@ -74,7 +74,7 @@ jobs:
         run: npx wait-on http://localhost:3000 http://localhost:5173 --timeout 60000
 
       - name: Correr pruebas Cypress con grabación
-        run: cd frontend && npx cypress run --record --key ${{ secrets.CYPRESS_RECORD_KEY }}
+        run: cd frontend && npx cypress run --record --key ${{ secrets.CYPRESS_RECORD_KEY }} --runner-ui
 
       - name: Guardar capturas (pasen o fallen)
         if: always()
