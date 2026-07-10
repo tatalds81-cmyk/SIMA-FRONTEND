@@ -9,6 +9,7 @@ import "./Navbar.css";
 import NotificacionCampana from "./NotificacionCampana";
 import { limpiarSesionUsuario } from "../../utils/storage";
 import { escucharCambiosFotoPerfil, leerFotoPerfil } from "../../utils/profilePhoto";
+import simaLogo from "../../assets/logoSima.png";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -59,6 +60,11 @@ function Navbar() {
 
   return (
     <header className={`sima-navbar-main ${esInstructor ? "navbar-instructor" : ""} ${esSuperAdmin ? "navbar-superadmin" : ""}`}>
+      <div className="sima-navbar-brand" aria-label="SIMA">
+        <img src={simaLogo} alt="Logo SIMA" />
+        <span>SIMA</span>
+      </div>
+
       <div className="sima-navbar-right">
         <NotificacionCampana esCoordinador={esCoordinador} />
 
