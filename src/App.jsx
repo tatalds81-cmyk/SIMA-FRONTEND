@@ -22,6 +22,7 @@ import AlertasCoordinador from "./pages/alertas/AlertasCoordinador";
 import DetalleAlerta from "./pages/alertas/DetalleAlerta";
 import NotificacionesPage from "./pages/notificaciones/NotificacionesPage";
 import HuellasBiometricas from "./pages/biometria/HuellasBiometricas";
+import AnaliticaPredictiva from "./pages/analytics/AnaliticaPredictiva";
 import { limpiarSesionUsuario } from "./utils/storage";
 
 function App() {
@@ -288,6 +289,15 @@ function App() {
               element={
                 <Dashboard onLogout={manejarLogout}>
                   <NotificacionesPage />
+                </Dashboard>
+              }
+            />
+
+            <Route
+              path="/analitica-predictiva"
+              element={
+                <Dashboard onLogout={manejarLogout}>
+                  <AnaliticaPredictiva />
                 </Dashboard>
               }
             />
