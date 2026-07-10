@@ -276,7 +276,7 @@ export default function Login({ onLogin }) {
               <span>|</span>
               <a href="#terminos">Terminos y condiciones</a>
             </div>
-            <p>(c) 2024 SENA. Todos los derechos reservados.</p>
+            <p>(c) 2026 SENA. Todos los derechos reservados.</p>
           </div>
         </footer>
       </main>
