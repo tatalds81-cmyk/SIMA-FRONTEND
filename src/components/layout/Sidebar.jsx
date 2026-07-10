@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import "./sidebar.css";
 import senaLogo from "../../assets/logoSena.png";
-import simaLogo from "../../assets/logoSima.png";
 
 const menuByRole = {
   super_admin: [
@@ -45,10 +44,6 @@ export default function Sidebar() {
 
   return (
     <aside className="sima-sidebar-main" aria-label="Navegacion principal">
-      <div className="sima-sidebar-brand" aria-label="SIMA">
-        <img src={simaLogo} alt="Logo SIMA" />
-      </div>
-
       <div className="sima-sidebar-shell">
         <nav className="sima-sidebar-nav">
           {menuItems.map((item) => {
