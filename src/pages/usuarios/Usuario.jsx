@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { Edit3, Eye, Mail, Phone, Plus, Save, Search, Trash2, Upload } from "lucide-react";
+import { Edit3, Eye, Mail, Phone, Plus, Save, Search, Trash2 } from "lucide-react";
 import SimaPagination from "../../components/common/SimaPagination";
+import { GRUPOS_LIST_URL, normalizarEstadoGrupo } from "../../services/gruposService";
 import "./usuario.css";
 
 const detalleVacio = {
@@ -14,6 +15,16 @@ const detalleVacio = {
   estado: "ACTIVO",
   telefono: ""
 };
+
+const ROLES_GESTIONABLES_COORDINADOR = new Set(["aprendiz", "instructor"]);
+
+function normalizarNombreRol(valor) {
+  return String(valor || "").toLowerCase().trim();
+}
+
+function rolGestionablePorCoordinador(rolItem) {
+  return ROLES_GESTIONABLES_COORDINADOR.has(normalizarNombreRol(rolItem?.nombre));
+}
 
 function textoError(valor, fallback = "Error al guardar el usuario") {
   if (!valor) return fallback;
@@ -41,8 +52,6 @@ export default function Usuario() {
   const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
-  const [modalCargaMasivaAbierto, setModalCargaMasivaAbierto] = useState(false);
-  const [archivoCargaMasiva, setArchivoCargaMasiva] = useState(null);
   const [usuarioDetalle, setUsuarioDetalle] = useState(null);
   const [detalleModoEdicion, setDetalleModoEdicion] = useState(false);
   const [detalleForm, setDetalleForm] = useState(detalleVacio);
@@ -63,10 +72,15 @@ export default function Usuario() {
 
   const URL_USUARIOS = "/api/users";
   const URL_ROLES = "/api/roles";
-  const URL_GRUPOS = "/api/groups";
   const URL_AREAS = "/api/coordinator-areas/areas";
   const USUARIOS_POR_PAGINA = 5;
   const LIMITE_CARGA_USUARIOS = 1000;
+  const rolActual = normalizarNombreRol(localStorage.getItem("rol"));
+  const esCoordinadorActual = rolActual === "coordinador";
+  const rolesFormulario = useMemo(
+    () => esCoordinadorActual ? roles.filter(rolGestionablePorCoordinador) : roles,
+    [roles, esCoordinadorActual]
+  );
 
   useEffect(() => {
     cargarUsuarios();
@@ -182,7 +196,7 @@ export default function Usuario() {
         return;
       }
 
-      const res = await fetch(`${URL_GRUPOS}?estado=ACTIVO&limit=1000`, {
+      const res = await fetch(GRUPOS_LIST_URL, {
         method: "GET",
         headers: obtenerHeaders()
       });
@@ -192,13 +206,26 @@ export default function Usuario() {
         throw responseData || { message: "No se pudieron cargar las fichas activas" };
       }
 
-      const datos =
+      const datosRespuesta =
         responseData?.data?.grupos ||
+        responseData?.data?.fichas ||
+        responseData?.grupos ||
+        responseData?.fichas ||
         responseData?.data ||
         responseData?.results ||
         (Array.isArray(responseData) ? responseData : []);
 
-      setGrupos(datos);
+      const fichasDisponibles = (Array.isArray(datosRespuesta) ? datosRespuesta : [])
+        .filter((grupo) => {
+          const estado = normalizarEstadoGrupo(grupo?.estado);
+          return estado === "EN_FORMACION" || estado === "PRACTICAS";
+        })
+        .sort((a, b) => String(a?.numero_ficha || "").localeCompare(String(b?.numero_ficha || "")));
+
+      setGrupos(fichasDisponibles);
+      if (!fichasDisponibles.length) {
+        setErrorGrupos("No hay fichas en formacion o practicas disponibles.");
+      }
     } catch (error) {
       console.error(error);
       setErrorGrupos(error?.message || "Error al cargar las fichas activas");
@@ -286,17 +313,6 @@ export default function Usuario() {
     setMensaje("Busqueda limpiada");
   }
 
-  function cargarUsuariosMasivo(e) {
-    e.preventDefault();
-    if (!archivoCargaMasiva) {
-      setMensaje("Seleccione un archivo Excel para la carga masiva.");
-      return;
-    }
-    setMensaje(`Archivo ${archivoCargaMasiva.name} listo. Falta conectar el endpoint de carga masiva de usuarios.`);
-    setArchivoCargaMasiva(null);
-    setModalCargaMasivaAbierto(false);
-  }
-
   async function guardarUsuario(e) {
     e.preventDefault();
     setMensaje("");
@@ -309,6 +325,13 @@ export default function Usuario() {
 
     const esAprendiz = esRolAprendiz(rol);
     const esCoordinador = esRolCoordinador(rol);
+    const rolSeleccionado = roles.find((item) => Number(item.id_rol) === Number(rol));
+
+    if (esCoordinadorActual && !rolGestionablePorCoordinador(rolSeleccionado)) {
+      setMensaje("El coordinador solo puede crear usuarios instructores o aprendices.");
+      return;
+    }
+
     if (esAprendiz && !grupoSeleccionado) {
       setMensaje("Debe seleccionar la ficha activa a la que pertenece el aprendiz.");
       return;
@@ -403,6 +426,12 @@ export default function Usuario() {
 
   function iniciarEdicionDetalle() {
     if (!usuarioDetalle) return;
+    const rolUsuario = roles.find((item) => Number(item.id_rol) === Number(usuarioDetalle.id_rol));
+    if (esCoordinadorActual && !rolGestionablePorCoordinador(rolUsuario)) {
+      setMensaje("El coordinador solo puede actualizar usuarios instructores o aprendices.");
+      return;
+    }
+
     setDetalleForm({
       id_usuario: usuarioDetalle.id_usuario,
       email: usuarioDetalle.email,
@@ -441,6 +470,12 @@ export default function Usuario() {
 
   async function guardarEdicionDetalle() {
     if (!usuarioDetalle) return;
+    const rolSeleccionado = roles.find((item) => Number(item.id_rol) === Number(detalleForm.id_rol));
+
+    if (esCoordinadorActual && !rolGestionablePorCoordinador(rolSeleccionado)) {
+      setMensaje("El coordinador solo puede actualizar usuarios instructores o aprendices.");
+      return;
+    }
 
     const data = {
       email: detalleForm.email.trim(),
@@ -573,14 +608,6 @@ export default function Usuario() {
         </div>
 
         <div className="usuarios-header-actions">
-          <button
-            type="button"
-            className="usuarios-secondary-btn"
-            onClick={() => setModalCargaMasivaAbierto(true)}
-          >
-            <Upload size={18} />
-            Carga masiva
-          </button>
           <button type="button" className="usuarios-primary-btn" onClick={() => setModalCrearAbierto(true)} data-testid="users-create-button">
             <Plus size={19} />
             Crear usuario
@@ -622,6 +649,7 @@ export default function Usuario() {
         </select>
         <select
           className="usuarios-select-filtro"
+          data-testid="select-usuario-estado"
           value={filtroEstado}
           onChange={(e) => {
             setFiltroEstado(e.target.value);
@@ -780,7 +808,7 @@ export default function Usuario() {
                     {detalleModoEdicion ? (
                       <select name="id_rol" value={detalleForm.id_rol} onChange={cambiarDetalleForm}>
                         <option value="">Seleccione</option>
-                        {roles.map((item) => (
+                        {rolesFormulario.map((item) => (
                           <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
                         ))}
                       </select>
@@ -909,7 +937,7 @@ export default function Usuario() {
                   <span>Rol</span>
                   <select value={rol} onChange={(e) => cambiarRolCrear(e.target.value)} required>
                     <option value="">Seleccione un rol</option>
-                    {roles.map((item) => (
+                    {rolesFormulario.map((item) => (
                       <option key={item.id_rol} value={item.id_rol}>{item.nombre}</option>
                     ))}
                   </select>
@@ -965,33 +993,6 @@ export default function Usuario() {
         </div>
       )}
 
-      {modalCargaMasivaAbierto && (
-        <div className="usuarios-modal-backdrop" role="presentation">
-          <section className="usuarios-modal compact" role="dialog" aria-modal="true" aria-labelledby="carga-usuarios-title">
-            <div className="usuarios-modal-header">
-              <div>
-                <span className="usuarios-eyebrow">Carga masiva</span>
-                <h2 id="carga-usuarios-title">Importar usuarios</h2>
-                <p>Archivo Excel con documento, nombres, apellidos, correo, rol y estado.</p>
-              </div>
-            </div>
-
-            <form className="usuarios-form" onSubmit={cargarUsuariosMasivo}>
-              <label className="usuarios-upload">
-                <Upload size={34} />
-                <strong>{archivoCargaMasiva ? archivoCargaMasiva.name : "Seleccionar archivo"}</strong>
-                <span>Formatos preparados: .xlsx, .xls</span>
-                <input type="file" accept=".xlsx,.xls" onChange={(e) => setArchivoCargaMasiva(e.target.files?.[0] || null)} />
-              </label>
-
-              <div className="usuarios-modal-actions">
-                <button type="button" className="usuarios-secondary-btn" onClick={() => { setArchivoCargaMasiva(null); setModalCargaMasivaAbierto(false); }}>Cancelar</button>
-                <button type="submit" className="usuarios-primary-btn">Preparar carga</button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

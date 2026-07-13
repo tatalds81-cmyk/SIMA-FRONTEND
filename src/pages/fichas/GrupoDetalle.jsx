@@ -1236,9 +1236,22 @@ export default function GrupoDetalle() {
   }
 
   function validarDetalleGrupo() {
+   
     const trimestres = Number.parseInt(detalleForm.trimestres, 10);
-    const errorFecha = validarRangoFechaInicio(detalleForm.fecha_inicio, rangoFechaInicio);
-    if (errorFecha) return errorFecha;
+    // ya existian
+    // const errorFecha = validarRangoFechaInicio(detalleForm.fecha_inicio, rangoFechaInicio);
+   // if (errorFecha) return errorFecha;
+    
+    //add esto nuevo:
+    const fechaOriginal = normalizarFechaInput(grupo?.fecha_inicio);
+    const fechaFormulario = normalizarFechaInput(detalleForm.fecha_inicio);
+    if (fechaFormulario !== fechaOriginal) {
+      const errorFecha = validarRangoFechaInicio(detalleForm.fecha_inicio, rangoFechaInicio);
+      if (errorFecha) return errorFecha;
+    } else if (!fechaFormulario) {
+      return "La fecha de inicio es obligatoria.";
+    }
+    //hasta aca
     if (!detalleForm.jornada) return "La jornada es obligatoria.";
     if (!Number.isInteger(trimestres) || trimestres < 1) return "La duracion debe ser un numero de trimestres mayor a 0.";
     return "";

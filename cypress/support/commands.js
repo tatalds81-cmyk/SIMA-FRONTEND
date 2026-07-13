@@ -68,3 +68,37 @@ Cypress.Commands.add("apiRequest", ({ method = "GET", endpoint, body, qs, header
     body,
   });
 });
+
+Cypress.Commands.add("loginComo", (documento, password) => {
+  cy.visit("/login");
+  cy.get("#login-user").clear().type(documento);
+  cy.get("#login-password").clear().type(password);
+  cy.contains("button", "Iniciar sesion").click();
+  cy.url().should("not.include", "/login");
+});
+
+const superAdminUser = {
+  id_usuario: 1,
+  email: "superadmin@sima.test",
+  rol: { id_rol: 1, nombre: "super_admin" },
+  persona: {
+    nombres: "Sara",
+    apellidos: "Admin",
+    tipo_documento: "CC",
+    numero_documento: "1000000001",
+    telefono: "3001234567",
+  },
+};
+
+Cypress.Commands.add("loginAsSuperAdmin", () => {
+  cy.window().then((win) => {
+    win.localStorage.setItem("access", "cy-super-admin-token");
+    win.localStorage.setItem("token", "cy-super-admin-token");
+    win.localStorage.setItem("rol", "super_admin");
+    win.localStorage.setItem("username", "Sara Admin");
+    win.localStorage.setItem("usuario", "Sara Admin");
+    win.localStorage.setItem("user_email", superAdminUser.email);
+    win.localStorage.setItem("user_documento", superAdminUser.persona.numero_documento);
+    win.localStorage.setItem("user_data", JSON.stringify(superAdminUser));
+  });
+});

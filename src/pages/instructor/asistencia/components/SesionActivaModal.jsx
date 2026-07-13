@@ -119,14 +119,14 @@ function sesionSigueVigente(sesion) {
 
 function sesionDebeIniciarse(sesion, fechaISO) {
   const inicio = crearFechaHora(fechaISO, obtenerHoraInicioSesion(sesion));
-  return !inicio || new Date() >= inicio;
+  return !inicio || new Date().getTime() >= inicio.getTime() - (MINUTOS_RECORDATORIO * 60 * 1000);
 }
 
 function sesionEstaEnHorarioActual(sesion, fechaISO) {
   const inicio = crearFechaHora(fechaISO, obtenerHoraInicioSesion(sesion));
   const fin = crearFechaHora(fechaISO, obtenerHoraFinSesion(sesion));
   const ahora = new Date();
-  if (inicio && ahora < inicio) return false;
+  if (inicio && ahora.getTime() < inicio.getTime() - (MINUTOS_RECORDATORIO * 60 * 1000)) return false;
   if (fin && ahora > fin) return false;
   return true;
 }
@@ -134,6 +134,16 @@ function sesionEstaEnHorarioActual(sesion, fechaISO) {
 function sesionEstaProgramada(sesion) {
   const estado = String(sesion?.estado || "").toUpperCase();
   return ESTADOS_ABRIBLES.includes(estado);
+}
+
+function obtenerEstadoSesion(sesion) {
+  return String(sesion?.estado || sesion?.estadoCalendario || "").toUpperCase();
+}
+
+function describirEstadoSesion(estado) {
+  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) return "cerrada";
+  if (["CANCELADA", "CANCELADO"].includes(estado)) return "cancelada";
+  return estado ? estado.toLowerCase() : "no disponible";
 }
 
 function sesionYaEstaAbiertaEnEsteNavegador(sesion) {
@@ -285,10 +295,11 @@ export default function SesionActivaModal({
       if (!activo) return;
       const ahora = Date.now();
       const esperas = sesiones
-        .filter((sesion) => sesionEstaProgramada(sesion) && sesionSigueVigente(sesion) && !sesionYaEstaAbiertaEnEsteNavegador(sesion))
+        .filter((sesion) => sesionEstaProgramada(sesion) && sesionSigueVigente(sesion))
         .map((sesion) => crearFechaHora(fechaHoy, obtenerHoraInicioSesion(sesion)))
         .filter((inicio) => inicio && inicio.getTime() > ahora)
-        .map((inicio) => inicio.getTime() - ahora);
+        .map((inicio) => inicio.getTime() - (MINUTOS_RECORDATORIO * 60 * 1000) - ahora)
+        .filter((espera) => espera > 0);
       const hastaProximaSesion = esperas.length ? Math.min(...esperas) + 250 : Number.POSITIVE_INFINITY;
       const espera = Math.min(hastaProximaSesion, 10 * 60 * 1000);
       temporizadorRevision = window.setTimeout(revisarSesionActiva, Math.max(1000, espera));
@@ -317,7 +328,6 @@ export default function SesionActivaModal({
         .filter((sesion) =>
           sesionEstaProgramada(sesion) &&
           sesionSigueVigente(sesion) &&
-          !sesionYaEstaAbiertaEnEsteNavegador(sesion) &&
           sesionDebeIniciarse(sesion, fechaHoy) &&
           sesionEstaEnHorarioActual(sesion, fechaHoy)
         )
@@ -368,7 +378,7 @@ export default function SesionActivaModal({
       const sesionesAbribles = sesionesDelBloque
         .filter((sesion) => sesionEstaProgramada(sesion))
         .sort((a, b) => prioridadSesionParaAbrir(b) - prioridadSesionParaAbrir(a));
-      return sesionesAbribles[0] || sesionesDelBloque[0] || null;
+      return sesionesAbribles[0] || null;
     };
 
     const buscarSesionReal = async () => {
@@ -456,11 +466,15 @@ export default function SesionActivaModal({
 
     try {
       let sesionAbierta = await obtenerSesionRealDelBloque(sesionProgramada, idGrupo);
-      let estado = String(sesionAbierta?.estado || sesionProgramada?.estado || "").toUpperCase();
       let idSesionReal = obtenerIdSesionFormacion(sesionAbierta);
+      let estado = obtenerEstadoSesion(sesionAbierta || sesionProgramada);
 
       if (!idSesionReal) {
         throw new Error("No se encontro la sesion real para cargar asistencia.");
+      }
+
+      if (!sesionEstaProgramada(sesionAbierta)) {
+        throw new Error(`Esta sesion ya esta ${describirEstadoSesion(estado)} y no se puede abrir para asistencia.`);
       }
 
       if (!sesionEstaAbiertaEnBackend(sesionAbierta)) {
@@ -472,7 +486,7 @@ export default function SesionActivaModal({
             sesionAbierta = sesionRealActualizada;
             idSesionReal = obtenerIdSesionFormacion(sesionRealActualizada) || idSesionReal;
           } else {
-            estado = String(sesionRealActualizada?.estado || "").toUpperCase();
+            estado = obtenerEstadoSesion(sesionRealActualizada);
           }
           const sesionYaAbierta = await obtenerSesionAbiertaPorGrupo(idGrupo, fechaSesionTrabajo).catch(() => null);
           if (sesionYaAbierta && (

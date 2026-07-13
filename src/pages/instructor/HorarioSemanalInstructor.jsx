@@ -120,8 +120,6 @@ const obtenerClaseDia = (sesiones) => {
   return "con-sesiones";//kjij//
 };
 
-const puedeAbrirSesion = (estado) => String(estado || "").toUpperCase() === "PENDIENTE";
-
 const prioridadSesionCalendario = (sesion) => {
   const clase = claseEstadoSesion(sesion?.estadoCalendario || sesion?.estado);
   const prioridadEstado = {
@@ -144,8 +142,7 @@ export default function HorarioSemanalInstructor({
   finSemana,
   ahora,
   jornada,
-  onJornadaChange,
-  onAbrirSesionPendiente
+  onJornadaChange
 }) {
   const calendario = useMemo(() => {
     const dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
@@ -205,20 +202,8 @@ export default function HorarioSemanalInstructor({
             <div className="instructor-calendar-head"><strong>{item.dia.slice(0, 3).toUpperCase()}</strong><span>{Number(item.fecha.slice(8, 10))}</span></div>
             {item.sesiones.length ? item.sesiones.map((sesion, index) => (
               <div
-                className={`instructor-calendar-session ${claseEstadoSesion(sesion.estadoCalendario)} ${puedeAbrirSesion(sesion.estadoCalendario) ? "clickable" : ""}`}
+                className={`instructor-calendar-session ${claseEstadoSesion(sesion.estadoCalendario)}`}
                 key={obtenerIdSesion(sesion) || `${item.dia}-${obtenerClaveSesionCalendario(sesion)}-${index}`}
-                role={puedeAbrirSesion(sesion.estadoCalendario) ? "button" : undefined}
-                tabIndex={puedeAbrirSesion(sesion.estadoCalendario) ? 0 : undefined}
-                onClick={() => {
-                  if (puedeAbrirSesion(sesion.estadoCalendario)) onAbrirSesionPendiente?.(sesion);
-                }}
-                onKeyDown={(evento) => {
-                  if (!puedeAbrirSesion(sesion.estadoCalendario)) return;
-                  if (evento.key === "Enter" || evento.key === " ") {
-                    evento.preventDefault();
-                    onAbrirSesionPendiente?.(sesion);
-                  }
-                }}
               >
                 <span className="instructor-calendar-time"><Clock size={13} />{sesion.horasDashboard.inicio} - {sesion.horasDashboard.fin}</span>
                 <strong>{obtenerCompetenciaSesion(sesion)}</strong>

@@ -6,15 +6,24 @@ const apiUrl = (process.env.CYPRESS_API_URL || process.env.VITE_API_URL || "http
   .replace(/\/api$/i, "");
 
 export default defineConfig({
+  projectId: "s9yctf",
+  video: true,
+  videosFolder: "cypress/videos",
+  videoCompression: 32,
   e2e: {
     baseUrl: appUrl,
-    specPattern: "cypress/e2e/**/*.cy.{js,jsx}",
+    specPattern: "cypress/e2e/**/*.cy.js",
+    excludeSpecPattern: [
+      "cypress/e2e/1-getting-started/**",
+      "cypress/e2e/2-advanced-examples/**",
+    ],
     supportFile: "cypress/support/e2e.js",
     screenshotOnRunFailure: true,
-    video: false,
     env: {
       apiUrl,
     },
-    setupNodeEvents() {},
+    setupNodeEvents(on, config) {
+      return config;
+    },
   },
 });

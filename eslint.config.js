@@ -36,6 +36,7 @@ export default defineConfig([
       },
     },
     rules: {
+      'no-redeclare': 'off',
       'react-refresh/only-export-components': 'off',
     },
   },

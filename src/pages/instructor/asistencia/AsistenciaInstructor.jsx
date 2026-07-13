@@ -390,7 +390,7 @@ export default function AsistenciaInstructor() {
           setAprendices([]);
           setPaginaActual(1);
           setMensajeError(true);
-          setMensaje("No hay una sesion de asistencia abierta para esta ficha hoy. Abre una sesion en el backend para guardar registros.");
+          setMensaje("No tienes seccion para hoy");
         }
       } catch (error) {
         console.error("Error cargando aprendices para asistencia:", error);
@@ -1651,7 +1651,6 @@ export default function AsistenciaInstructor() {
                   <option value="PRESENTE">Presente</option>
                   <option value="INASISTENTE">Inasistente</option>
                   <option value="TARDE">Tarde</option>
-                  <option value="JUSTIFICADA">Justificada</option>
                 </select>
 
                 <label className="mcal-label" htmlFor="hora-manual">Hora del registro</label>
