@@ -349,7 +349,7 @@ export default function AlertasCoordinador() {
           /* VISTA 1: TABLA DE GRUPOS */
           <div className="grupos-table-wrap">
             {gruposFiltrados.length > 0 ? (
-              <table className="grupos-table">
+              <table className="grupos-table" data-testid="coordinator-group-table">
                 <thead>
                   <tr>
                     <th>Ficha y Programa</th>
@@ -362,7 +362,7 @@ export default function AlertasCoordinador() {
                 </thead>
                 <tbody>
                   {gruposPaginados.map((g) => (
-                    <tr key={g.grupoCodigo} className="ac-tr-clickable" onClick={() => manejarSeleccionGrupo(g)}>
+                    <tr key={g.grupoCodigo} className="ac-tr-clickable" data-testid="coordinator-group-row" onClick={() => manejarSeleccionGrupo(g)}>
                       <td>
                         <div className="ac-grupo-info">
                           <strong className="grupos-highlight">{g.grupoCodigo.split(' ')[0]}</strong>
@@ -400,7 +400,7 @@ export default function AlertasCoordinador() {
                 </tbody>
               </table>
             ) : (
-              <div className="ac-empty-state">
+              <div className="ac-empty-state" data-testid="coordinator-empty-state">
                 <ShieldAlert size={48} />
                 <h3>{hayFiltrosGrupo ? 'Sin resultados' : 'No hay alertas activas'}</h3>
                 <p>
@@ -415,7 +415,7 @@ export default function AlertasCoordinador() {
           /* VISTA 2: TABLA DE APRENDICES */
           <div className="grupos-table-wrap">
             {aprendicesFiltrados.length > 0 ? (
-              <table className="grupos-table">
+              <table className="grupos-table" data-testid="coordinator-alert-table">
                 <thead>
                   <tr>
                     <th>Aprendiz</th>
@@ -428,7 +428,7 @@ export default function AlertasCoordinador() {
                 </thead>
                 <tbody>
                   {aprendicesPaginados.map((a) => (
-                    <tr key={a.id} className="ac-tr-clickable" onClick={() => setDetalleAlertaId(a.id)}>
+                    <tr key={a.id} className="ac-tr-clickable" data-testid="coordinator-alert-row" onClick={() => setDetalleAlertaId(a.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div className="ac-grupo-info">
@@ -458,6 +458,7 @@ export default function AlertasCoordinador() {
                       <td>
                         <button 
                           className={mostrarHistorial ? "ac-action-btn" : "ac-action-btn-primary"} 
+                          aria-label="Ver detalle"
                           onClick={(e) => { e.stopPropagation(); setDetalleAlertaId(a.id); }}
                         >
                           {mostrarHistorial ? 'Ver detalle' : 'Revisar y Cerrar'} <ExternalLink size={14} />
@@ -468,7 +469,7 @@ export default function AlertasCoordinador() {
                 </tbody>
               </table>
             ) : (
-              <div className="ac-empty-state">
+              <div className="ac-empty-state" data-testid="coordinator-empty-state">
                 <ShieldAlert size={48} />
                 <h3>{hayFiltrosAprendiz ? 'Sin resultados' : 'No hay aprendices con alertas'}</h3>
                 <p>
