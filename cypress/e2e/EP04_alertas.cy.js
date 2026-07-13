@@ -95,7 +95,8 @@ describe('EP04 - Gestión de alertas tempranas y riesgos formativos', () => {
     it('El instructor consulta alertas con los filtros disponibles', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
       cy.visit('/alertas/consultar');
-      cy.get('.ca-select').should('have.length', 3); 
+      // Estado, Severidad, Tipo de alerta y Grupo
+      cy.get('.ca-select').should('have.length', 4);
     });
 
     it('Filtra alertas por estado usando los valores soportados por el backend', () => {
@@ -138,7 +139,7 @@ describe('EP04 - Gestión de alertas tempranas y riesgos formativos', () => {
     it('Filtra alertas por aprendiz una vez seleccionado un grupo', () => {
       cy.loginComo(creds.instructor.documento, creds.instructor.password);
       cy.visit('/alertas/consultar');
-      cy.get('.ca-filtro-grupo select').eq(0).select(1); // selecciona un grupo
+      cy.get('.ca-select').eq(3).select(1); 
       cy.get('input.ca-input--search').type('Jorge');
       cy.get('.ca-aprendiz-dropdown').should('be.visible');
     });
