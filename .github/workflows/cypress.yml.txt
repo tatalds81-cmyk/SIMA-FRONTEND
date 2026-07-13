@@ -3,7 +3,8 @@ name: Cypress E2E Tests
 on:
   workflow_dispatch:
   push:
-    branches: [ testCypress ]
+    branches:
+      - testCypress
 
 concurrency:
   group: cypress-${{ github.ref }}
@@ -27,12 +28,12 @@ jobs:
           --health-retries=5
 
     steps:
-      - name: Checkout frontend (este repo)
+      - name: Checkout frontend
         uses: actions/checkout@v4
         with:
           path: frontend
 
-      - name: Checkout backend (repo separado)
+      - name: Checkout backend
         uses: actions/checkout@v4
         with:
           repository: villno55/BACKEND-MONITO
@@ -40,7 +41,7 @@ jobs:
           ref: main
           path: backend
 
-      - name: Setup Node
+      - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -48,11 +49,15 @@ jobs:
       - name: Cargar base de datos
         run: mysql -h 127.0.0.1 -uroot -ptoor < backend/basededatos.sql
 
-      - name: Instalar dependencias backend
-        run: cd backend && npm install
+      - name: Instalar dependencias del backend
+        run: |
+          cd backend
+          npm install
 
-      - name: Levantar backend en segundo plano
-        run: cd backend && npm start &
+      - name: Iniciar backend
+        run: |
+          cd backend
+          npm start &
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
@@ -62,23 +67,25 @@ jobs:
           JWT_SECRET: test_secret
           PORT: 3000
 
-      - name: Instalar dependencias frontend
-        run: cd frontend && npm install
+      - name: Instalar dependencias del frontend
+        run: |
+          cd frontend
+          npm install
 
-      - name: Levantar frontend en segundo plano
-        run: cd frontend && npm run dev &
+      - name: Iniciar frontend
+        run: |
+          cd frontend
+          npm run dev &
         env:
           VITE_API_URL: http://localhost:3000
 
-      - name: Esperar a que ambos respondan
+      - name: Esperar a que backend y frontend estén disponibles
         run: npx wait-on http://localhost:3000 http://localhost:5173 --timeout 60000
 
-      - name: Correr pruebas Cypress con grabación
-        run: cd frontend && npx cypress run --record --key ${{ secrets.CYPRESS_RECORD_KEY }} --runner-ui
-
-      - name: Guardar capturas (pasen o fallen)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-screenshots
-          path: frontend/cypress/screenshots
+      - name: Ejecutar pruebas EP01 - EP04
+        run: |
+          cd frontend
+          npx cypress run \
+            --record \
+            --key ${{ secrets.CYPRESS_RECORD_KEY }} \
+            --spec "cypress/e2e/EP01_usuarios.cy.js,cypress/e2e/EP02_grupos.cy.js,cypress/e2e/EP03_observaciones.cy.js,cypress/e2e/EP04_alertas.cy.js"
