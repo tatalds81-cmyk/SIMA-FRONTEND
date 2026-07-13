@@ -414,9 +414,11 @@ export default function AsistenciaInstructor() {
   }, [fecha, grupoActual, grupoSeleccionado]);
 
   const estadoSesionActual = String(sesionActiva?.estado || "").toUpperCase();
-  const haySesionActiva = Boolean(obtenerIdSesion(sesionActiva)) &&
-    !["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesionActual);
-  const grupoSeccionActiva = haySesionActiva ? (grupoDetalleActivo || grupoActual) : null;
+  const haySesionSeleccionada = Boolean(obtenerIdSesion(sesionActiva));
+  const sesionEstaCerrada = ["CERRADA", "CERRADO", "FINALIZADA", "CANCELADA", "CANCELADO"].includes(estadoSesionActual);
+  const haySesionActiva = haySesionSeleccionada &&
+    !sesionEstaCerrada;
+  const grupoSeccionActiva = haySesionSeleccionada ? (grupoDetalleActivo || grupoActual) : null;
   const fechaSesionActiva = obtenerFechaSesionAsistencia(sesionActiva, fecha);
   const aprendicesConHoras = useMemo(
     () => aprendices.map((aprendiz) => {
@@ -442,12 +444,12 @@ export default function AsistenciaInstructor() {
   }, [fechaSesionActiva, grupoSeccionActiva, haySesionActiva, sesionActiva]);
 
   const aprendicesRegistrados = useMemo(() => {
-    if (!haySesionActiva) return [];
+    if (!haySesionSeleccionada) return [];
     return aprendicesConHoras.filter((aprendiz) => ESTADOS_REGISTRABLES.includes(aprendiz.estado));
-  }, [aprendicesConHoras, haySesionActiva]);
+  }, [aprendicesConHoras, haySesionSeleccionada]);
 
   const aprendicesFiltrados = useMemo(() => {
-    if (!haySesionActiva) return [];
+    if (!haySesionSeleccionada) return [];
     const texto = normalizarTexto(busqueda);
     const mostrarPendientes = filtroEstado === "PENDIENTE";
     const listaBase = modoManual || mostrarPendientes ? aprendicesConHoras : aprendicesRegistrados;
@@ -473,7 +475,7 @@ export default function AsistenciaInstructor() {
       
       return coincideBusqueda && coincideEstado && coincideMetodo && coincideFecha;
     });
-  }, [aprendicesConHoras, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, haySesionActiva, modoManual]);
+  }, [aprendicesConHoras, aprendicesRegistrados, busqueda, filtroAnio, filtroDia, filtroEstado, filtroMes, filtroMetodo, haySesionSeleccionada, modoManual]);
 
   const opcionesAnios = useMemo(() => {
     const anioBase = new Date(`${fechaSesionActiva}T12:00:00`).getFullYear();
@@ -489,7 +491,7 @@ export default function AsistenciaInstructor() {
 
   const resumen = useMemo(() => {
     const base = { PRESENTE: 0, INASISTENTE: 0, TARDE: 0, JUSTIFICADA: 0 };
-    if (!haySesionActiva) return base;
+    if (!haySesionSeleccionada) return base;
     const listaBase = modoManual ? aprendicesConHoras : aprendicesRegistrados;
     listaBase.forEach((aprendiz) => {
       if (Object.prototype.hasOwnProperty.call(base, aprendiz.estado)) {
@@ -497,7 +499,7 @@ export default function AsistenciaInstructor() {
       }
     });
     return base;
-  }, [aprendicesConHoras, aprendicesRegistrados, haySesionActiva, modoManual]);
+  }, [aprendicesConHoras, aprendicesRegistrados, haySesionSeleccionada, modoManual]);
 
   const totalResumen = Object.values(resumen).reduce((total, valor) => total + Number(valor || 0), 0);
   const totalAprendices = Math.max(modoManual ? aprendicesConHoras.length : aprendicesRegistrados.length, totalResumen, 1);
@@ -584,7 +586,13 @@ export default function AsistenciaInstructor() {
   }
 
   useEffect(() => {
-    if (!haySesionActiva || guardandoAsistencia || aprendizManual) return undefined;
+    if (
+      !haySesionActiva ||
+      guardandoAsistencia ||
+      aprendizManual ||
+      qrAbierto ||
+      qrPantallaCompleta
+    ) return undefined;
 
     const actualizarAsistencia = () => {
       if (document.hidden) return;
@@ -602,7 +610,16 @@ export default function AsistenciaInstructor() {
       window.removeEventListener("focus", actualizarAsistencia);
       document.removeEventListener("visibilitychange", actualizarAsistencia);
     };
-  }, [aprendizManual, guardandoAsistencia, grupoActual, grupoSeleccionado, haySesionActiva, sesionActiva]);
+  }, [
+    aprendizManual,
+    guardandoAsistencia,
+    grupoActual,
+    grupoSeleccionado,
+    haySesionActiva,
+    qrAbierto,
+    qrPantallaCompleta,
+    sesionActiva
+  ]);
 
   async function guardarEstadoBackend(aprendiz, nuevoEstado, observacion, horaRegistro = obtenerHoraActual(), opciones = {}) {
     if (!sesionActiva) {
@@ -722,7 +739,17 @@ export default function AsistenciaInstructor() {
   }
 
   function abrirEdicionManual(aprendiz) {
-    if (!haySesionActiva) return;
+    if (!haySesionSeleccionada) return;
+    if (sesionEstaCerrada) {
+      const fechaSesion = new Date(`${fechaSesionActiva}T12:00:00`);
+      const hoy = new Date(`${obtenerFechaLocal()}T12:00:00`);
+      const diasTranscurridos = Math.floor((hoy.getTime() - fechaSesion.getTime()) / 86400000);
+      if (Number.isNaN(diasTranscurridos) || diasTranscurridos > 7) {
+        setMensajeError(true);
+        setMensaje("No es posible corregir asistencias de sesiones cerradas hace mas de 7 dias.");
+        return;
+      }
+    }
     setAprendizManual(aprendiz);
     setMostrarCancelacionSesion(false);
     setMotivoCancelacion("");
@@ -741,8 +768,12 @@ export default function AsistenciaInstructor() {
 
   async function guardarCambioManual() {
     if (!aprendizManual) return;
-    const nota = formManual.descripcion.trim() || formManual.motivo;
-    const observacion = nota.length >= 20 ? nota : `${nota}. Cambio manual validado por instructor.`;
+    const observacion = formManual.descripcion.trim();
+    if (observacion.length < 20) {
+      setMensajeError(true);
+      setMensaje("El motivo de la correccion debe tener minimo 20 caracteres.");
+      return;
+    }
 
     setGuardandoAsistencia(true);
     try {
@@ -1177,7 +1208,7 @@ export default function AsistenciaInstructor() {
                   type="button"
                   className="asistencia-manual-toggle"
                   onClick={() => setModoManual(true)}
-                  disabled={!sesionActiva || guardandoAsistencia}
+                  disabled={!haySesionSeleccionada || guardandoAsistencia}
                 >
                   Manual
                 </button>
@@ -1227,6 +1258,7 @@ export default function AsistenciaInstructor() {
             cargando={cargando}
             guardando={guardandoAsistencia}
             modoManual={modoManual}
+            soloLectura={!haySesionActiva}
             onAbrirDetalle={abrirDetalleAsistencia}
             onAbrirManual={abrirEdicionManual}
             onCambiarEstado={cambiarEstado}
