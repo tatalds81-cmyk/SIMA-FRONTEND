@@ -19,8 +19,8 @@ describe('EP03 - Gestión de observaciones formativas de aprendices', () => {
       cy.get('.modal-card').within(() => {
         cy.contains('button', 'Seleccione un aprendiz').click();
         cy.get('.multi-select-option').first().click();
-        cy.get('select').eq(0).select('ACADEMICA');
-        cy.get('select').eq(1).select('LEVE');
+        cy.get('select').eq(1).select('ACADEMICA');
+        cy.get('select').eq(2).select('LEVE');
         cy.get('textarea').type(descripcionUnica);
         cy.contains('button', 'Guardar observación').click();
       });
@@ -56,11 +56,11 @@ describe('EP03 - Gestión de observaciones formativas de aprendices', () => {
     it('Limita el tipo y la severidad a los valores válidos del formulario', () => {
       cy.contains('button', 'Registrar observación').click();
       cy.get('.modal-card').within(() => {
-        cy.get('select').eq(0).find('option').then(($opt) => {
+        cy.get('select').eq(1).find('option').then(($opt) => {
           const valores = [...$opt].map((o) => o.value);
           expect(valores).to.deep.equal(['ACADEMICA', 'CONVIVENCIAL']);
         });
-        cy.get('select').eq(1).find('option').then(($opt) => {
+        cy.get('select').eq(2).find('option').then(($opt) => {
           const valores = [...$opt].map((o) => o.value);
           expect(valores).to.deep.equal(['LEVE', 'MODERADA', 'GRAVE']);
         });
