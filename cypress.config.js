@@ -1,13 +1,17 @@
 import { defineConfig } from "cypress";
 
 export default defineConfig({
-  allowCypressEnv: false,
-  video: true,
+  projectId:"s9yctf",
+  allowCypressEnv:false,
+  video:true,
   videosFolder: "cypress/videos",
   videoCompression: 32,
 
   e2e: {
-    baseUrl: "https://sima-frontend-orpin.vercel.app",
+    baseUrl: "http://localhost:5173",
+    setupNodeEvents(on,config){
+      return config;
+    },
     specPattern: "cypress/e2e/**/*.cy.js",
     excludeSpecPattern: [
       "cypress/e2e/1-getting-started/**",

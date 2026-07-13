@@ -497,7 +497,7 @@ export default function GruposFormativos() {
             <Upload size={18} />
             Carga masiva
           </button>
-          <button type="button" className="grupos-primary-btn" onClick={() => setModalCrearAbierto(true)}>
+          <button type="button" className="grupos-primary-btn" data-testid="btn-abrir-crear-grupo" onClick={() => setModalCrearAbierto(true)}>
             <Plus size={19} />
             Crear grupo
           </button>
@@ -508,6 +508,7 @@ export default function GruposFormativos() {
         <div className="grupos-search">
           <Search size={19} />
           <input
+            data-testid="input-buscar-grupo"
             value={busqueda}
             onChange={(e) => {
               setBusqueda(e.target.value);
@@ -519,6 +520,7 @@ export default function GruposFormativos() {
         
         <select 
           className="grupos-select-filtro" 
+          data-testid="select-filtro-jornada"
           value={filtroJornada} 
           onChange={(e) => { setFiltroJornada(e.target.value); setPaginaActual(1); }}
         >
@@ -530,6 +532,7 @@ export default function GruposFormativos() {
 
         <select 
           className="grupos-select-filtro" 
+          data-testid="select-filtro-estado"
           value={filtroEstado} 
           onChange={(e) => { setFiltroEstado(e.target.value); setPaginaActual(1); }}
         >
@@ -578,7 +581,7 @@ export default function GruposFormativos() {
             <tbody>
               {gruposPagina.length > 0 ? (
                 gruposPagina.map((grupo, index) => (
-                  <tr key={grupo.id_grupo || grupo.id || index}>
+                  <tr key={grupo.id_grupo || grupo.id || index} data-testid="fila-grupo" data-numero-ficha={obtenerCodigo(grupo)}>
                     <td className="grupos-highlight">{obtenerCodigo(grupo)}</td>
                     <td>{obtenerPrograma(grupo)}</td>
                     <td>{grupo.jornada || "No registrada"}</td>
@@ -592,7 +595,7 @@ export default function GruposFormativos() {
                     <td>{obtenerNombreInstructor(grupo.instructor_lider)}</td>
                     <td>
                       <div className="grupos-actions">
-                        <button type="button" className="grupos-icon-btn" onClick={() => abrirDetalleGrupo(grupo, inicioPagina + index)} title="Ver detalle">
+                        <button type="button" className="grupos-icon-btn" data-testid="btn-ver-detalle-grupo" onClick={() => abrirDetalleGrupo(grupo, inicioPagina + index)} title="Ver detalle">
                           <Eye size={16} />
                         </button>
                       </div>
@@ -636,14 +639,14 @@ export default function GruposFormativos() {
               <div className="grupos-form-grid">
                 <label>
                   <span>Numero de grupo</span>
-                  <input value={numeroGrupo} onChange={(e) => setNumeroGrupo(e.target.value)} className={errores.numeroGrupo ? "invalid" : ""} />
+                  <input data-testid="input-numero-grupo" value={numeroGrupo} onChange={(e) => setNumeroGrupo(e.target.value)} className={errores.numeroGrupo ? "invalid" : ""} />
                   {estadoNumero === "disponible" && !errores.numeroGrupo && <small className="success">Numero disponible</small>}
                   {errores.numeroGrupo && <small className="error">{errores.numeroGrupo}</small>}
                 </label>
 
                 <label>
                   <span>Area de formacion</span>
-                  <select value={areaFormacion} onChange={(e) => setAreaFormacion(e.target.value)} className={errores.areaFormacion ? "invalid" : ""}>
+                  <select data-testid="select-area-formacion" value={areaFormacion} onChange={(e) => setAreaFormacion(e.target.value)} className={errores.areaFormacion ? "invalid" : ""}>
                     <option value="">Seleccione</option>
                     {areas.map((area) => (
                       <option key={area.id_area} value={area.id_area}>{area.nombre_area || area.nombre}</option>
@@ -656,7 +659,7 @@ export default function GruposFormativos() {
               <div className="grupos-form-grid">
                 <label>
                   <span>Programa de formacion</span>
-                  <select value={programaFormacion} onChange={(e) => setProgramaFormacion(e.target.value)} disabled={!areaFormacion} className={errores.programaFormacion ? "invalid" : ""}>
+                  <select data-testid="select-programa-formacion" value={programaFormacion} onChange={(e) => setProgramaFormacion(e.target.value)} disabled={!areaFormacion} className={errores.programaFormacion ? "invalid" : ""}>
                     <option value="">Seleccione</option>
                     {programas.map((programa) => (
                       <option key={programa.id_programa} value={programa.id_programa}>{programa.nombre_programa}</option>
@@ -668,7 +671,7 @@ export default function GruposFormativos() {
 
                 <label>
                   <span>Jornada academica</span>
-                  <select value={jornada} onChange={(e) => setJornada(e.target.value)} className={errores.jornada ? "invalid" : ""}>
+                  <select data-testid="select-jornada" value={jornada} onChange={(e) => setJornada(e.target.value)} className={errores.jornada ? "invalid" : ""}>
                     <option value="">Seleccione</option>
                     <option value="Manana">Manana - 7:00 am a 1:00 pm</option>
                     <option value="Tarde">Tarde - 12:00 m a 6:00 pm</option>
@@ -681,7 +684,7 @@ export default function GruposFormativos() {
               <div className="grupos-form-grid">
                 <label>
                   <span>Instructor lider</span>
-                  <select value={instructorLider} onChange={(e) => setInstructorLider(e.target.value)}>
+                  <select data-testid="select-instructor-lider" value={instructorLider} onChange={(e) => setInstructorLider(e.target.value)}>
                     <option value="">Seleccione instructor</option>
                     {instructores.map((instructor) => (
                       <option key={instructor.id_instructor} value={instructor.id_instructor}>
@@ -693,7 +696,7 @@ export default function GruposFormativos() {
 
                 <label>
                   <span>Duracion en trimestres</span>
-                  <input type="number" min="1" value={trimestres} onChange={(e) => setTrimestres(e.target.value)} className={errores.trimestres ? "invalid" : ""} />
+                  <input data-testid="input-trimestres" type="number" min="1" value={trimestres} onChange={(e) => setTrimestres(e.target.value)} className={errores.trimestres ? "invalid" : ""} />
                   {!errores.trimestres && trimestres && <small>Equivale a {mesesEquivalentes} meses de formacion</small>}
                   {errores.trimestres && <small className="error">{errores.trimestres}</small>}
                 </label>
@@ -703,6 +706,7 @@ export default function GruposFormativos() {
                 <label>
                   <span>Fecha de inicio</span>
                   <input
+                    data-testid="input-fecha-inicio"
                     type="date"
                     value={fechaInicio}
                     min={rangoFechaInicio.min}
@@ -716,7 +720,7 @@ export default function GruposFormativos() {
 
                 <label>
                   <span>Ambiente</span>
-                  <select value={ambiente} onChange={(e) => setAmbiente(e.target.value)} className={errores.ambiente ? "invalid" : ""} required>
+                  <select data-testid="select-ambiente" value={ambiente} onChange={(e) => setAmbiente(e.target.value)} className={errores.ambiente ? "invalid" : ""} required>
                     <option value="">Seleccione ambiente</option>
                     {ambientes.map((item) => (
                       <option key={item.id_ambiente} value={item.id_ambiente}>
@@ -739,10 +743,10 @@ export default function GruposFormativos() {
               </div>
 
               <div className="grupos-modal-actions">
-                <button type="button" className="grupos-secondary-btn" onClick={() => { limpiarFormulario(); setModalCrearAbierto(false); }}>
+                <button type="button" className="grupos-secondary-btn" data-testid="btn-cancelar-crear-grupo" onClick={() => { limpiarFormulario(); setModalCrearAbierto(false); }}>
                   Cancelar
                 </button>
-                <button type="submit" className="grupos-primary-btn">Crear grupo</button>
+                <button type="submit" className="grupos-primary-btn" data-testid="btn-submit-crear-grupo">Crear grupo</button>
               </div>
             </form>
           </section>
@@ -780,6 +784,3 @@ export default function GruposFormativos() {
     </div>
   );
 }
-
-
-
