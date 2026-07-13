@@ -180,7 +180,7 @@ function normalizarBusqueda(valor) {
 
 function normalizarJornada(valor) {
   const texto = normalizarBusqueda(valor).toUpperCase();
-  if (texto.includes("MANANA") || texto.includes("MAÃ‘ANA")) return "MANANA";
+  if (texto.includes("MANANA") || texto.includes("MAÑANA")) return "MANANA";
   if (texto.includes("TARDE")) return "TARDE";
   if (texto.includes("NOCHE")) return "NOCHE";
   if (texto.includes("SABADO")) return "SABADO";
@@ -1010,6 +1010,18 @@ export default function HorarioGrupoModal({
                           <select value={diasSeleccionados[0] || "1"} onChange={(evento) => seleccionarDiaUnico(evento.target.value)}>
                             {DIAS_SEMANA.map((dia, index) => (
                               <option key={dia} value={String(index + 1)}>{dia}</option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label>
+                          <span>Competencia</span>
+                          <select name="id_clase_competencia" value={formHorario.id_clase_competencia} onChange={cambiarFormHorario} required>
+                            <option value="">Seleccione</option>
+                            {opciones.competencias.map((item) => (
+                              <option key={obtenerIdCompetencia(item)} value={obtenerIdCompetencia(item)}>
+                                {obtenerNombreCompetencia(item)}
+                              </option>
                             ))}
                           </select>
                         </label>

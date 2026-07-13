@@ -211,6 +211,13 @@ const estadoCuentaComoAsistencia = (estado) => (
   ["PRESENTE", "TARDE", "JUSTIFICADO", "JUSTIFICADA"].includes(String(estado || "").toUpperCase())
 );
 
+const obtenerJornadaSegunHora = (fecha = new Date()) => {
+  const hora = fecha.getHours();
+  if (hora >= 18 || hora < 6) return "NOCHE";
+  if (hora >= 12) return "TARDE";
+  return "MANANA";
+};
+
 export default function PanelInstructor() {
   const [grupos, setGrupos] = useState([]);
   const [alertas, setAlertas] = useState([]);
@@ -221,10 +228,9 @@ export default function PanelInstructor() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [ahora, setAhora] = useState(() => new Date());
-  const [jornadaHorario, setJornadaHorario] = useState("MANANA");
+  const [jornadaHorario, setJornadaHorario] = useState(() => obtenerJornadaSegunHora());
   const [revisionDatos, setRevisionDatos] = useState(0);
   const [modalRevisado, setModalRevisado] = useState(false);
-  const [sesionModalManual, setSesionModalManual] = useState(null);
   const semanaReferencia = formatearFechaISO(ahora);
   const inicioSemana = useMemo(() => inicioSemanaActual(semanaReferencia), [semanaReferencia]);
   const finSemana = useMemo(() => finSemanaActual(semanaReferencia), [semanaReferencia]);
@@ -236,6 +242,12 @@ export default function PanelInstructor() {
     }, 30000);
     return () => window.clearInterval(intervalo);
   }, []);
+
+  const jornadaAutomatica = obtenerJornadaSegunHora(ahora);
+
+  useEffect(() => {
+    setJornadaHorario(jornadaAutomatica);
+  }, [jornadaAutomatica]);
 
   useEffect(() => {
     const actualizarSesiones = (evento) => {
@@ -552,8 +564,6 @@ export default function PanelInstructor() {
         <SesionActivaModal
           onRevisionCompleta={confirmarRevisionModal}
           sesionesAlternativas={sesionesHoyParaModal}
-          sesionManual={sesionModalManual}
-          onSesionManualAtendida={() => setSesionModalManual(null)}
         />
         <div className="grupos-alert info">Revisando sesiones programadas...</div>
       </div>
@@ -565,8 +575,6 @@ export default function PanelInstructor() {
       <SesionActivaModal
         onRevisionCompleta={confirmarRevisionModal}
         sesionesAlternativas={sesionesHoyParaModal}
-        sesionManual={sesionModalManual}
-        onSesionManualAtendida={() => setSesionModalManual(null)}
       />
 
       {error && <div className="grupos-alert danger">{error}</div>}
@@ -656,7 +664,6 @@ export default function PanelInstructor() {
           ahora={ahora}
           jornada={jornadaHorario}
           onJornadaChange={setJornadaHorario}
-          onAbrirSesionPendiente={setSesionModalManual}
         />
       </section>
 

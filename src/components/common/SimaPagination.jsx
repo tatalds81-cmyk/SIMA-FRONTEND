@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+
 export default function SimaPagination({
   desde = 0,
   hasta = 0,

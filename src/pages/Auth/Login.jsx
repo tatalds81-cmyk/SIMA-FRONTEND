@@ -4,6 +4,7 @@ import { Eye, EyeOff, HelpCircle, Lock, Mail, ShieldCheck } from "lucide-react";
 import "./Login.css";
 import OlvidePassword from "./OlvidePassword";
 import senaLogo from "../../assets/logoSena.png";
+import simaLogo from "../../assets/logoSima.png";
 import loginStudents from "../../assets/personajes.png";
 
 export default function Login({ onLogin }) {
@@ -193,6 +194,9 @@ export default function Login({ onLogin }) {
         </button>
 
         <div className="login-sima-card" role="region" aria-labelledby="login-title">
+          <div className="login-sima-app-brand" aria-label="SIMA">
+            <img src={simaLogo} alt="Logo SIMA" />
+          </div>
           <h2 className="login-sima-title" id="login-title">Iniciar sesion</h2>
           <p className="login-sima-subtitle">Ingresa tus credenciales para continuar</p>
 
@@ -272,7 +276,7 @@ export default function Login({ onLogin }) {
               <span>|</span>
               <a href="#terminos">Terminos y condiciones</a>
             </div>
-            <p>(c) 2024 SENA. Todos los derechos reservados.</p>
+            <p>(c) 2026 SENA. Todos los derechos reservados.</p>
           </div>
         </footer>
       </main>

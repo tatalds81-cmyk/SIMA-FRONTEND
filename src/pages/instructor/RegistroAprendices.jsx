@@ -36,6 +36,8 @@ function agregarValor(set, valor) {
   if (valor !== null && valor !== undefined && valor !== "") set.add(String(valor));
 }
 
+const limitarDigitos = (valor, maximo = 10) => String(valor || "").replace(/\D/g, "").slice(0, maximo);
+
 function leerUsuarioActual() {
   try {
     return JSON.parse(localStorage.getItem("user_data") || "{}") || {};
@@ -71,7 +73,6 @@ function esGrupoLideradoPorInstructorActual(grupo) {
   const candidatos = [
     grupo?.id_instructor_lider,
     grupo?.instructor_lider?.id_instructor,
-    grupo?.instructor?.id_instructor,
   ].filter(Boolean).map(String);
 
   return candidatos.some((id) => idsInstructor.has(id));
@@ -142,14 +143,37 @@ export default function Aprendices() {
     return headers;
   }
 
-  function normalizarAprendiz(item) {
+  function obtenerTextoCampo(valor, claves = []) {
+    if (typeof valor === "string" || typeof valor === "number") return String(valor);
+    if (!valor || typeof valor !== "object") return "";
+
+    for (const clave of claves) {
+      const candidato = valor[clave];
+      if (typeof candidato === "string" || typeof candidato === "number") return String(candidato);
+    }
+
+    return "";
+  }
+
+  function normalizarAprendiz(item, grupoConsulta = null) {
     const usuario = item.usuario || {};
     const persona = usuario.persona || item.persona || {};
     const grupoActivo =
       item.aprendiz_grupos?.find((aprendizGrupo) => aprendizGrupo.estado === "ACTIVO")?.grupo ||
-      item.grupo ||
+      (item.grupo && typeof item.grupo === "object" ? item.grupo : null) ||
+      grupoConsulta ||
       {};
-    const numeroFicha = grupoActivo.numero_ficha || grupoActivo.numero_grupo || item.numero_ficha || item.grupo || "-";
+    const numeroFicha =
+      grupoActivo.numero_ficha ||
+      grupoActivo.numero_grupo ||
+      grupoActivo.codigo ||
+      item.numero_ficha ||
+      obtenerTextoCampo(item.grupo) ||
+      "-";
+    const email =
+      obtenerTextoCampo(usuario.email, ["email", "correo", "value", "valor"]) ||
+      obtenerTextoCampo(item.email, ["email", "correo", "value", "valor"]) ||
+      obtenerTextoCampo(item.correo, ["email", "correo", "value", "valor"]);
 
     return {
       id: item.id_aprendiz || item.id_usuario || item.id,
@@ -159,7 +183,7 @@ export default function Aprendices() {
       apellidos: persona.apellidos || item.apellidos || "",
       tipo_documento: persona.tipo_documento || item.tipo_documento || "",
       numero_documento: persona.numero_documento || item.numero_documento || "",
-      email: usuario.email || item.email || item.correo || "",
+      email,
       telefono: persona.telefono || item.telefono || "",
       grupo: numeroFicha,
       numero_ficha: numeroFicha,
@@ -203,7 +227,10 @@ export default function Aprendices() {
           if (!res.ok) return [];
           const data = await res.json().catch(() => null);
           const lista = data?.data?.aprendices || data?.data || [];
-          return Array.isArray(lista) ? lista : [];
+          const grupoRespuesta = data?.data?.grupo || grupo;
+          return Array.isArray(lista)
+            ? lista.map((item) => normalizarAprendiz(item, grupoRespuesta))
+            : [];
         } catch {
           return [];
         }
@@ -212,7 +239,7 @@ export default function Aprendices() {
 
     const mapa = new Map();
     respuestas.flat().forEach((item) => {
-      const aprendiz = normalizarAprendiz(item);
+      const aprendiz = item.numero_ficha ? item : normalizarAprendiz(item);
       const key = aprendiz.numero_documento || aprendiz.id;
       if (!mapa.has(key)) {
         mapa.set(key, aprendiz);
@@ -262,7 +289,10 @@ export default function Aprendices() {
 
   function cambiarCampo(e) {
     const { name, value } = e.target;
-    setForm((actual) => ({ ...actual, [name]: value }));
+    const valorLimpio = ["numero_documento", "telefono"].includes(name)
+      ? limitarDigitos(value)
+      : value;
+    setForm((actual) => ({ ...actual, [name]: valorLimpio }));
     setErrores((actual) => ({ ...actual, [name]: "" }));
   }
 
@@ -315,17 +345,28 @@ export default function Aprendices() {
 
   function cambiarDetalleForm(e) {
     const { name, value } = e.target;
-    setDetalleForm((actual) => ({ ...actual, [name]: value }));
+    const valorLimpio = ["numero_documento", "telefono"].includes(name)
+      ? limitarDigitos(value)
+      : value;
+    setDetalleForm((actual) => ({ ...actual, [name]: valorLimpio }));
   }
 
   function validarIndividual() {
     const nuevosErrores = {};
+    const grupoFormulario = grupos.find(
+      (grupo) => String(obtenerCodigoGrupo(grupo)) === String(form.numero_ficha)
+    );
     if (!form.nombres.trim()) nuevosErrores.nombres = "Campo obligatorio";
     if (!form.apellidos.trim()) nuevosErrores.apellidos = "Campo obligatorio";
     if (!form.tipo_documento) nuevosErrores.tipo_documento = "Campo obligatorio";
     if (!form.numero_documento.trim()) nuevosErrores.numero_documento = "Campo obligatorio";
+    else if (form.numero_documento.length < 6) nuevosErrores.numero_documento = "Debe tener entre 6 y 10 numeros";
     if (!form.email.trim()) nuevosErrores.email = "Campo obligatorio";
+    if (form.telefono && form.telefono.length !== 10) nuevosErrores.telefono = "Debe tener 10 numeros";
     if (!form.numero_ficha) nuevosErrores.numero_ficha = "Seleccione un grupo activo";
+    else if (esInstructorSesionActual() && !esGrupoLideradoPorInstructorActual(grupoFormulario)) {
+      nuevosErrores.numero_ficha = "Solo el instructor lider puede agregar aprendices a esta ficha";
+    }
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -651,7 +692,7 @@ export default function Aprendices() {
                   <div className="aprendices-detail-field">
                     <span>Documento</span>
                     {detalleModoEdicion ? (
-                      <input name="numero_documento" value={detalleForm.numero_documento} onChange={cambiarDetalleForm} />
+                      <input name="numero_documento" value={detalleForm.numero_documento} onChange={cambiarDetalleForm} inputMode="numeric" pattern="[0-9]*" maxLength={10} />
                     ) : (
                       <strong>{aprendizDetalle.numero_documento || "-"}</strong>
                     )}
@@ -705,7 +746,7 @@ export default function Aprendices() {
                   <div className="aprendices-detail-contact-item">
                     <Phone size={18} />
                     {detalleModoEdicion ? (
-                      <input name="telefono" value={detalleForm.telefono} onChange={cambiarDetalleForm} />
+                      <input name="telefono" value={detalleForm.telefono} onChange={cambiarDetalleForm} inputMode="numeric" pattern="[0-9]*" maxLength={10} />
                     ) : (
                       <span>{aprendizDetalle.telefono || "No registrado"}</span>
                     )}
@@ -768,12 +809,12 @@ export default function Aprendices() {
                   </select>
                   {errores.tipo_documento && <small className="error">{errores.tipo_documento}</small>}
                 </label>
-                <Campo label="Numero de documento" name="numero_documento" value={form.numero_documento} onChange={cambiarCampo} error={errores.numero_documento} />
+                <Campo label="Numero de documento" name="numero_documento" value={form.numero_documento} onChange={cambiarCampo} error={errores.numero_documento} soloNumeros maxLength={10} />
               </div>
 
               <div className="aprendices-form-grid">
                 <Campo label="Correo institucional" name="email" type="email" value={form.email} onChange={cambiarCampo} error={errores.email} />
-                <Campo label="Telefono" name="telefono" value={form.telefono} onChange={cambiarCampo} />
+                <Campo label="Telefono" name="telefono" value={form.telefono} onChange={cambiarCampo} error={errores.telefono} soloNumeros maxLength={10} />
               </div>
 
               <label>
@@ -840,11 +881,20 @@ export default function Aprendices() {
   );
 }
 
-function Campo({ label, name, value, onChange, error, type = "text" }) {
+function Campo({ label, name, value, onChange, error, type = "text", soloNumeros = false, maxLength }) {
   return (
     <label>
       <span>{label}</span>
-      <input name={name} type={type} value={value} onChange={onChange} className={error ? "invalid" : ""} />
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        className={error ? "invalid" : ""}
+        inputMode={soloNumeros ? "numeric" : undefined}
+        pattern={soloNumeros ? "[0-9]*" : undefined}
+        maxLength={maxLength}
+      />
       {error && <small className="error">{error}</small>}
     </label>
   );

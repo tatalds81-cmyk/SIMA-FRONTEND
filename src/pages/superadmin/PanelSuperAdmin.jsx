@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
-  CalendarDays,
   Fingerprint,
   Layers,
   MonitorCog,
@@ -121,11 +119,9 @@ export default function PanelSuperAdmin() {
         <div>
           <div className="superadmin-executive-title">
             <h1>Bienvenido super administrador</h1>
-            <span>Vista ejecutiva</span>
           </div>
           <p>Panel de control ejecutivo del sistema de administracion institucional, biometria e IoT.</p>
         </div>
-        <time><CalendarDays size={17} />{new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric" }).format(new Date())}</time>
       </section>
 
       <section className="superadmin-kpi-row superadmin-executive-kpis" aria-label="Indicadores principales">
@@ -192,16 +188,6 @@ export default function PanelSuperAdmin() {
           </div>
         </article>
 
-        <article className="coordinador-card superadmin-security-panel">
-          <div className="coordinador-card-header"><div><h2>Seguridad y accesos</h2><p>Informacion disponible del sistema.</p></div><ShieldCheck size={21} /></div>
-          <div className="superadmin-security-list">
-            <div className="coordinador-estado-row"><span>Inicios de sesion fallidos</span><strong className="unavailable">Sin dato</strong></div>
-            <div className="coordinador-estado-row"><span>Marcas rechazadas por geolocalizacion</span><strong className="unavailable">Sin dato</strong></div>
-            <div className="coordinador-estado-row"><span>Accesos denegados por alcance</span><strong className="unavailable">Sin dato</strong></div>
-            <div className="coordinador-estado-row"><span>Huellas revocadas</span><strong>{huellasRevocadas}</strong></div>
-          </div>
-          <p className="superadmin-security-note"><AlertTriangle size={15} /> El backend actual no entrega los tres primeros indicadores.</p>
-        </article>
       </section>
     </div>
   );

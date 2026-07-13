@@ -5,8 +5,8 @@ import {
   LayoutDashboard,
   Users,
   UsersRound,
-  MessageSquareWarning
-
+  MessageSquareWarning,
+  Brain
 } from "lucide-react";
 import "./sidebar.css";
 import senaLogo from "../../assets/logoSena.png";
@@ -24,14 +24,15 @@ const menuByRole = {
     { icon: Users, label: "Asistencia", path: "/instructor/asistencia", id: "asistencia" },
     { icon: MessageSquareWarning, label: "Observaciones", path: "/instructor/observaciones", id: "observaciones" },
     { icon: Users, label: "Aprendices", path: "/instructor/aprendices", id: "aprendices" },
-    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "consultar-alertas" }
-    
+    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "consultar-alertas" },
+    { icon: Brain, label: "Analítica", path: "/analitica-predictiva", id: "analitica" }
   ],
   coordinador: [
     { icon: LayoutDashboard, label: "Inicio", path: "/dashboard", id: "inicio" },
     { icon: Users, label: "Gestion de usuarios", path: "/usuarios", id: "usuarios" },
     { icon: UsersRound, label: "Gestion de grupos", path: "/fichas", id: "grupos" },
-    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "alertas" }
+    { icon: Bell, label: "Alertas", path: "/alertas/consultar", id: "alertas" },
+    { icon: Brain, label: "Analítica", path: "/analitica-predictiva", id: "analitica" }
   ]
 };
 

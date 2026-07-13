@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Building2, Camera, Edit3, ImagePlus, Mail, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
+import { guardarFotoPerfil, leerFotoPerfil } from "../../utils/profilePhoto";
 import "./perfil.css";
 
 const perfilVacio = {
@@ -8,6 +9,8 @@ const perfilVacio = {
   password_actual: "",
   password_nuevo: ""
 };
+const FOTO_MAX_BYTES = 2 * 1024 * 1024;
+const FOTO_TIPOS_PERMITIDOS = ["image/jpeg", "image/png", "image/webp"];
 
 export default function Perfil() {
   const [perfil, setPerfil] = useState(null);
@@ -16,7 +19,7 @@ export default function Perfil() {
   const [guardando, setGuardando] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [menuFotoAbierto, setMenuFotoAbierto] = useState(false);
-  const [fotoPerfil, setFotoPerfil] = useState("");
+  const [fotoPerfil, setFotoPerfil] = useState(() => leerFotoPerfil());
   const [mensaje, setMensaje] = useState("");
   const [mensajeError, setMensajeError] = useState(false);
 
@@ -37,6 +40,7 @@ export default function Perfil() {
 
       const perfilData = data?.data || data;
       setPerfil(perfilData);
+      setFotoPerfil(perfilData?.persona?.foto_perfil_url || "");
       setForm({
         email: perfilData?.email || "",
         telefono: perfilData?.persona?.telefono || "",
@@ -54,6 +58,8 @@ export default function Perfil() {
   }
 
   useEffect(() => {
+    // La carga inicial sincroniza el componente con el perfil remoto.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarPerfil();
   }, []);
 
@@ -74,16 +80,66 @@ export default function Perfil() {
 
   const areaPrincipal = perfil?.informacion_rol?.areas_asignadas?.[0] || "";
 
-  function cambiarFotoPerfil(e) {
+  async function cambiarFotoPerfil(e) {
     const archivo = e.target.files?.[0];
     if (!archivo) return;
+    e.target.value = "";
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFotoPerfil(reader.result?.toString() || "");
+    if (!FOTO_TIPOS_PERMITIDOS.includes(archivo.type)) {
+      setMensaje("Formato no permitido. Usa JPG, PNG o WEBP.");
+      setMensajeError(true);
       setMenuFotoAbierto(false);
-    };
-    reader.readAsDataURL(archivo);
+      return;
+    }
+
+    if (archivo.size > FOTO_MAX_BYTES) {
+      setMensaje("La imagen de perfil no puede superar 2 MB.");
+      setMensajeError(true);
+      setMenuFotoAbierto(false);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(archivo);
+    setFotoPerfil(previewUrl);
+    setMenuFotoAbierto(false);
+    setGuardando(true);
+    setMensaje("");
+    setMensajeError(false);
+
+    try {
+      const formData = new FormData();
+      formData.append("foto", archivo);
+
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      const res = await fetch("/api/profile/photo", {
+        method: "PATCH",
+        headers: token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || data?.error || "No fue posible subir la foto de perfil");
+
+      const fotoUrl = data?.data?.foto_perfil_url || "";
+      setFotoPerfil(fotoUrl);
+      setPerfil((actual) => ({
+        ...actual,
+        persona: {
+          ...(actual?.persona || {}),
+          foto_perfil_url: fotoUrl
+        }
+      }));
+      guardarFotoPerfil(fotoUrl);
+
+      setMensaje(data?.message || "Foto de perfil actualizada correctamente.");
+      setMensajeError(false);
+    } catch (error) {
+      setFotoPerfil(perfil?.persona?.foto_perfil_url || "");
+      setMensaje(error.message || "No fue posible subir la foto de perfil.");
+      setMensajeError(true);
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setGuardando(false);
+    }
   }
 
   function cambiarCampo(e) {
@@ -153,6 +209,10 @@ export default function Perfil() {
           >
             {fotoPerfil ? <img src={fotoPerfil} alt="" /> : (iniciales || "US")}
           </button>
+          <span className="perfil-avatar-edit-indicator" aria-hidden="true">
+            <Camera size={15} />
+          </span>
+          {!menuFotoAbierto && <span className="perfil-avatar-tooltip" role="tooltip">Cambiar foto</span>}
           {menuFotoAbierto && (
             <div className="perfil-photo-menu">
               <label>

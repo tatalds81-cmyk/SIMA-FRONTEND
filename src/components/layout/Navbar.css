@@ -13,12 +13,31 @@
   height: 76px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 18px;
   padding: 12px 28px 12px 154px;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(223, 230, 238, 0.72);
+}
+
+.sima-navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--sima-text);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.sima-navbar-brand img {
+  width: 46px;
+  height: 46px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 10px rgba(5, 45, 79, 0.14));
 }
 
 .sima-navbar-main.navbar-instructor {
@@ -31,6 +50,7 @@
   background: var(--sima-navy);
   border-bottom-color: var(--sima-navy);
   box-shadow: none;
+  padding-right: 62px;
 }
 
 .sima-navbar-right {
@@ -43,7 +63,8 @@
 
 .navbar-instructor .sima-navbar-icon,
 .navbar-instructor .profile-section,
-.navbar-instructor .profile-arrow {
+.navbar-instructor .profile-arrow,
+.navbar-instructor .sima-navbar-brand {
   color: #ffffff;
 }
 
@@ -144,6 +165,14 @@
   font-weight: 900;
   letter-spacing: 0.3px;
   box-shadow: inset 0 -10px 0 rgba(57, 169, 0, 0.75);
+  overflow: hidden;
+}
+
+.profile-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 /*perdidas*/
 .profile-info {
@@ -237,6 +266,10 @@
     min-width: auto;
   }
 
+  .sima-navbar-brand span {
+    display: none;
+  }
+
   .profile-info {
     display: none;
   }
@@ -253,6 +286,11 @@
     gap: 9px;
   }
 
+  .sima-navbar-brand img {
+    width: 40px;
+    height: 40px;
+  }
+
   .profile-avatar-circle {
     width: 46px;
     height: 46px;
@@ -265,6 +303,10 @@
 
   .profile-arrow {
     display: none;
+  }
+
+  .sima-navbar-main.navbar-superadmin {
+    padding-right: 18px;
   }
 }
 

@@ -43,9 +43,9 @@
   min-height: 0;
   display: flex;
   justify-content: center;
-  margin-top: 68px;
+  margin-top: 76px;
   margin-bottom: 106px;
-  padding: 112px 0 76px;
+  padding: 24px 0 76px;
 }
 
 .sima-sidebar-nav {
@@ -142,9 +142,9 @@
   }
 
   .sima-sidebar-shell {
-    margin-top: 54px;
+    margin-top: 76px;
     margin-bottom: 88px;
-    padding-top: 88px;
+    padding-top: 14px;
     padding-bottom: 64px;
   }
 
@@ -185,9 +185,9 @@
   }
 
   .sima-sidebar-shell {
-    margin-top: 56px;
+    margin-top: 76px;
     margin-bottom: 88px;
-    padding: 92px 0 62px;
+    padding: 18px 0 62px;
   }
 
   .sima-sidebar-nav {

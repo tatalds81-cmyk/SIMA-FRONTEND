@@ -86,22 +86,6 @@ const etiquetaEstadoSesion = (estado) => {
   return String(estado || "Proxima sesion");
 };
 
-const sesionFueAbiertaDesdeAsistencia = (sesion) => {
-  if (typeof window === "undefined") return false;
-  const idsSesion = [
-    sesion.id_sesion_formacion,
-    sesion.id
-  ].filter(Boolean).map(String);
-  const idsActivos = [
-    window.localStorage.getItem("sima_asistencia_sesion_activa"),
-    window.sessionStorage.getItem("sima_asistencia_sesion_activa"),
-    window.localStorage.getItem("sima_asistencia_sesion_seleccionada"),
-    window.sessionStorage.getItem("sima_asistencia_sesion_seleccionada")
-  ].filter(Boolean).map(String);
-
-  return idsSesion.some((id) => idsActivos.includes(id));
-};
-
 const obtenerEstadoSesion = (sesion, fechaISO, horas, ahora) => {
   const estado = String(sesion.estado || "").toUpperCase();
   if (["CANCELADA", "CANCELADO"].includes(estado)) return "CANCELADA";
@@ -114,16 +98,14 @@ const obtenerEstadoSesion = (sesion, fechaISO, horas, ahora) => {
   const fin = new Date(`${fechaISO}T${horas.fin}:00`);
   const inicioValido = !Number.isNaN(inicio.getTime());
   const finValido = !Number.isNaN(fin.getTime());
-  const antesInicio = inicioValido && ahora < inicio;
-  const despuesFin = finValido && ahora > fin;
-  if (sesionFueAbiertaDesdeAsistencia(sesion)) return despuesFin ? "CERRADA" : "ACTIVA";
-  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estado)) return despuesFin ? "CERRADA" : "ACTIVA";
-  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) {
-    if (antesInicio) return "PROGRAMADA";
-    return despuesFin ? "CERRADA" : "PROGRAMADA";
+  if (inicioValido && finValido) {
+    if (ahora < inicio) return "PROGRAMADA";
+    if (ahora >= fin) return "CERRADA";
+    return "ACTIVA";
   }
-  if (antesInicio) return "PROGRAMADA";
-  if (despuesFin) return "CERRADA";
+
+  if (["ABIERTA", "ACTIVA", "EN_CURSO"].includes(estado)) return "ACTIVA";
+  if (["CERRADA", "CERRADO", "FINALIZADA"].includes(estado)) return "CERRADA";
   if (["PENDIENTE", "PROGRAMADA", ""].includes(estado)) return "PENDIENTE";
 
   return "PROGRAMADA";
@@ -137,8 +119,6 @@ const obtenerClaseDia = (sesiones) => {
   if (sesiones.some((sesion) => claseEstadoSesion(sesion.estadoCalendario) === "pendiente")) return "pendiente";
   return "con-sesiones";//kjij//
 };
-
-const puedeAbrirSesion = (estado) => String(estado || "").toUpperCase() === "PENDIENTE";
 
 const prioridadSesionCalendario = (sesion) => {
   const clase = claseEstadoSesion(sesion?.estadoCalendario || sesion?.estado);
@@ -162,8 +142,7 @@ export default function HorarioSemanalInstructor({
   finSemana,
   ahora,
   jornada,
-  onJornadaChange,
-  onAbrirSesionPendiente
+  onJornadaChange
 }) {
   const calendario = useMemo(() => {
     const dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
@@ -223,20 +202,8 @@ export default function HorarioSemanalInstructor({
             <div className="instructor-calendar-head"><strong>{item.dia.slice(0, 3).toUpperCase()}</strong><span>{Number(item.fecha.slice(8, 10))}</span></div>
             {item.sesiones.length ? item.sesiones.map((sesion, index) => (
               <div
-                className={`instructor-calendar-session ${claseEstadoSesion(sesion.estadoCalendario)} ${puedeAbrirSesion(sesion.estadoCalendario) ? "clickable" : ""}`}
+                className={`instructor-calendar-session ${claseEstadoSesion(sesion.estadoCalendario)}`}
                 key={obtenerIdSesion(sesion) || `${item.dia}-${obtenerClaveSesionCalendario(sesion)}-${index}`}
-                role={puedeAbrirSesion(sesion.estadoCalendario) ? "button" : undefined}
-                tabIndex={puedeAbrirSesion(sesion.estadoCalendario) ? 0 : undefined}
-                onClick={() => {
-                  if (puedeAbrirSesion(sesion.estadoCalendario)) onAbrirSesionPendiente?.(sesion);
-                }}
-                onKeyDown={(evento) => {
-                  if (!puedeAbrirSesion(sesion.estadoCalendario)) return;
-                  if (evento.key === "Enter" || evento.key === " ") {
-                    evento.preventDefault();
-                    onAbrirSesionPendiente?.(sesion);
-                  }
-                }}
               >
                 <span className="instructor-calendar-time"><Clock size={13} />{sesion.horasDashboard.inicio} - {sesion.horasDashboard.fin}</span>
                 <strong>{obtenerCompetenciaSesion(sesion)}</strong>

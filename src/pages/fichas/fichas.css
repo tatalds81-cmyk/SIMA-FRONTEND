@@ -1161,7 +1161,7 @@
 
 .gd-resumen-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(390px, .9fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
@@ -3474,7 +3474,7 @@
 }
 
 .grupos-horario-reassign-grid {
-  grid-template-columns: 190px minmax(280px, 1fr);
+  grid-template-columns: 160px minmax(240px, 1fr) minmax(280px, 1fr);
 }
 
 .grupos-horario-modal.reasignacion .grupos-horario-check-grid.bloques {
