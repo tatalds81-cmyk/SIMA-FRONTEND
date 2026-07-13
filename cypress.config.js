@@ -8,7 +8,7 @@ export default defineConfig({
   videoCompression: 32,
 
   e2e: {
-    baseUrl: "https://localhost:5173",
+    baseUrl: "http://localhost:5173",
     setupNodeEvents(on,config){
       return config;
     },
