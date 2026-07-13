@@ -649,6 +649,7 @@ export default function Usuario() {
         </select>
         <select
           className="usuarios-select-filtro"
+          data-testid="select-usuario-estado"
           value={filtroEstado}
           onChange={(e) => {
             setFiltroEstado(e.target.value);
