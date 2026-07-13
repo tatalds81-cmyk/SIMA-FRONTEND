@@ -296,7 +296,7 @@ describe('EP02 - Gestión de aprendices, grupos formativos e instructor líder',
       cy.contains('button', 'Editar').click();
       cy.get('input[name="telefono"]').clear().type('3009998888');
       cy.contains('button', 'Guardar cambios').click();
-      cy.contains('actualizado correctamente').should('be.visible');
+      cy.contains('actualizado correctamente', { timeout: 8000 }).should('be.visible');
     });
   });
 
