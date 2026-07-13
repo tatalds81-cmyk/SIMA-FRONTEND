@@ -211,8 +211,11 @@ describe('CP-H48 - Cerrar sesión y consolidar inasistencias', () => {
     // Verify that the manual toggle button is NOT disabled since the session object is loaded
     cy.get('button.asistencia-manual-toggle').should('not.be.disabled');
 
-    // Verify that the table displays the empty filters message since the session is closed
-    cy.contains('No hay aprendices con esos filtros.').should('exist');
+    // La sesión cerrada conserva el consolidado para consulta y corrección controlada.
+    cy.get('button.asistencia-manual-toggle').click();
+    cy.contains('Carlos Andrés Mendoza Pérez').should('exist');
+    cy.get('.asistencia-status').should('contain.text', 'Inasistente');
+    cy.contains('Automatico').should('exist');
 
     cy.screenshot('H48-sesion-autocerrada-inasistencias');
   });

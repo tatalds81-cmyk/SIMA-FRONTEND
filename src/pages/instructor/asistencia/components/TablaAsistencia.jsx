@@ -1,4 +1,4 @@
-import { ChevronDown, Eye } from "lucide-react";
+import { ChevronDown, Eye, Pencil } from "lucide-react";
 import { ESTADOS, ESTADOS_REGISTRABLES } from "../asistencia.constants";
 
 function obtenerClaseEstado(estado) {
@@ -12,6 +12,7 @@ export default function TablaAsistencia({
   modoManual,
   soloLectura = false,
   onAbrirDetalle,
+  onAbrirManual,
   onCambiarEstado
 }) {
   const mostrarAcciones = !soloLectura && !modoManual;
@@ -48,19 +49,30 @@ export default function TablaAsistencia({
                 <td>{aprendiz.metodo}</td>
                 {modoManual && (
                   <td>
-                    <label className="asistencia-manual-select">
-                      <select
-                        value={ESTADOS_REGISTRABLES.includes(aprendiz.estado) ? aprendiz.estado : ""}
-                        onChange={(e) => onCambiarEstado(aprendiz.id, e.target.value)}
+                    <div className="asistencia-manual-actions">
+                      <label className="asistencia-manual-select">
+                        <select
+                          value={ESTADOS_REGISTRABLES.includes(aprendiz.estado) ? aprendiz.estado : ""}
+                          onChange={(e) => onCambiarEstado(aprendiz.id, e.target.value)}
+                          disabled={guardando || soloLectura}
+                        >
+                          <option value="" disabled>Sin registro</option>
+                          <option value="PRESENTE">Presente</option>
+                          <option value="INASISTENTE">Inasistente</option>
+                          <option value="TARDE">Tarde</option>
+                        </select>
+                        <ChevronDown size={14} />
+                      </label>
+                      <button
+                        type="button"
+                        className="asistencia-icon-action"
+                        onClick={() => onAbrirManual(aprendiz)}
                         disabled={guardando}
                       >
-                        <option value="" disabled>Sin registro</option>
-                        <option value="PRESENTE">Presente</option>
-                        <option value="INASISTENTE">Inasistente</option>
-                        <option value="TARDE">Tarde</option>
-                      </select>
-                      <ChevronDown size={14} />
-                    </label>
+                        <Pencil size={14} />
+                        Editar
+                      </button>
+                    </div>
                   </td>
                 )}
                 {mostrarAcciones && (

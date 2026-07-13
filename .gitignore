@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 dist
+cypress/test-results/
+pruebas_esteban/Pruebas-automatizadas-proyecto/cypress/test-results/
 dist-ssr
 *.local
 .env
