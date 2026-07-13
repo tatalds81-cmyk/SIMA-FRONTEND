@@ -19,7 +19,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['cypress/**/*.js'],
+    files: ['**/cypress/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.browser,
