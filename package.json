@@ -11,6 +11,8 @@
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "cy:run:extended": "cypress run --project pruebas_esteban/Pruebas-automatizadas-proyecto",
+    "test:e2e": "cypress run",
+    "test:superadmin": "cypress run --spec \"cypress/e2e/superadmin/**/*.cy.js\"",
     "cy:run:ep07": "cypress run --spec \"cypress/e2e/ep07-h*.cy.js\""
   },
   "dependencies": {
